@@ -4,7 +4,10 @@
       {
         "matcher": "Read|Skill|Glob|Grep",
         "hooks": [
-          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-load.py\"" }
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-load.py\""
+          }
         ]
       }
     ]
@@ -16,8 +19,32 @@
       "Bash(curl:*)",
       "Bash(wget:*)",
       "Bash(rm -rf:*)",
+      "Edit(/00-router/**)",
+      "Write(/00-router/**)",
+      "Edit(/10-game-design/**)",
+      "Write(/10-game-design/**)",
+      "Edit(/20-luau-rojo/**)",
+      "Write(/20-luau-rojo/**)",
+      "Edit(/30-ui-ux/**)",
+      "Write(/30-ui-ux/**)",
+      "Edit(/40-monetization/**)",
+      "Write(/40-monetization/**)",
+      "Edit(/50-retention-analytics/**)",
+      "Write(/50-retention-analytics/**)",
+      "Edit(/60-policy/**)",
+      "Write(/60-policy/**)",
+      "Edit(/70-competitors/**)",
+      "Write(/70-competitors/**)",
+      "Edit(/80-assets/**)",
+      "Write(/80-assets/**)",
+      "Edit(/90-templates-checklists/**)",
+      "Write(/90-templates-checklists/**)",
       "Edit(/.obsidian/**)",
-      "Write(/.obsidian/**)"
+      "Write(/.obsidian/**)",
+      "Edit(/.claude/**)",
+      "Write(/.claude/**)",
+      "Edit(/CLAUDE.md)",
+      "Write(/CLAUDE.md)"
     ]
   }
 }

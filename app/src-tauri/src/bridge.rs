@@ -30,10 +30,35 @@ pub struct RunOutcome {
 
 /// Build the exact argument list. Kept separate so it can be unit tested
 /// and shown in the run log.
-pub fn build_args(req: &RunRequest, allowed_tools: &[String], add_dirs: &[PathBuf]) -> Vec<String> {
+/// If the agent has a skill in `vault/.claude/skills/<agent>/`, the prompt is
+/// sent as `/<agent> <instruction>` so Claude Code loads that skill
+/// deterministically (skills are `disable-model-invocation`, so agents cannot
+/// pull in other agents' skills on their own).
+pub fn build_args(
+    req: &RunRequest,
+    allowed_tools: &[String],
+    add_dirs: &[PathBuf],
+    run_dir: &Path,
+    has_skill: bool,
+) -> Vec<String> {
+    let prompt = if has_skill {
+        format!("/{} {}", req.agent, req.prompt)
+    } else {
+        req.prompt.clone()
+    };
+    let context = format!(
+        "Run context. Run id: {}. Your run folder is {} (absolute path). Write every output file there, \
+         including gate.json. The studio's game projects folder is {}. You are running unattended: \
+         nobody can answer questions mid-run, so put questions in your output under Open questions.",
+        req.run_id,
+        run_dir.display(),
+        add_dirs.first().map(|p| p.display().to_string()).unwrap_or_default()
+    );
     let mut a: Vec<String> = vec![
         "-p".into(),
-        req.prompt.clone(),
+        prompt,
+        "--append-system-prompt".into(),
+        context,
         "--agent".into(),
         req.agent.clone(),
         "--model".into(),
@@ -44,6 +69,12 @@ pub fn build_args(req: &RunRequest, allowed_tools: &[String], add_dirs: &[PathBu
         "--max-budget-usd".into(),
         format!("{:.2}", req.estimate.cap_usd),
         "--no-session-persistence".into(),
+        // Only the vault's own settings (hooks, deny rules) and no MCP
+        // servers: agents do not inherit plugins or tools from the user's
+        // personal Claude Code setup.
+        "--setting-sources".into(),
+        "project".into(),
+        "--strict-mcp-config".into(),
         "--permission-mode".into(),
         "dontAsk".into(),
     ];
@@ -83,7 +114,12 @@ pub fn run_approved<F: FnMut(&str)>(
 
     let vault = root.join("vault");
     let add_dirs = vec![root.join("projects"), dir.clone()];
-    let args = build_args(&req, &profile.allowed_tools, &add_dirs);
+    let has_skill = vault
+        .join(".claude/skills")
+        .join(&req.agent)
+        .join("SKILL.md")
+        .is_file();
+    let args = build_args(&req, &profile.allowed_tools, &add_dirs, &dir, has_skill);
     fs::write(
         dir.join("command.json"),
         serde_json::to_string_pretty(&serde_json::json!({
@@ -229,10 +265,20 @@ mod tests {
             error: None,
             pipeline_id: None,
         };
-        let a = build_args(&req, &["Read".into(), "Glob".into()], &[]);
+        let a = build_args(
+            &req,
+            &["Read".into(), "Glob".into()],
+            &[PathBuf::from("/s/projects")],
+            Path::new("/s/runs/run-x"),
+            true,
+        );
+        assert_eq!(a[1], "/lead hi", "skill must be invoked by slash command");
         let joined = a.join(" ");
+        assert!(joined.contains("/s/runs/run-x"));
         assert!(joined.contains("--max-budget-usd 0.37"));
         assert!(joined.contains("--permission-mode dontAsk"));
+        assert!(joined.contains("--setting-sources project"));
+        assert!(joined.contains("--strict-mcp-config"));
         assert!(joined.contains("--agent lead"));
         assert!(joined.contains("--allowedTools Read Glob"));
         assert!(!joined.contains("skip-permissions"));

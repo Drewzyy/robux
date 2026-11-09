@@ -1,0 +1,6 @@
+run run-architect-20261109-104602-cccf  agent architect  status done  cost 0.15664820000000002
+allowed sections: ['00-router', '10-game-design']
+  Read   section      00-router/index.md  [ok]
+  Read   section      10-game-design/index.md  [ok]
+sections loaded, in order: ['00-router', '10-game-design']
+PASS: only allowed sections were loaded

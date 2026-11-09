@@ -1,0 +1,31 @@
+{
+  "args": [
+    "-p",
+    "/builder Write the server-side Luau for a coin counter: players earn coins from a RemoteEvent the client fires when it touches a coin, and coins save between sessions. Write it as a snippet in build.md in your run folder, not a full project. Keep it short.",
+    "--append-system-prompt",
+    "Run context. Run id: run-builder-20261109-104738-6f9d. Your run folder is /home/user/robux/runs/run-builder-20261109-104738-6f9d (absolute path). Write every output file there, including gate.json. The studio's game projects folder is /home/user/robux/projects. You are running unattended: nobody can answer questions mid-run, so put questions in your output under Open questions.",
+    "--agent",
+    "builder",
+    "--model",
+    "claude-sonnet-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "2.02",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read Glob Grep Skill Write Edit Bash(rojo:*) Bash(lune:*) Bash(selene:*) Bash(stylua:*) Bash(mkdir:*) Bash(ls:*)",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/run-builder-20261109-104738-6f9d"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

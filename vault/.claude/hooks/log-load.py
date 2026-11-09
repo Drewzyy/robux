@@ -19,13 +19,11 @@ def main() -> None:
         return
     tool = data.get("tool_name", "")
     tin = data.get("tool_input") or {}
-    target = (
-        tin.get("file_path")
-        or tin.get("skill")
-        or tin.get("pattern")
-        or tin.get("path")
-        or ""
-    )
+    if tool in ("Glob", "Grep"):
+        # The folder searched is what matters; the pattern is kept in "input".
+        target = tin.get("path") or "(vault root)"
+    else:
+        target = tin.get("file_path") or tin.get("skill") or tin.get("path") or ""
     vault = os.environ.get("CLAUDE_PROJECT_DIR") or data.get("cwd") or ""
     rel = target
     if vault and isinstance(target, str) and target.startswith(vault.rstrip("/") + "/"):

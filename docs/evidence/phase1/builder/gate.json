@@ -1,0 +1,13 @@
+{
+  "agent": "builder",
+  "run_id": "run-builder-20261109-104738-6f9d",
+  "passed": false,
+  "checks": [
+    {"name": "rojo build", "passed": false, "detail": "NOT RUN: snippet only, no project; Bash denied so tool presence unchecked"},
+    {"name": "selene lint", "passed": false, "detail": "NOT RUN: Bash denied"},
+    {"name": "stylua --check", "passed": false, "detail": "NOT RUN: Bash denied"},
+    {"name": "lune unit tests", "passed": false, "detail": "NOT RUN: no tests written for snippet; Bash denied"},
+    {"name": "remote handlers validate arguments", "passed": true, "detail": "Reviewed by reading only: CoinTouched -> onClaim validates Instance type, BasePart, workspace, Coin tag, Collected attribute, profile, rate limit, distance, NaN/inf"},
+    {"name": "DataStore paths use ProfileStore with BindToClose", "passed": false, "detail": "Code uses ProfileStore and BindToClose, but the API is UNVERIFIED and the flush wait on shutdown is a TODO"}
+  ]
+}

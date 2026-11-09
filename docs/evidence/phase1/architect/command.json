@@ -1,0 +1,28 @@
+{
+  "args": [
+    "-p",
+    "/architect Design the core loop and first 60 seconds for a small tycoon game where the player runs a lemonade stand on a beach. Keep the design doc short: one page.",
+    "--append-system-prompt",
+    "Run context. Run id: run-architect-20261109-104602-cccf. Your run folder is /home/user/robux/runs/run-architect-20261109-104602-cccf (absolute path). Write every output file there, including gate.json. The studio's game projects folder is /home/user/robux/projects. You are running unattended: nobody can answer questions mid-run, so put questions in your output under Open questions.",
+    "--agent",
+    "architect",
+    "--model",
+    "claude-sonnet-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "0.63",
+    "--no-session-persistence",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read Glob Skill Write",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/run-architect-20261109-104602-cccf"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

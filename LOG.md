@@ -66,3 +66,65 @@ How it was verified
 Not verified
 - The macOS build. Tauri cannot be compiled for macOS from Linux. Andrew needs
   to run the app once on his Mac (steps in README.md).
+
+## Phase 1: vault skeleton and router
+
+What was built
+- `vault/00-router/index.md`: the router (52 lines). Rules, a task-to-section
+  table, and each agent's home section. Pointers only.
+- `vault/00-router/`: how-to-use-this-vault (real content), glossary,
+  policy-change-log, sources (stubs).
+- One `index.md` per section 10 to 90, each a stub table naming the notes the
+  section will hold (82 planned notes, from research report Part C).
+- `vault/CLAUDE.md`: 8 lines, always loaded, points at the router.
+- Skills `vault/.claude/skills/{lead,architect,builder}/SKILL.md`: job, what to
+  load in order, steps, output file, quality bar (game psychology), and a
+  verification gate written to `gate.json`. All are
+  `disable-model-invocation: true`, so an agent cannot pull in another
+  agent's skill on its own.
+- Subagents `vault/.claude/agents/{lead,architect,builder}.md`.
+- Bridge changes: the prompt is sent as `/<agent> <instruction>` so the agent's
+  skill loads deterministically; the run folder is passed with
+  `--append-system-prompt`; agents run with `--setting-sources project
+  --strict-mcp-config` so they do not inherit plugins or MCP servers from the
+  user's personal Claude Code setup.
+- Vault write protection: deny rules in `vault/.claude/settings.json` for
+  every section folder, `.claude/`, `.obsidian/`, and `CLAUDE.md`. Probe run
+  confirmed a Write into a denied folder is blocked and a Write elsewhere goes
+  through.
+- `scripts/check_loads.py` (proves which sections a run loaded) and
+  `scripts/check_vault.py` (structure checks).
+
+How it was verified
+1. Architect, asked for a design (beach lemonade tycoon): loaded
+   `00-router/index.md` then `10-game-design/index.md`, nothing else.
+   check_loads PASS. Cost $0.157 (estimate $0.25, cap $0.63).
+2. Builder, asked for code (coin counter that saves): loaded
+   `00-router/index.md` then `20-luau-rojo/index.md`, plus a listing of
+   `20-luau-rojo/` and its own run folder. check_loads PASS. Cost $0.121
+   (estimate $0.80, cap $2.02).
+3. Negative test: Architect's log checked against a code-only allow list
+   FAILS, so the checker does catch a wrong section.
+4. Skill wiring: prompts went out as `/architect ...` and `/builder ...`
+   (command.json). Outputs follow the skills exactly (file names, all
+   required sections, gate.json shape).
+5. `check_vault.py` PASS. `cargo test` 7/7.
+Evidence: `docs/evidence/phase1/`.
+
+Mistakes caught during verification
+- The first Architect/Builder runs used a stale `studio-cli` binary
+  (`cargo test` does not rebuild it), so the skill was never sent. Routing was
+  correct but skill wiring was untested. Rebuilt and reran both; the evidence
+  above is from the reruns.
+- The load hook logged a Glob's pattern instead of its folder, which made two
+  legitimate folder listings look like violations. Fixed the hook and checker.
+
+Findings that shape Phase 2 and 3
+- With stub notes, both agents said so and failed or flagged their gates
+  instead of inventing. Builder followed the ProfileStore rule from its skill.
+  The vault content (Phase 3) is what will let gates pass on substance.
+- The first (skill-less) Architect run named its file freely and used a
+  different gate.json shape. The pipeline runner must validate output file
+  names and gate.json shape itself, not trust the agent.
+- Builder's build gate cannot pass until rojo, selene, stylua, and lune are
+  installed. Phase 2 installs them.

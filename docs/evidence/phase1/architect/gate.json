@@ -1,0 +1,8 @@
+{"passed": true, "checks": [
+{"name": "all 11 sections present", "passed": true, "detail": "Sections 1-11 in required order in design.md."},
+{"name": "first 60 seconds has all four time windows with a concrete action", "passed": true, "detail": "0-5, 5-10, 10-30, 30-60 each have a concrete action."},
+{"name": "every number is marked as a starting value", "passed": true, "detail": "Header states all numbers are starting values to tune, and key numbers are labeled inline. Section 6 ratios are flagged UNVERIFIED guesses."},
+{"name": "nothing on the do-not-sell list is proposed for sale", "passed": true, "detail": "Nothing is proposed for sale. The do-not-sell-list note was not loaded because no monetization was proposed."},
+{"name": "no claim presented as fact without a vault source; others marked UNVERIFIED", "passed": true, "detail": "Vault notes needed were stub or missing. Skill-text psychology claims are marked UNVERIFIED in section 10. No Roblox API or path was invented."},
+{"name": "not generic: at least 3 mechanics specific to this pitch", "passed": true, "detail": "Squeeze-and-pour timing, heat meter, ice cooler, seagull shoo, upgrade pads: all lemonade-beach specific."}
+]}
