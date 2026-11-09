@@ -1,0 +1,32 @@
+{
+  "run_id": "pipe-improve-build-20261109-114826-63b1--3-playtest",
+  "agent": "playtest",
+  "prompt": "Test the change described in /home/user/robux/runs/pipe-improve-build-20261109-114826-63b1--1-architect/design.md and built per /home/user/robux/runs/pipe-improve-build-20261109-114826-63b1--2-builder/build.md in projects/dawn-watch. Focus on the first 60 seconds. Report specific problems.",
+  "estimate": {
+    "agent": "playtest",
+    "model": "claude-sonnet-5-5",
+    "low_usd": 0.2006,
+    "expected_usd": 0.4011,
+    "high_usd": 1.0029,
+    "cap_usd": 1.01,
+    "cache_write_tokens": 40873,
+    "cache_read_tokens": 348247,
+    "output_tokens": 16800,
+    "assumptions": [
+      "14 model turns, about 1200 output tokens each (thinking included)",
+      "about 15073 tokens of files and prompt read, 9000 tokens of system prompt and tools",
+      "claude-sonnet-5-5 at $2/M input, $10/M output, $0.2/M cache read, cache write 2x input",
+      "Range is 0.5x to 2.5x of expected. The run is stopped if it reaches the cap."
+    ],
+    "pricing_checked": "2026-11-09",
+    "subscription_note": "On a Claude Max plan ($100 to $200 a month) runs count against plan limits, not a per-run bill. These dollar figures are the API-equivalent cost. Heavy autonomous runs billed on the API can cost more than a Max plan."
+  },
+  "status": "done",
+  "created_at": "2026-11-09T11:48:26Z",
+  "approved_at": "2026-11-09T11:48:26Z",
+  "finished_at": "2026-11-09T11:59:33Z",
+  "actual_cost_usd": 0.5594876999999999,
+  "result_text": "The verdict is **FAIL**: 0 blockers and 6 majors. This was a code walk only, because Bash was denied. I didn't play it live, and I didn't run Lune, `rojo build`, selene or stylua, so the builder's gate result is unconfirmed.\n\nThe report says \"5 majors\" in one sentence, but its problems table lists 6 (P-01 to P-06). The table is right. I couldn't correct the sentence because Bash and Edit weren't available. `gate.json` notes the mismatch.\n\nThe six majors:\n- **P-01 (PC, phone):** The pre-aimed first beam gets overwritten. `AimController` sends the stored mouse or touch angle within 0.05 s of the player becoming keeper. The first pop therefore depends on where the mouse happens to be.\n- **P-02 (phone):** Any touch drag sets the aim, including the movement joystick on the walk to the lamp. That feeds P-01.\n- **P-03 (all):** At spawn, the Crown Lens (about 9 to 10 studs) and the oil barrel are in prompt range, but Harbor (about 13 studs) is not. The pillar points at Harbor anyway.\n- **P-04 (all):** Once the first lamp is lit, the pillar jumps to the next dark lamp until the first pop. The player has no oil by then, and the hint still says \"Light it up.\"\n- **P-05 (joiners):** A player joining while bots have lit the lamps gets \"Light it up.\" while holding oil. If all lamps are lit, there is no pillar, so the \"same fast minute for joiners\" doesn't hold.\n- **P-06 (gamepad):** The \"Aim at glow.\" hint doesn't say how to aim. The right stick also rotates the camera, and aim is derived from the camera. This is unverified.\n\nThere are 8 minor problems (P-07 to P-14), including no sound on the first pop. The report also covers a second-by-second walk of the first minute, platform notes and a Loaded section.\n\nI didn't load the genre playbook the skill mentions. The router has no playbook for this genre, and I didn't search other sections.\n\nFiles are in `/home/user/robux/runs/pipe-improve-build-20261109-114826-63b1--3-playtest`:\n- `playtest-report.md`\n- `gate.json` (`passed: true`, meaning the report met its own checks, not that the game passed)",
+  "error": null,
+  "pipeline_id": "pipe-improve-build-20261109-114826-63b1"
+}

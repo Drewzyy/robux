@@ -1,0 +1,9 @@
+{"passed": false, "checks": [
+{"name": "rojo build", "passed": true, "detail": "built place file (build_gate.py)"},
+{"name": "selene lint", "passed": true, "detail": "clean (offline std; API members not checked)"},
+{"name": "stylua --check", "passed": true, "detail": "formatted"},
+{"name": "lune unit tests", "passed": true, "detail": "9 specs passed incl. new FirstRun spec and updated Economy, Tutorial, Config specs"},
+{"name": "every RemoteEvent handler validates its arguments", "passed": true, "detail": "Only handler is AimBeam.OnServerEvent in RemotesService (unchanged): stationId whitelist, Validate.angle (NaN/huge), keeper permission, rate limit. No new remotes."},
+{"name": "every DataStore path uses ProfileStore with BindToClose", "passed": true, "detail": "No DataStore code in src (grep found none); nothing saves this build."},
+{"name": "common-bugs-checklist review", "passed": false, "detail": "NOT RUN: note not loaded; manual review only"}
+]}

@@ -1,41 +1,218 @@
 {
-  "pipeline_id": "pipe-improve-build-20261109-114821-2155",
+  "pipeline_id": "pipe-improve-build-20261109-114826-63b1",
   "pipeline": "improve-build",
   "input": "Improve the first 60 seconds: the player should do the core verb within 10 seconds of spawning and get the first reward within 30 seconds.",
   "project": "projects/dawn-watch",
   "stages": [
     {
       "agent": "architect",
-      "run_id": "pipe-improve-build-20261109-114821-2155--1-architect",
+      "run_id": "pipe-improve-build-20261109-114826-63b1--1-architect",
       "output": "design.md",
-      "status": "pending",
-      "gate": null,
-      "cost_usd": null
+      "status": "done",
+      "gate": {
+        "passed": true,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit 0, turns 19"
+          },
+          {
+            "name": "wrote design.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": true,
+            "detail": "6 checks"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 10-game-design"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "core loop section",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "first 60 seconds section",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "first 60 seconds covers 0-5, 5-10, 10-30, 30-60",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "says what we will not do",
+            "passed": true,
+            "detail": ""
+          }
+        ]
+      },
+      "cost_usd": 0.4357345
     },
     {
       "agent": "builder",
-      "run_id": "pipe-improve-build-20261109-114821-2155--2-builder",
+      "run_id": "pipe-improve-build-20261109-114826-63b1--2-builder",
       "output": "build.md",
-      "status": "pending",
-      "gate": null,
-      "cost_usd": null
+      "status": "failed",
+      "gate": {
+        "passed": false,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit 0, turns 82"
+          },
+          {
+            "name": "wrote build.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": false,
+            "detail": "failed: common-bugs-checklist review"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 20-luau-rojo"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "declares its project folder",
+            "passed": true,
+            "detail": "projects/dawn-watch"
+          },
+          {
+            "name": "project folder exists",
+            "passed": true,
+            "detail": "projects/dawn-watch"
+          },
+          {
+            "name": "project has Luau source",
+            "passed": true,
+            "detail": "19 .luau files under src/"
+          },
+          {
+            "name": "rojo build",
+            "passed": true,
+            "detail": "built place file"
+          },
+          {
+            "name": "selene lint",
+            "passed": true,
+            "detail": "clean (offline std: Roblox globals only, API members not checked)"
+          },
+          {
+            "name": "stylua --check",
+            "passed": true,
+            "detail": "formatted"
+          },
+          {
+            "name": "lune unit tests",
+            "passed": true,
+            "detail": "ok  Validate\nok  Aim\nok  Beam\nok  Fog\nok  NightPlan\nok  Economy\nok  Tutorial\nok  Config\nok  FirstRun\nall specs passed"
+          }
+        ]
+      },
+      "cost_usd": 0.8930588000000002
     },
     {
       "agent": "playtest",
-      "run_id": "pipe-improve-build-20261109-114821-2155--3-playtest",
+      "run_id": "pipe-improve-build-20261109-114826-63b1--3-playtest",
       "output": "playtest-report.md",
-      "status": "pending",
-      "gate": null,
-      "cost_usd": null
+      "status": "done",
+      "gate": {
+        "passed": true,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit 0, turns 28"
+          },
+          {
+            "name": "wrote playtest-report.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": true,
+            "detail": "5 checks"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 90-templates-checklists, 10-game-design, 30-ui-ux"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "states how it tested",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "has a verdict",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "problems have severities",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "does not claim live play without saying how",
+            "passed": true,
+            "detail": "claims live play"
+          }
+        ]
+      },
+      "cost_usd": 0.5594876999999999
     }
   ],
   "expected_usd": 1.4562,
   "high_usd": 3.6408,
   "cap_usd": 3.66,
-  "status": "cancelled",
-  "created_at": "2026-11-09T11:48:21Z",
-  "approved_at": null,
-  "finished_at": null,
-  "queue_item": null,
-  "actual_cost_usd": null
+  "status": "done",
+  "created_at": "2026-11-09T11:48:26Z",
+  "approved_at": "2026-11-09T11:48:26Z",
+  "finished_at": "2026-11-09T11:59:33Z",
+  "queue_item": "q-pipe-improve-build-20261109-114826-63b1",
+  "actual_cost_usd": 1.8883
 }

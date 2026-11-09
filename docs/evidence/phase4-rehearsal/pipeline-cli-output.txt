@@ -1,0 +1,57 @@
+pipeline: pipe-improve-build-20261109-114826-63b1
+  stage architect  est $0.2507  cap $0.63  -> design.md
+  stage builder    est $0.8044  cap $2.02  -> build.md
+  stage playtest   est $0.4011  cap $1.01  -> playtest-report.md
+total: $1.4562 expected, up to $3.6408; hard cap $3.66
+approved; running
+[1] architect started
+[1] architect gate PASS
+      ok   claude run finished without error: exit 0, turns 19
+      ok   wrote design.md: present
+      ok   agent's own gate passed: 6 checks
+      ok   loaded only allowed vault sections: sections: 00-router, 10-game-design
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   core loop section: 
+      ok   first 60 seconds section: 
+      ok   first 60 seconds covers 0-5, 5-10, 10-30, 30-60: 
+      ok   says what we will not do: 
+[2] builder started
+[2] builder gate FAIL
+      ok   claude run finished without error: exit 0, turns 82
+      ok   wrote build.md: present
+      FAIL agent's own gate passed: failed: common-bugs-checklist review
+      ok   loaded only allowed vault sections: sections: 00-router, 20-luau-rojo
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   declares its project folder: projects/dawn-watch
+      ok   project folder exists: projects/dawn-watch
+      ok   project has Luau source: 19 .luau files under src/
+      ok   rojo build: built place file
+      ok   selene lint: clean (offline std: Roblox globals only, API members not checked)
+      ok   stylua --check: formatted
+      ok   lune unit tests: ok  Validate
+ok  Aim
+ok  Beam
+ok  Fog
+ok  NightPlan
+ok  Economy
+ok  Tutorial
+ok  Config
+ok  FirstRun
+all specs passed
+[3] playtest started
+[3] playtest gate PASS
+      ok   claude run finished without error: exit 0, turns 28
+      ok   wrote playtest-report.md: present
+      ok   agent's own gate passed: 5 checks
+      ok   loaded only allowed vault sections: sections: 00-router, 90-templates-checklists, 10-game-design, 30-ui-ux
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   states how it tested: 
+      ok   has a verdict: 
+      ok   problems have severities: 
+      ok   does not claim live play without saying how: claims live play
+pipeline pipe-improve-build-20261109-114826-63b1: done  actual $1.8883
+review queue item: q-pipe-improve-build-20261109-114826-63b1
+exit=0

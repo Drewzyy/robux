@@ -1,0 +1,187 @@
+{
+  "id": "q-pipe-improve-build-20261109-114826-63b1",
+  "kind": "build",
+  "title": "improve-build: Dawn Watch: design change \"Fast First Minute\"",
+  "summary": "Pipeline improve-build (pipe-improve-build-20261109-114826-63b1). Input: Improve the first 60 seconds: the player should do the core verb within 10 seconds of spawning and get the first reward within 30 seconds. Stages: architect done, builder failed, playtest done. Failed or skipped: builder. Actual cost $1.8883 (cap $3.66). Approving records your yes only; nothing is published.",
+  "created_at": "2026-11-09T11:59:33Z",
+  "created_by": "pipeline:improve-build",
+  "run_id": "pipe-improve-build-20261109-114826-63b1",
+  "artifacts": [
+    "runs/pipe-improve-build-20261109-114826-63b1--1-architect/design.md",
+    "runs/pipe-improve-build-20261109-114826-63b1--2-builder/build.md",
+    "runs/pipe-improve-build-20261109-114826-63b1--3-playtest/playtest-report.md",
+    "projects/dawn-watch"
+  ],
+  "gate": {
+    "passed": false,
+    "checks": [
+      {
+        "name": "architect: claude run finished without error",
+        "passed": true,
+        "detail": "exit 0, turns 19"
+      },
+      {
+        "name": "architect: wrote design.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "architect: agent's own gate passed",
+        "passed": true,
+        "detail": "6 checks"
+      },
+      {
+        "name": "architect: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 10-game-design"
+      },
+      {
+        "name": "architect: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "architect: core loop section",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: first 60 seconds section",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: first 60 seconds covers 0-5, 5-10, 10-30, 30-60",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: says what we will not do",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "builder: claude run finished without error",
+        "passed": true,
+        "detail": "exit 0, turns 82"
+      },
+      {
+        "name": "builder: wrote build.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "builder: agent's own gate passed",
+        "passed": false,
+        "detail": "failed: common-bugs-checklist review"
+      },
+      {
+        "name": "builder: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 20-luau-rojo"
+      },
+      {
+        "name": "builder: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "builder: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "builder: declares its project folder",
+        "passed": true,
+        "detail": "projects/dawn-watch"
+      },
+      {
+        "name": "builder: project folder exists",
+        "passed": true,
+        "detail": "projects/dawn-watch"
+      },
+      {
+        "name": "builder: project has Luau source",
+        "passed": true,
+        "detail": "19 .luau files under src/"
+      },
+      {
+        "name": "builder: rojo build",
+        "passed": true,
+        "detail": "built place file"
+      },
+      {
+        "name": "builder: selene lint",
+        "passed": true,
+        "detail": "clean (offline std: Roblox globals only, API members not checked)"
+      },
+      {
+        "name": "builder: stylua --check",
+        "passed": true,
+        "detail": "formatted"
+      },
+      {
+        "name": "builder: lune unit tests",
+        "passed": true,
+        "detail": "ok  Validate\nok  Aim\nok  Beam\nok  Fog\nok  NightPlan\nok  Economy\nok  Tutorial\nok  Config\nok  FirstRun\nall specs passed"
+      },
+      {
+        "name": "playtest: claude run finished without error",
+        "passed": true,
+        "detail": "exit 0, turns 28"
+      },
+      {
+        "name": "playtest: wrote playtest-report.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "playtest: agent's own gate passed",
+        "passed": true,
+        "detail": "5 checks"
+      },
+      {
+        "name": "playtest: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 90-templates-checklists, 10-game-design, 30-ui-ux"
+      },
+      {
+        "name": "playtest: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "playtest: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "playtest: states how it tested",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "playtest: has a verdict",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "playtest: problems have severities",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "playtest: does not claim live play without saying how",
+        "passed": true,
+        "detail": "claims live play"
+      }
+    ]
+  },
+  "status": "pending",
+  "decision": null
+}

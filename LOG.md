@@ -355,3 +355,34 @@ Not verified here
   payments have failed or your spending limit needs to be increased" (run
   42611887113). That is an account billing setting only Andrew can change.
   The workflow is now manual-only so pushes do not send failure emails.
+
+## Phase 4 rehearsal (Dawn Watch stands in for Sky Tower Obby)
+
+Sky Tower Obby is only on Andrew's Mac, and this session cannot reach his
+computer (no shared folders). So the exact Phase 4 pipeline, `improve-build`
+(Architect, Builder, Playtest), was rehearsed on the Phase 2 test game with
+the same pitch: improve the first 60 seconds. This is not Phase 4's
+acceptance; it de-risks it.
+
+Result: pipe-improve-build-20261109-114826-63b1, estimate $1.46, cap $3.66, actual $1.89. Landed in the review
+queue as one pending item.
+- Architect: gate PASS (all checks). Read 00-router and 10-game-design only.
+- Builder: changed the existing project; studio build gate PASS (rojo build,
+  Selene, StyLua, 9/9 Lune specs including a new FirstRun spec). Its own gate
+  failed one item honestly ("common-bugs-checklist review: NOT RUN").
+- Playtest: gate PASS. Report says "Code walk only. Nothing was played live."
+  Verdict FAIL with 12 specific problems, each with file and line, severity,
+  and a fix (6 major). Examples: the guide pillar points at a lamp out of
+  prompt range while a different lamp is in range at spawn; on phones the
+  movement-joystick thumb also sets the beam's aim; gamepad aim shares the
+  camera stick. This is the "specific report, not a generic pass" Phase 4
+  asks for.
+
+Fixed after the rehearsal
+- Playtest could not run Lune or Rojo (same compound-command denial Builder had
+  in Phase 2). Its skill now has the one-command rule and the studio gate
+  script, which it is allowed to run. Not re-run here.
+- My check misread "Studio MCP was not used" as a claim of live play. It now
+  recognizes the denial, and a real claim of live play FAILS, because agent
+  runs get no Studio connection yet. Tested both ways.
+Evidence: `docs/evidence/phase4-rehearsal/`.

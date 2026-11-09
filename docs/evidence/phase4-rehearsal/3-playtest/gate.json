@@ -1,0 +1,7 @@
+{"passed": true, "checks": [
+{"name": "test method stated honestly (live, headless, or code walk)", "passed": true, "detail": "Report states code walk only; Bash was denied so Lune/rojo were not run and nothing was played live."},
+{"name": "at least one concrete finding per platform, or explicit no-issue with what was checked", "passed": true, "detail": "PC: P-01, P-03. Phone: P-02, P-12, P-13. Gamepad: P-06."},
+{"name": "every problem has a file or place reference and a severity", "passed": true, "detail": "P-01 to P-14 each have a file/line or design section and a severity."},
+{"name": "verdict matches the problems (no PASS with a blocker)", "passed": true, "detail": "Verdict FAIL: 0 blockers, 6 majors (P-01 to P-06). The report text says 5 majors in one sentence; the table lists 6."},
+{"name": "no generic praise or filler", "passed": true, "detail": "All findings name Dawn Watch files, lamps, Mumbles and numbers."}
+]}
