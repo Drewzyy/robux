@@ -28,8 +28,9 @@ Input: the project in `projects/<game>/` and its design doc. If Roblox Studio is
 ## Steps
 1. State how you tested: live in Studio, headless, or code walk only. Never imply live play you did not do.
 2. Walk the first 60 seconds second by second against the checklist, for PC (keyboard and mouse), phone (touch), and gamepad.
-3. Log every problem: id, platform, where (file and line or place), what happens, what should happen, severity (blocker, major, minor).
-4. Give a verdict: PASS only if there are no blockers or majors.
+3. Sound: if `projects/<game>/sounds.json` exists, list every `first_60_seconds` entry without an `asset_id` as a minor problem ("needs Andrew: generate in ForgeGUI"). If it does not exist, say so.
+4. Log every problem: id, platform, where (file and line or place), what happens, what should happen, severity (blocker, major, minor).
+5. Give a verdict: PASS only if there are no blockers or majors.
 
 ## Output
 `<run folder>/playtest-report.md`: How tested / Verdict / Problems table / First 60 seconds walk / Platform notes / Loaded.

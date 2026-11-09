@@ -275,6 +275,59 @@ async function artifactsBlock(artifacts) {
     grid);
 }
 
+// ForgeGUI sound sheet: copy each prompt, paste back the Roblox asset ID.
+async function soundsBlock(artifacts) {
+  const sheetPath = artifacts.find((a) => a.endsWith("/sounds.json"));
+  if (!sheetPath) return null;
+  const project = sheetPath.replace(/\/sounds\.json$/, "");
+  let data;
+  try {
+    data = await invoke("sounds_get", { project });
+  } catch (e) {
+    return el("p", { class: "note" }, "Could not read the sound sheet: " + e);
+  }
+  const sounds = data.sounds || [];
+  const done = () => sounds.filter((x) => x.asset_id).length;
+  const count = el("span", { class: "note", id: "sounds-count" }, `${done()} of ${sounds.length} have a Roblox asset ID`);
+  const rows = sounds.map((x) => {
+    const asset = el("input", { type: "text", placeholder: "rbxassetid://… or the number", value: x.asset_id || "" });
+    const lic = el("input", { type: "text", placeholder: "License (who made it, terms)", value: x.license || "" });
+    const copy = async () => {
+      try {
+        await navigator.clipboard.writeText(x.prompt);
+        toast("Prompt copied. Paste it into ForgeGUI.");
+      } catch {
+        asset.value = asset.value; // keep focus behaviour simple
+        sheet("Prompt for " + x.id, el("pre", { class: "log" }, x.prompt));
+      }
+    };
+    const save = async () => {
+      try {
+        const next = await invoke("sounds_set_asset", { project, id: x.id, assetId: asset.value, license: lic.value });
+        const updated = next.sounds.find((y) => y.id === x.id);
+        x.asset_id = updated.asset_id;
+        x.license = updated.license;
+        asset.value = x.asset_id || "";
+        count.textContent = `${done()} of ${sounds.length} have a Roblox asset ID`;
+        toast(x.asset_id ? `Saved ${x.id}.` : `Cleared ${x.id}.`);
+      } catch (e) {
+        toast(String(e), true);
+      }
+    };
+    return el("div", { class: "srow", style: "align-items:flex-start", "data-sound": x.id },
+      el("div", { class: "grow" },
+        el("div", { class: "inline", style: "gap:8px" }, el("span", { class: "label" }, x.id), x.first_60_seconds ? el("span", { class: "pill red-soft" }, "First 60s") : null, x.loop ? el("span", { class: "pill" }, "Loop") : null),
+        el("div", { class: "hint" }, x.event),
+        el("div", { class: "note", style: "margin-top:4px;color:#D1D1D6" }, x.prompt),
+        el("div", { class: "inline", style: "margin-top:8px" }, asset, lic, el("button", { class: "btn secondary small", onclick: save }, "Save"))),
+      el("button", { class: "btn secondary small", onclick: copy }, "Copy Prompt"));
+  });
+  return el("div", { class: "section", style: "margin-top:18px" },
+    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Sounds for ForgeGUI"), count),
+    el("p", { class: "note" }, "Copy a prompt, make the sound in ForgeGUI, upload it to Roblox, then paste its asset ID here. Builder only wires sounds that have an ID."),
+    el("div", { class: "list", id: "sounds-list" }, rows));
+}
+
 async function openText(path) {
   try {
     const t = await invoke("artifact_text", { path });
@@ -291,6 +344,7 @@ async function itemSheet(item) {
     markdown(item.summary || ""),
     el("h2", { style: "margin-top:18px" }, "What was produced"),
     await artifactsBlock(item.artifacts || []),
+    await soundsBlock(item.artifacts || []),
     el("h2", { style: "margin-top:18px" }, "How it was verified"),
     checksList(item.gate.checks),
     item.run_id ? el("p", {}, el("button", { class: "link", onclick: () => { location.hash = "#run/" + item.run_id; } }, "Open the run")) : null,

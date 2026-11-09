@@ -24,6 +24,7 @@ If a note you need is a stub, write "STUB: <note>" in your output and fall back 
 - Data saves through ProfileStore (session locked), with autosave, leave-save, and `game:BindToClose`. A failed load never plays on a default profile.
 - One bootstrapper per side, two-phase Init/Start. No circular requires.
 - No Toolbox free models. No trademarked characters.
+- Sound: play sounds only by `id` from `projects/<game>/sounds.json`, mirrored into a frozen `src/shared/Data/Sounds.luau` (id to asset id). An entry with `asset_id: null` plays nothing. Never invent or hard-code an asset ID ([[80-assets/audio-pipeline]], loaded only if the task involves sound).
 - Never publish. Never call Open Cloud publish. Never run `git push`.
 
 ## Project conventions (the studio's build gate checks these)

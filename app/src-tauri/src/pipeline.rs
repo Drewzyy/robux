@@ -400,6 +400,18 @@ pub fn finish_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, Str
     if root.join(&rel).is_file() {
         artifacts.push(rel);
     }
+    // Librarian's sound sheet lives in the project, not the run folder.
+    if req.agent == "librarian" {
+        if let Ok(t) = fs::read_to_string(dir.join(&output)) {
+            if let Some(i) = t.find("projects/") {
+                let name: String = t[i + 9..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').collect();
+                let rel = format!("projects/{name}/sounds.json");
+                if !name.is_empty() && root.join(&rel).is_file() {
+                    artifacts.push(rel);
+                }
+            }
+        }
+    }
     for extra in ["thumbnails"] {
         let p = dir.join(extra);
         if p.is_dir() {

@@ -375,3 +375,45 @@ pub fn inline_svg_images(root: &Path, svg_rel: &str, svg: &str) -> String {
     out.push_str(rest);
     out
 }
+
+fn sounds_path(root: &Path, project: &str) -> Result<PathBuf, String> {
+    let ok = project.starts_with("projects/") && !project.contains("..") && project[9..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !ok {
+        return Err("project must look like projects/<name>".into());
+    }
+    Ok(root.join(project).join("sounds.json"))
+}
+
+/// The ForgeGUI sound request sheet for a project.
+pub fn sounds_get(root: &Path, project: &str) -> Result<serde_json::Value, String> {
+    let p = sounds_path(root, project)?;
+    let t = fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+    serde_json::from_str(&t).map_err(|e| e.to_string())
+}
+
+/// Andrew pastes the Roblox asset ID (and license) for one sound after
+/// generating and uploading it. Only `rbxassetid://<digits>` is accepted;
+/// an empty value clears the ID.
+pub fn sounds_set_asset(root: &Path, project: &str, id: &str, asset_id: &str, license: &str) -> Result<serde_json::Value, String> {
+    let asset = asset_id.trim();
+    let asset = if asset.chars().all(|c| c.is_ascii_digit()) && !asset.is_empty() { format!("rbxassetid://{asset}") } else { asset.to_string() };
+    if !asset.is_empty() {
+        let digits = asset.strip_prefix("rbxassetid://").unwrap_or("");
+        if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
+            return Err("asset ID must be rbxassetid://<number> or just the number".into());
+        }
+    }
+    let p = sounds_path(root, project)?;
+    let mut v = sounds_get(root, project)?;
+    let list = v.get_mut("sounds").and_then(|x| x.as_array_mut()).ok_or("sounds.json has no sounds list")?;
+    let entry = list
+        .iter_mut()
+        .find(|e| e.get("id").and_then(|x| x.as_str()) == Some(id))
+        .ok_or_else(|| format!("no sound with id {id}"))?;
+    entry["asset_id"] = if asset.is_empty() { serde_json::Value::Null } else { serde_json::Value::String(asset) };
+    entry["license"] = if license.trim().is_empty() { serde_json::Value::Null } else { serde_json::Value::String(license.trim().to_string()) };
+    let tmp = p.with_extension("json.tmp");
+    fs::write(&tmp, serde_json::to_string_pretty(&v).map_err(|e| e.to_string())? + "\n").map_err(|e| e.to_string())?;
+    fs::rename(&tmp, &p).map_err(|e| e.to_string())?;
+    Ok(v)
+}

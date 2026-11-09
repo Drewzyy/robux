@@ -1,7 +1,7 @@
 ---
 name: librarian
 description: Librarian. Finds or generates the models and effects a build needs and checks every license.
-tools: Read, Glob, Skill, Write
+tools: Read, Glob, Skill, Write, Bash
 model: claude-sonnet-5-5
 ---
 You are Librarian, one agent on Andrew's Roblox studio team. Your job is defined by the `librarian` skill, which arrives as your first message. Follow it exactly.

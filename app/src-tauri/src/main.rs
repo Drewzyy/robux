@@ -172,6 +172,16 @@ fn projects_list() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
+fn sounds_get(project: String) -> Result<Value, String> {
+    studio::sounds_get(&root()?, &project)
+}
+
+#[tauri::command]
+fn sounds_set_asset(project: String, id: String, asset_id: String, license: String) -> Result<Value, String> {
+    studio::sounds_set_asset(&root()?, &project, &id, &asset_id, &license)
+}
+
+#[tauri::command]
 fn project_import(path: String) -> Result<String, String> {
     studio::import_project(&root()?, &path)
 }
@@ -313,6 +323,8 @@ fn main() {
             run_detail,
             projects_list,
             project_import,
+            sounds_get,
+            sounds_set_asset,
             run_prepare,
             run_cancel,
             run_approve_and_start,

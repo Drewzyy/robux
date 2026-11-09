@@ -54,6 +54,19 @@ pub fn build_args(
         run_dir.display(),
         add_dirs.first().map(|p| p.display().to_string()).unwrap_or_default()
     );
+    let shell: Vec<String> = allowed_tools
+        .iter()
+        .filter_map(|t| t.strip_prefix("Bash(").and_then(|r| r.strip_suffix(")")))
+        .map(|r| format!("`{}`", r.trim_end_matches(":*").trim_end_matches('*').trim_end()))
+        .collect();
+    let context = if shell.is_empty() {
+        format!("{context} You have no shell access in this run.")
+    } else {
+        format!(
+            "{context} Shell commands you may run, each as ONE command that starts exactly like this (arguments after it are fine): {}. Anything else is refused, including pipes, &&, ;, cd, heredocs, and python3 -c. Do not try other commands.",
+            shell.join(", ")
+        )
+    };
     let mut a: Vec<String> = vec![
         "-p".into(),
         prompt,
@@ -291,6 +304,9 @@ mod tests {
         assert_eq!(a[1], "/lead hi", "skill must be invoked by slash command");
         let joined = a.join(" ");
         assert!(joined.contains("/s/runs/run-x"));
+        assert!(joined.contains("no shell access"), "agents without Bash rules are told so");
+        let b = build_args(&req, &["Bash(rojo:*)".into()], &[], Path::new("/r"), true).join(" ");
+        assert!(b.contains("`rojo`") && b.contains("Do not try other commands"), "{b}");
         assert!(joined.contains("--max-budget-usd 0.37"));
         assert!(joined.contains("--permission-mode dontAsk"));
         assert!(joined.contains("--setting-sources project"));

@@ -1,0 +1,75 @@
+{
+  "id": "q-run-librarian-20261109-190228-6b3e",
+  "kind": "asset",
+  "title": "Librarian: Check and finish the sound effects request sheet for Dawn Watch (projects/dawn-w",
+  "summary": "The Dawn Watch sound sheet is finished and passes the studio check. It now has 41 sounds, and none of them are generated yet.\n\n- **Existing entries:** I checked the 40 that were there against the design and kept all of them unchanged. None were wrong.\n- **New entry:** I added `lamp_relight_hold`, for the 2-second held relight. That moment had only a completion sound.\n- **Generation:** all 41 still",
+  "created_at": "2026-11-09T19:05:04Z",
+  "created_by": "librarian",
+  "run_id": "run-librarian-20261109-190228-6b3e",
+  "artifacts": [
+    "runs/run-librarian-20261109-190228-6b3e/assets.md",
+    "projects/dawn-watch/sounds.json"
+  ],
+  "gate": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "claude run finished without error",
+        "passed": true,
+        "detail": "done"
+      },
+      {
+        "name": "wrote assets.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "agent's own gate passed",
+        "passed": true,
+        "detail": "5 checks"
+      },
+      {
+        "name": "loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 80-assets, 60-policy"
+      },
+      {
+        "name": "has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "sounds.json parses with a sounds list",
+        "passed": true,
+        "detail": "41 sounds"
+      },
+      {
+        "name": "every sound has id, event, prompt",
+        "passed": true,
+        "detail": "all"
+      },
+      {
+        "name": "asset ids are null or rbxassetid://<number>",
+        "passed": true,
+        "detail": "all valid"
+      },
+      {
+        "name": "sound ids are unique",
+        "passed": true,
+        "detail": "unique"
+      },
+      {
+        "name": "first 60 seconds has sounds requested",
+        "passed": true,
+        "detail": ""
+      }
+    ]
+  },
+  "status": "pending",
+  "decision": null
+}

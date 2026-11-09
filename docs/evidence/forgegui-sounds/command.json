@@ -1,0 +1,31 @@
+{
+  "args": [
+    "-p",
+    "/librarian Check and finish the sound effects request sheet for Dawn Watch (projects/dawn-watch/sounds.json, design doc projects/dawn-watch/docs/design.md) for Andrew to generate in ForgeGUI. Sounds only. Keep existing entries unless they are wrong.",
+    "--append-system-prompt",
+    "Run context. Run id: run-librarian-20261109-190228-6b3e. Your run folder is /home/user/robux/runs/run-librarian-20261109-190228-6b3e (absolute path). Write every output file there, including gate.json. The studio's game projects folder is /home/user/robux/projects. You are running unattended: nobody can answer questions mid-run, so put questions in your output under Open questions. Shell commands you may run, each as ONE command that starts exactly like this (arguments after it are fine): `python3 ../scripts/gates/check_stage.py`. Anything else is refused, including pipes, &&, ;, cd, heredocs, and python3 -c. Do not try other commands.",
+    "--agent",
+    "librarian",
+    "--model",
+    "claude-sonnet-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "0.52",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read Glob Skill Write Bash(python3 ../scripts/gates/check_stage.py:*)",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/run-librarian-20261109-190228-6b3e"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

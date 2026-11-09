@@ -386,3 +386,45 @@ Fixed after the rehearsal
   recognizes the denial, and a real claim of live play FAILS, because agent
   runs get no Studio connection yet. Tested both ways.
 Evidence: `docs/evidence/phase4-rehearsal/`.
+
+## Sound effects through ForgeGUI (Andrew, 2026-11-09)
+
+Request: "use forgegui for sound effects".
+
+What I could and could not confirm
+- forgegui.com does not resolve from this sandbox, so its own pages could not
+  be read. Every third-party listing found describes ForgeGUI as a visual
+  asset tool (UI, HUD, icons, thumbnails, 3D, push to Studio by plugin).
+  None mentions audio. So "ForgeGUI makes sound effects" is UNVERIFIED, and
+  so are its price and license terms. Recorded in `vault/80-assets/forgegui`.
+
+What was built (works with ForgeGUI or any sound tool)
+- `projects/<game>/sounds.json`: the sound request sheet (id, event, prompt,
+  length, loop, volume, first_60_seconds, asset_id, license). Shape in
+  `vault/80-assets/audio-pipeline`.
+- Librarian writes the sheet with paste-ready prompts and never invents IDs;
+  Builder wires sounds only by id and only with a real asset ID; Playtest
+  lists first-60-seconds sounds still missing an ID.
+- Studio check (`check_stage.py librarian`): parses, every entry has id,
+  event, prompt; asset IDs null or rbxassetid://<number>; unique ids; first
+  60 seconds covered. Tested with a good and a bad sheet.
+- App: the Librarian item's sheet shows a Sounds panel: Copy Prompt, asset ID
+  and license fields, Save. Accepts rbxassetid://N or just N; refuses
+  anything else.
+- General fix: every agent's run instructions now list exactly which shell
+  commands it may run (or say it has none), with the one-command rule.
+
+How it was verified
+1. Librarian run 1 ($0.22): 37 sounds, studio checks PASS, own gate failed
+   honestly (it had no way to parse JSON).
+2. Gave Librarian the studio check as an allowed command. Run 2 ($0.28):
+   it still tried refused commands (`cd && grep | head`, a heredoc).
+3. Root cause: agents were never told their exact allowlist. Fixed in the
+   bridge for all agents. Run 3 ($0.25): Librarian ran the exact check twice;
+   gate PASS on every check; 41 sounds, 0 invented IDs.
+4. Sounds panel in the real window: 41 rows; "bad-id" refused with a clear
+   message; "1234567890" saved as rbxassetid://1234567890 with the license
+   into sounds.json; counter updated; test value restored afterwards.
+5. Regression: cargo test 11/11, vault --full PASS, Luau templates PASS, UI
+   flows PASS.
+Evidence: `docs/evidence/forgegui-sounds/`, screenshot `ui-sounds.png`.

@@ -98,7 +98,8 @@
       "allowed_sections": [
         "00-router",
         "20-luau-rojo",
-        "40-monetization"
+        "40-monetization",
+        "80-assets"
       ],
       "output": "build.md"
     },
@@ -124,7 +125,7 @@
       "output": "lighting.md"
     },
     "librarian": {
-      "description": "Sources models and effects with licenses checked. No Toolbox models.",
+      "description": "Sources models and effects with licenses checked, and writes the sounds.json request sheet for ForgeGUI. No Toolbox.",
       "model": "claude-sonnet-5-5",
       "turns": 8,
       "context_tokens": 8000,
@@ -134,7 +135,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(python3 ../scripts/gates/check_stage.py:*)"
       ],
       "allowed_sections": [
         "00-router",

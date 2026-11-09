@@ -91,6 +91,33 @@ def splash_checks(text, out_path):
     return r
 
 
+def sounds_checks(text, project):
+    """Validate projects/<game>/sounds.json (the ForgeGUI request sheet)."""
+    proj = project or (re.search(r"projects/[A-Za-z0-9_-]+", text) or [None])[0]
+    if not proj:
+        return [c("sounds.json found", False, "no project named in the output")]
+    f = ROOT / proj / "sounds.json"
+    if not f.is_file():
+        return [c("sounds.json found", False, f"{proj}/sounds.json missing")]
+    try:
+        data = json.loads(f.read_text())
+    except Exception as e:
+        return [c("sounds.json parses", False, str(e)[:120])]
+    sounds = data.get("sounds") if isinstance(data, dict) else None
+    out = [c("sounds.json parses with a sounds list", isinstance(sounds, list) and len(sounds) > 0, f"{len(sounds or [])} sounds")]
+    if not isinstance(sounds, list):
+        return out
+    ids = [s.get("id") for s in sounds if isinstance(s, dict)]
+    bad_shape = [str(s.get("id")) for s in sounds if not (isinstance(s, dict) and s.get("id") and s.get("event") and s.get("prompt"))]
+    bad_id = [str(s.get("id")) for s in sounds if isinstance(s, dict) and s.get("asset_id") is not None and not re.fullmatch(r"rbxassetid://\d+", str(s.get("asset_id")))]
+    dup = sorted({i for i in ids if ids.count(i) > 1})
+    out.append(c("every sound has id, event, prompt", not bad_shape, ", ".join(bad_shape) or "all"))
+    out.append(c("asset ids are null or rbxassetid://<number>", not bad_id, ", ".join(bad_id) or "all valid"))
+    out.append(c("sound ids are unique", not dup, ", ".join(dup) or "unique"))
+    out.append(c("first 60 seconds has sounds requested", any(s.get("first_60_seconds") for s in sounds if isinstance(s, dict))))
+    return out
+
+
 def check(agent, text, project, out_path=None):
     r = common(text)
     if agent == "pulse":
@@ -132,6 +159,8 @@ def check(agent, text, project, out_path=None):
     elif agent == "merchant":
         r.append(c("catalog present", heading(text, "catalog")))
         r.append(c("do-not-sell check present", heading(text, "do-not-sell|do not sell")))
+    elif agent == "librarian":
+        r.extend(sounds_checks(text, project))
     elif agent == "frame":
         r.append(c("mobile checklist results present", has(text, r"mobile|phone")))
     elif agent == "splash":

@@ -1,0 +1,7 @@
+{"passed": true, "checks": [
+{"name": "every asset has a source and a license line (sounds: license may stay null)", "passed": true, "detail": "source forgegui; license null for all 41 until Andrew fills"},
+{"name": "sounds.json parses, entries have id/event/prompt, asset_id null or rbxassetid", "passed": true, "detail": "check_stage.py librarian: 41 sounds, all checks passed"},
+{"name": "no Toolbox free models", "passed": true, "detail": "no Toolbox audio used"},
+{"name": "no trademarked or look-alike characters", "passed": true, "detail": "original creatures; prompts forbid copyrighted melodies and known-game sounds"},
+{"name": "anything needing Andrew's accounts is listed under Needs Andrew", "passed": true, "detail": "generation, upload, IDs, licenses, ForgeGUI audio confirmation listed"}
+]}

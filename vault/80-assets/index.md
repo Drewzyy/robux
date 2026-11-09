@@ -18,7 +18,8 @@ Load only the note your task needs. Do not read every note in this section.
 | [[80-assets/3d-model-checklist]] | Triangle budget, shared MeshId, LOD, anchoring, collision, texture size. | draft |
 | [[80-assets/thumbnail-pipeline]] | Studio freecam capture, 1920x1080 under 3 MB, separate 512 icon crop. | draft |
 | [[80-assets/thumbnail-mrbeast-logic]] | MrBeast thumbnail logic for Roblox: one subject, one emotion, one prize or stake, 0-3 words; curiosity gap; Splash's workflow and gate. | draft |
-| [[80-assets/audio-pipeline]] | Copyright-free only, license check, silence beats a bad loop. | draft |
+| [[80-assets/forgegui]] | ForgeGUI, the chosen sound-effects tool: what is confirmed (nothing about audio yet) and the hand-off. | unverified |
+| [[80-assets/audio-pipeline]] | sounds.json request sheet per game; generated in ForgeGUI by Andrew; Builder wires only real IDs. | draft |
 | [[80-assets/vfx-sfx-library]] | Checkpoint light and sound, coin spin and chime, finish fanfare: juice on every action, with caps. | draft |
 | [[80-assets/lighting-and-mood]] | Scenic's note: Lighting service settings and mood presets. Mostly unverified until tested in Studio. | unverified |
 | [[80-assets/tool-setup]] | Studio MCP, Rojo, Lune, Wally, StyLua, Selene, luau-lsp, Rokit, Blender MCP: setup and what each is for. | draft |
