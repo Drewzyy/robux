@@ -1,0 +1,8 @@
+{"passed": false, "checks": [
+{"name": "rojo build", "passed": true, "detail": "built place file"},
+{"name": "selene lint", "passed": true, "detail": "clean (offline std)"},
+{"name": "stylua --check", "passed": true, "detail": "formatted; was failing on one long concatenation in the client status text, fixed with stylua src"},
+{"name": "lune unit tests", "passed": true, "detail": "all specs passed"},
+{"name": "remote handlers validate arguments", "passed": false, "detail": "NOT RUN: out of scope for this formatting fix, not audited"},
+{"name": "DataStore uses ProfileStore with BindToClose", "passed": false, "detail": "NOT RUN: out of scope for this formatting fix, not audited"}
+]}

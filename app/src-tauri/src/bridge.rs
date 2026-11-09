@@ -95,6 +95,18 @@ pub fn run_approved<F: FnMut(&str)>(
     root: &Path,
     run_id: &str,
     claude_bin: &Path,
+    on_line: F,
+) -> Result<RunOutcome, String> {
+    run_approved_with(root, run_id, claude_bin, &[], on_line)
+}
+
+/// Same as `run_approved`, with extra folders the agent may read (earlier
+/// pipeline stages).
+pub fn run_approved_with<F: FnMut(&str)>(
+    root: &Path,
+    run_id: &str,
+    claude_bin: &Path,
+    extra_dirs: &[PathBuf],
     mut on_line: F,
 ) -> Result<RunOutcome, String> {
     let mut req = runs::load(root, run_id)?;
@@ -113,7 +125,8 @@ pub fn run_approved<F: FnMut(&str)>(
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
     let vault = root.join("vault");
-    let add_dirs = vec![root.join("projects"), dir.clone()];
+    let mut add_dirs = vec![root.join("projects"), dir.clone()];
+    add_dirs.extend(extra_dirs.iter().cloned());
     let has_skill = vault
         .join(".claude/skills")
         .join(&req.agent)

@@ -128,3 +128,88 @@ Findings that shape Phase 2 and 3
   names and gate.json shape itself, not trust the agent.
 - Builder's build gate cannot pass until rojo, selene, stylua, and lune are
   installed. Phase 2 installs them.
+
+## Phase 2: agent team and review queue
+
+What was built
+- All 12 agents: `vault/.claude/agents/<name>.md` (subagent) plus
+  `vault/.claude/skills/<name>/SKILL.md` (job, what to load in order, inputs,
+  steps, output file, the game-psychology quality bar, and gate checks).
+  Roster: `docs/AGENTS.md` (generated from config, so it cannot drift).
+- `studio/agents.json`: per agent model, cost profile, tool allowlist,
+  allowed vault sections, and required output file.
+- Pipelines (`app/src-tauri/src/pipeline.rs`, `studio/pipelines.json`):
+  `pitch-to-build` (Pulse, Lead, Architect, Builder) and `improve-build`
+  (Architect, Builder, Playtest on an existing project, for Phase 4). One
+  approval at the total cap; each stage runs under its own cap; a stage that
+  writes nothing stops the pipeline; the result is one review queue item.
+- Studio-side gates, so the queue does not trust an agent's word:
+  - every stage: run finished, output file written, `gate.json` in the
+    required shape and passed, loaded only its allowed vault sections and read
+    the router first (from the hook log), has a Loaded section, no filler.
+  - per agent: required sections (`scripts/gates/check_stage.py`).
+  - Builder: the studio rebuilds the project itself
+    (`scripts/gates/build_gate.py`: `rojo build`, Selene, StyLua, Lune tests).
+- Free toolchain installed from crates.io: Rojo 7.7.1, Selene 0.31.0, StyLua
+  2.6.0 (Luau), Lune 0.11.1. GitHub is blocked in this sandbox, so Selene's
+  full Roblox std cannot download; the gate falls back to
+  `scripts/gates/roblox-offline.yml` (Roblox globals, no API member checks)
+  and says so in the check detail. On Andrew's Mac the full std will load.
+- App: Run screen has a pipeline mode (pipeline, project, total estimate,
+  approve all stages, live stage chips). `studio-cli pipeline ...` mirrors it.
+
+How it was verified
+1. Build gate on a hand-made good project: all 4 checks PASS. Same project
+   with a lint error, bad formatting, and a wrong test: Selene, StyLua, and
+   Lune all FAIL. So the gate catches real problems.
+2. Acceptance run, `pitch-to-build`, instruction "Find a rising Roblox trend
+   that a solo developer could make a small, original game for, and pitch
+   three ideas." Estimate $1.54, cap $3.87, actual $1.52.
+   - Pulse used web search, wrote 3 ranked original pitches (top: "Dawn
+     Watch", co-op survive-the-night), every number marked UNVERIFIED
+     (secondhand search summaries). Loaded 00-router, 70-competitors,
+     10-game-design.
+   - Lead wrote the plan (Architect then Builder, ends in the review queue).
+     Loaded 00-router, 90-templates-checklists.
+   - Architect wrote the Dawn Watch design doc. Loaded 00-router,
+     10-game-design.
+   - Builder built `projects/dawn-watch` (17 Luau files, 8 Lune specs).
+     Loaded 00-router, 20-luau-rojo. Studio gate: rojo build PASS, Selene PASS
+     (offline std), Lune 8/8 PASS, StyLua FAIL.
+   - One queue item landed: `q-pipe-pitch-to-build-20261109-105542-ca9c`,
+     status pending, gate failed (41 checks, 5 failed), 5 artifacts linked.
+   - Nothing published: no publish, Open Cloud, or HttpService calls in the
+     project; agents had no tool that could publish.
+3. GUI (`scripts/gui_smoke.py --phase2`, real window via WebDriver): the
+   pipeline item renders with all 41 checks and 5 artifacts; a failed-gate
+   item's Approve button is disabled; approving a passing fixture in the
+   window recorded `approved by Andrew` with the note; the pipeline estimate
+   screen shows the $3.87 total cap and cancels without running. Fixtures are
+   removed afterwards. Screenshots 04 and 05.
+4. Negative tests: pipeline with a wrong cap is refused and all 4 stages end
+   `cancelled`; `improve-build` without a project is refused; a project path
+   of `../etc` is refused.
+5. `cargo test` 9/9.
+Evidence: `docs/evidence/phase2/`.
+
+Problems found and fixed
+- Builder could not run its tools: it tried one compound shell loop, which
+  does not match the per-tool allow rules, was denied, and gave up (its gate
+  said NOT RUN, which was honest). Fix: Builder may now run the studio's own
+  gate script as one command, and its skill says one tool per command. Rerun
+  on `projects/dawn-watch` (cost $0.07): Builder ran the gate, ran StyLua,
+  reran the gate; studio gate now 4/4 PASS. Evidence in
+  `docs/evidence/phase2/builder-fix-rerun/`.
+
+Why every stage's self-gate failed (expected at this phase)
+- Pulse: required vault notes are stubs; live chart numbers not verified at
+  the source.
+- Lead: could not verify toolchain claims (no notes yet).
+- Architect: could not check the do-not-sell list because that note is a stub.
+- Builder: tools not runnable (fixed above).
+These are the gates working: with an empty vault the agents refuse to claim
+what they cannot back up. Phase 3 fills the vault.
+
+Open item for Andrew
+- The Dawn Watch item in the review queue should be rejected (its gate
+  failed). It is test output from the acceptance run, not a game to ship.

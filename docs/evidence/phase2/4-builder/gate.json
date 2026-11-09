@@ -1,0 +1,35 @@
+{
+	"passed": false,
+	"checks": [
+		{
+			"name": "rojo build",
+			"passed": false,
+			"detail": "NOT RUN: shell access (Bash) was denied in this run, so I could not check whether rojo is installed or run it. default.project.json maps src/shared, src/server, src/client by hand."
+		},
+		{
+			"name": "selene lint",
+			"passed": false,
+			"detail": "NOT RUN: Bash denied. selene.toml (std = roblox) is present. Files were never linted."
+		},
+		{
+			"name": "stylua --check",
+			"passed": false,
+			"detail": "NOT RUN: Bash denied, so `stylua src` was never run. Files are hand-formatted in StyLua style (tabs, 120 columns) and a few lines may still fail the check."
+		},
+		{
+			"name": "lune unit tests",
+			"passed": false,
+			"detail": "NOT RUN: Bash denied. tests/run.luau and 8 specs (Validate, Aim, Beam, Fog, NightPlan, Economy, Tutorial, Config) are written but have never executed."
+		},
+		{
+			"name": "every RemoteEvent handler validates its arguments",
+			"passed": true,
+			"detail": "Checked by Grep: one server handler exists, AimBeam.OnServerEvent in RemotesService.luau. It checks the station id is a known string, the angle is a finite number under 1000 (rejects NaN and math.huge), the sender is the station keeper, and a 25/s rate limit. HudUpdate is server-to-client only. No RemoteFunctions."
+		},
+		{
+			"name": "every DataStore path uses ProfileStore with BindToClose",
+			"passed": true,
+			"detail": "Checked by Grep: no DataStore or ProfileStore code exists in this build, so there is no path to violate. Nothing is saved; Glow is in-memory only (persistence is a TODO and an open question for Andrew)."
+		}
+	]
+}

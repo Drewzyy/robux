@@ -1,0 +1,270 @@
+{
+  "pipeline_id": "pipe-pitch-to-build-20261109-105542-ca9c",
+  "pipeline": "pitch-to-build",
+  "input": "Find a rising Roblox trend that a solo developer could make a small, original game for, and pitch three ideas.",
+  "project": null,
+  "stages": [
+    {
+      "agent": "pulse",
+      "run_id": "pipe-pitch-to-build-20261109-105542-ca9c--1-pulse",
+      "output": "pitch.md",
+      "status": "failed",
+      "gate": {
+        "passed": false,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit Some(0), turns Some(11)"
+          },
+          {
+            "name": "wrote pitch.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": false,
+            "detail": "failed: required vault notes loaded; live market data verified at source"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 70-competitors, 10-game-design"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "names its data sources",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "ranked pitches present",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "numbers are sourced or marked UNVERIFIED",
+            "passed": true,
+            "detail": ""
+          }
+        ]
+      },
+      "cost_usd": 0.1905865
+    },
+    {
+      "agent": "lead",
+      "run_id": "pipe-pitch-to-build-20261109-105542-ca9c--2-lead",
+      "output": "plan.md",
+      "status": "failed",
+      "gate": {
+        "passed": false,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit Some(0), turns Some(7)"
+          },
+          {
+            "name": "wrote plan.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": false,
+            "detail": "failed: toolchain and external claims verified"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 90-templates-checklists"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "plan table with stages",
+            "passed": true,
+            "detail": "6 table rows"
+          },
+          {
+            "name": "has a Blocked section",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "ends in the review queue",
+            "passed": true,
+            "detail": ""
+          }
+        ]
+      },
+      "cost_usd": 0.1254092
+    },
+    {
+      "agent": "architect",
+      "run_id": "pipe-pitch-to-build-20261109-105542-ca9c--3-architect",
+      "output": "design.md",
+      "status": "failed",
+      "gate": {
+        "passed": false,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit Some(0), turns Some(7)"
+          },
+          {
+            "name": "wrote design.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": false,
+            "detail": "failed: nothing on the do-not-sell list is proposed for sale"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 10-game-design"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "core loop section",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "first 60 seconds section",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "first 60 seconds covers 0-5, 5-10, 10-30, 30-60",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "says what we will not do",
+            "passed": true,
+            "detail": ""
+          }
+        ]
+      },
+      "cost_usd": 0.17953750000000002
+    },
+    {
+      "agent": "builder",
+      "run_id": "pipe-pitch-to-build-20261109-105542-ca9c--4-builder",
+      "output": "build.md",
+      "status": "failed",
+      "gate": {
+        "passed": false,
+        "checks": [
+          {
+            "name": "claude run finished without error",
+            "passed": true,
+            "detail": "exit Some(0), turns Some(49)"
+          },
+          {
+            "name": "wrote build.md",
+            "passed": true,
+            "detail": "present"
+          },
+          {
+            "name": "agent's own gate passed",
+            "passed": false,
+            "detail": "failed: rojo build; selene lint; stylua --check; lune unit tests"
+          },
+          {
+            "name": "loaded only allowed vault sections",
+            "passed": true,
+            "detail": "sections: 00-router, 20-luau-rojo"
+          },
+          {
+            "name": "has a Loaded section listing vault notes read",
+            "passed": true,
+            "detail": ""
+          },
+          {
+            "name": "no filler phrases",
+            "passed": true,
+            "detail": "none found"
+          },
+          {
+            "name": "declares its project folder",
+            "passed": true,
+            "detail": "projects/dawn-watch"
+          },
+          {
+            "name": "project folder exists",
+            "passed": true,
+            "detail": "projects/dawn-watch"
+          },
+          {
+            "name": "project has Luau source",
+            "passed": true,
+            "detail": "17 .luau files under src/"
+          },
+          {
+            "name": "rojo build",
+            "passed": true,
+            "detail": "built place file"
+          },
+          {
+            "name": "selene lint",
+            "passed": true,
+            "detail": "clean (offline std: Roblox globals only, API members not checked)"
+          },
+          {
+            "name": "stylua --check",
+            "passed": false,
+            "detail": "...xtUp = Economy.nextUpgrade(glow)\n96  96   | \tlocal board = if nextUp then nextUp.name .. \" in \" .. nextUp.remaining .. \" Glow\" else \"Board complete\"\n97       |-\tself.status.Text = (if carrying then \"Carrying oil\" else \"No oil\") .. \"   |   Glow \" .. glow .. \"   |   Next: \" .. board\n    97   |+\tself.status.Text = (if carrying then \"Carrying oil\" else \"No oil\")\n    98   |+\t\t.. \"   |   Glow \"\n    99   |+\t\t.. glow\n    100  |+\t\t.. \"   |   Next: \"\n    101  |+\t\t.. board\n98  102  | \n99  103  | \tif s.phase == \"Dawn\" then\n100 104  | \t\tself.result.Text = s.stars .. \"/3 stars   +\" .. s.glowAward .. \" Glow\""
+          },
+          {
+            "name": "lune unit tests",
+            "passed": true,
+            "detail": "ok  Validate\nok  Aim\nok  Beam\nok  Fog\nok  NightPlan\nok  Economy\nok  Tutorial\nok  Config\nall specs passed"
+          }
+        ]
+      },
+      "cost_usd": 1.0203939000000002
+    }
+  ],
+  "expected_usd": 1.539,
+  "high_usd": 3.8479,
+  "cap_usd": 3.87,
+  "status": "done",
+  "created_at": "2026-11-09T10:55:42Z",
+  "approved_at": "2026-11-09T10:55:42Z",
+  "finished_at": "2026-11-09T11:06:11Z",
+  "queue_item": "q-pipe-pitch-to-build-20261109-105542-ca9c",
+  "actual_cost_usd": 1.5159
+}

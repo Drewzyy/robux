@@ -46,6 +46,12 @@ pub struct AgentProfile {
     pub allowed_tools: Vec<String>,
     #[serde(default)]
     pub description: String,
+    /// Vault sections this agent may read. Checked against the load log.
+    #[serde(default)]
+    pub allowed_sections: Vec<String>,
+    /// The output file the agent's skill must write in its run folder.
+    #[serde(default)]
+    pub output: Option<String>,
 }
 fn default_base() -> u64 {
     8000
@@ -203,6 +209,8 @@ mod tests {
             base_tokens: 7000,
             allowed_tools: vec![],
             description: String::new(),
+            allowed_sections: vec![],
+            output: None,
         };
         let e = estimate("tester", &profile, "What is the probe phrase?", &pricing).unwrap();
         assert!(e.low_usd <= 0.0009911 && 0.0009911 <= e.high_usd, "{e:?}");

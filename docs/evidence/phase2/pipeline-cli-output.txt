@@ -1,0 +1,69 @@
+pipeline: pipe-pitch-to-build-20261109-105542-ca9c
+  stage pulse      est $0.3349  cap $0.84  -> pitch.md
+  stage lead       est $0.1490  cap $0.38  -> plan.md
+  stage architect  est $0.2506  cap $0.63  -> design.md
+  stage builder    est $0.8045  cap $2.02  -> build.md
+total: $1.5390 expected, up to $3.8479; hard cap $3.87
+approved; running
+[1] pulse started
+[1] pulse gate FAIL
+      ok   claude run finished without error: exit Some(0), turns Some(11)
+      ok   wrote pitch.md: present
+      FAIL agent's own gate passed: failed: required vault notes loaded; live market data verified at source
+      ok   loaded only allowed vault sections: sections: 00-router, 70-competitors, 10-game-design
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   names its data sources: 
+      ok   ranked pitches present: 
+      ok   numbers are sourced or marked UNVERIFIED: 
+[2] lead started
+[2] lead gate FAIL
+      ok   claude run finished without error: exit Some(0), turns Some(7)
+      ok   wrote plan.md: present
+      FAIL agent's own gate passed: failed: toolchain and external claims verified
+      ok   loaded only allowed vault sections: sections: 00-router, 90-templates-checklists
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   plan table with stages: 6 table rows
+      ok   has a Blocked section: 
+      ok   ends in the review queue: 
+[3] architect started
+[3] architect gate FAIL
+      ok   claude run finished without error: exit Some(0), turns Some(7)
+      ok   wrote design.md: present
+      FAIL agent's own gate passed: failed: nothing on the do-not-sell list is proposed for sale
+      ok   loaded only allowed vault sections: sections: 00-router, 10-game-design
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   core loop section: 
+      ok   first 60 seconds section: 
+      ok   first 60 seconds covers 0-5, 5-10, 10-30, 30-60: 
+      ok   says what we will not do: 
+[4] builder started
+[4] builder gate FAIL
+      ok   claude run finished without error: exit Some(0), turns Some(49)
+      ok   wrote build.md: present
+      FAIL agent's own gate passed: failed: rojo build; selene lint; stylua --check; lune unit tests
+      ok   loaded only allowed vault sections: sections: 00-router, 20-luau-rojo
+      ok   has a Loaded section listing vault notes read: 
+      ok   no filler phrases: none found
+      ok   declares its project folder: projects/dawn-watch
+      ok   project folder exists: projects/dawn-watch
+      ok   project has Luau source: 17 .luau files under src/
+      ok   rojo build: built place file
+      ok   selene lint: clean (offline std: Roblox globals only, API members not checked)
+      FAIL stylua --check: ...xtUp = Economy.nextUpgrade(glow)
+96  96   | 	local board = if nextUp then nextUp.name .. " in " .. nextUp.remaining .. " Glow" else "Board complete"
+97      
+      ok   lune unit tests: ok  Validate
+ok  Aim
+ok  Beam
+ok  Fog
+ok  NightPlan
+ok  Economy
+ok  Tutorial
+ok  Config
+all specs passed
+pipeline pipe-pitch-to-build-20261109-105542-ca9c: done  actual $1.5159
+review queue item: q-pipe-pitch-to-build-20261109-105542-ca9c
+exit=0

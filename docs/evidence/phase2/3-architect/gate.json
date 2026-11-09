@@ -1,0 +1,8 @@
+{"passed": false, "checks": [
+{"name": "all 11 sections present", "passed": true, "detail": "Sections 1-11 in order in design.md."},
+{"name": "first 60 seconds has all four windows with a concrete action", "passed": true, "detail": "0-5, 5-10, 10-30, 30-60 each have a concrete action; lamp lit by second 10."},
+{"name": "every number is marked as a starting value", "passed": true, "detail": "Global number rule at top plus per-table 'starting values' tags. Some inline numbers rely on the global rule."},
+{"name": "nothing on the do-not-sell list is proposed for sale", "passed": false, "detail": "Nothing is proposed for sale, but I did not read 40-monetization/do-not-sell-list, so I could not check against it. Not run, so counted as failed."},
+{"name": "no claim as fact without a vault source; others marked UNVERIFIED", "passed": true, "detail": "Vault notes are stubs or planned, so all external claims (9.8 min median, Cutting 2023, demand, APIs, policy) are marked UNVERIFIED."},
+{"name": "not generic: at least 3 mechanics specific to this pitch", "passed": true, "detail": "Harbor Lamp/Stormside Lamp/Crown Lens stations, telegraphed lanes, Hushhog two-beam, dawn bar, fog event, lamp-keeper bots, Lighthouse Board."}
+]}

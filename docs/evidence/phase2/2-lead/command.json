@@ -1,0 +1,33 @@
+{
+  "args": [
+    "-p",
+    "/lead Andrew's instruction: Find a rising Roblox trend that a solo developer could make a small, original game for, and pitch three ideas.\nPulse's ranked pitch list is at /home/user/robux/runs/pipe-pitch-to-build-20261109-105542-ca9c--1-pulse/pitch.md. Take the top pitch. This pipeline runs Architect then Builder next; plan their work and say what lands in the review queue.",
+    "--append-system-prompt",
+    "Run context. Run id: pipe-pitch-to-build-20261109-105542-ca9c--2-lead. Your run folder is /home/user/robux/runs/pipe-pitch-to-build-20261109-105542-ca9c--2-lead (absolute path). Write every output file there, including gate.json. The studio's game projects folder is /home/user/robux/projects. You are running unattended: nobody can answer questions mid-run, so put questions in your output under Open questions.",
+    "--agent",
+    "lead",
+    "--model",
+    "claude-sonnet-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "0.38",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read Glob Skill Write",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/pipe-pitch-to-build-20261109-105542-ca9c--2-lead",
+    "--add-dir",
+    "/home/user/robux/runs/pipe-pitch-to-build-20261109-105542-ca9c--1-pulse"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

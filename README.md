@@ -15,12 +15,13 @@ Not a product. No accounts, no pricing, no server.
 | `vault/` | The Obsidian vault. Also the agents' working folder. |
 | `vault/.claude/agents/` | One Claude Code subagent per team member |
 | `vault/.claude/skills/` | One skill per agent: job, inputs, outputs, verification gate |
-| `studio/` | App config: `agents.json` (models, cost profiles, tool allowlists), `pricing.json` |
+| `studio/` | App config: `agents.json` (models, cost profiles, tool allowlists, allowed vault sections), `pipelines.json`, `pricing.json` |
 | `queue/items/` | Review queue items (JSON) |
 | `runs/` | One folder per agent run: estimate, approval, raw output, files loaded |
 | `projects/` | Game projects the agents build (Rojo) |
 | `scripts/` | Verification scripts |
 | `LOG.md` | Build log: what was done and how it was verified |
+| `docs/AGENTS.md` | The 12 agents: job, output, model, sections, tools (generated) |
 
 ## Run it on the Mac (first time)
 
@@ -46,3 +47,23 @@ Agent runs cost Claude usage. The app shows an estimate and a hard cap before
 every run and will not start without approval. On a Claude Max plan
 ($100 to $200 a month) runs count against plan limits; the dollar figures are
 the API-equivalent cost.
+
+## Pipelines
+
+`studio/pipelines.json` chains agents. You approve the whole chain once, at
+the total cap shown; each stage then runs under its own cap. After each stage
+the studio checks the work itself (`scripts/gates/check_stage.py`, and for
+Builder a real `rojo build`, Selene, StyLua, and Lune test run), then puts one
+item in the review queue. A failed gate can only be rejected.
+
+- `pitch-to-build`: Pulse, Lead, Architect, Builder.
+- `improve-build`: Architect, Builder, Playtest on an existing project.
+
+Headless: `studio-cli pipeline pitch-to-build "<instruction>"` prints the
+estimate and stops; add `--approve-cap <the cap it printed>` to run.
+
+## Toolchain for the build gate (free)
+
+`cargo install rojo --version 7.7.1 --locked`, `cargo install selene --locked`,
+`cargo install stylua --features luau --locked`, `cargo install lune --version 0.11.1 --locked`.
+On a machine that can reach GitHub, Rokit or Aftman installs the same tools faster.

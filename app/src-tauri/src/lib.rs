@@ -6,6 +6,7 @@
 pub mod bridge;
 pub mod cost;
 pub mod paths;
+pub mod pipeline;
 pub mod queue;
 pub mod runs;
 

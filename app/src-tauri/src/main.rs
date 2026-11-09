@@ -3,7 +3,7 @@
 
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use studio_core::{bridge, cost, paths, queue, runs};
+use studio_core::{bridge, cost, paths, pipeline, queue, runs};
 use tauri::{AppHandle, Emitter};
 
 fn root() -> Result<PathBuf, String> {
@@ -114,6 +114,73 @@ fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64)
     Ok(())
 }
 
+#[tauri::command]
+fn pipelines_list() -> Result<Value, String> {
+    let cfg = pipeline::load_config(&root()?)?;
+    serde_json::to_value(cfg.pipelines).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn projects_list() -> Result<Vec<String>, String> {
+    let mut out = vec![];
+    if let Ok(entries) = std::fs::read_dir(root()?.join("projects")) {
+        for e in entries.flatten() {
+            if e.path().join("default.project.json").is_file() {
+                out.push(format!("projects/{}", e.file_name().to_string_lossy()));
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+#[tauri::command]
+fn pipeline_prepare(name: String, input: String, project: Option<String>) -> Result<pipeline::PipelineRun, String> {
+    let project = project.filter(|p| !p.is_empty());
+    pipeline::prepare(&root()?, &name, &input, project.as_deref())
+}
+
+#[tauri::command]
+fn pipeline_cancel(pipeline_id: String) -> Result<pipeline::PipelineRun, String> {
+    pipeline::cancel(&root()?, &pipeline_id)
+}
+
+#[tauri::command]
+fn pipeline_runs() -> Result<Vec<pipeline::PipelineRun>, String> {
+    Ok(pipeline::list(&root()?))
+}
+
+/// Approve the whole pipeline at the exact total cap shown, then run its
+/// stages in order on a background thread. Events: `pipe-stage`,
+/// `run-line`, `pipe-done`.
+#[tauri::command]
+fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
+    let r = root()?;
+    let bin = paths::claude_bin()?;
+    pipeline::approve(&r, &pipeline_id, confirmed_cap_usd)?;
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let pid = pipeline_id.clone();
+        let res = pipeline::run(&r, &pipeline_id, &bin, |ev| match ev {
+            pipeline::Event::StageStart { index, agent, run_id } => {
+                let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "run_id": run_id, "state": "start"}));
+            }
+            pipeline::Event::Line { run_id, line } => {
+                let _ = app2.emit("run-line", json!({"run_id": run_id, "pipeline_id": pid, "line": line}));
+            }
+            pipeline::Event::StageDone { index, agent, gate } => {
+                let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "state": "done", "gate": gate}));
+            }
+        });
+        let payload = match res {
+            Ok(p) => serde_json::to_value(p).unwrap_or(Value::Null),
+            Err(e) => json!({"pipeline_id": pipeline_id, "status": "error", "error": e}),
+        };
+        let _ = app.emit("pipe-done", payload);
+    });
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -126,7 +193,13 @@ fn main() {
             run_cancel,
             runs_list,
             run_loads,
-            run_approve_and_start
+            run_approve_and_start,
+            pipelines_list,
+            projects_list,
+            pipeline_prepare,
+            pipeline_cancel,
+            pipeline_runs,
+            pipeline_approve_and_start
         ])
         .run(tauri::generate_context!())
         .expect("error while running Robux Studio");

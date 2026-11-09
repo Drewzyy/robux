@@ -1,0 +1,45 @@
+{
+  "pipelines": {
+    "pitch-to-build": {
+      "description": "Pulse pitches, Lead plans, Architect designs the top pitch, Builder builds it. The build lands in the review queue.",
+      "queue_kind": "build",
+      "stages": [
+        {
+          "agent": "pulse",
+          "instruction": "{input}"
+        },
+        {
+          "agent": "lead",
+          "instruction": "Andrew's instruction: {input}\nPulse's ranked pitch list is at {out:pulse}. Take the top pitch. This pipeline runs Architect then Builder next; plan their work and say what lands in the review queue."
+        },
+        {
+          "agent": "architect",
+          "instruction": "Design the top-ranked pitch in {out:pulse}. Follow Lead's plan at {out:lead}."
+        },
+        {
+          "agent": "builder",
+          "instruction": "Build the design at {out:architect} as a Rojo project in a new folder under projects/. Follow Lead's plan at {out:lead}. Keep the first build small: the core loop and the first 60 seconds only."
+        }
+      ]
+    },
+    "improve-build": {
+      "description": "For an existing game: Architect designs a change, Builder builds it in the project, Playtest reports on it. Lands in the review queue.",
+      "queue_kind": "build",
+      "needs_project": true,
+      "stages": [
+        {
+          "agent": "architect",
+          "instruction": "Existing game in {project}. Read its docs and code only as needed. Task: {input}. Write the design change as design.md (sections as your skill says; describe the change against what exists now)."
+        },
+        {
+          "agent": "builder",
+          "instruction": "Implement the design change at {out:architect} in the existing project {project}. Do not restructure what you do not need to touch. First line of build.md: Project: {project}"
+        },
+        {
+          "agent": "playtest",
+          "instruction": "Test the change described in {out:architect} and built per {out:builder} in {project}. Focus on the first 60 seconds. Report specific problems."
+        }
+      ]
+    }
+  }
+}

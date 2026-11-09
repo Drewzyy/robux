@@ -29,7 +29,17 @@ Pulse (market pitches), Architect (design doc), Builder (Rojo + Luau), Scenic (l
 ## Output: `<run folder>/plan.md`
 Sections: Goal (one sentence) / Plan (table: stage, agent, input, output, gate) / Review (what Andrew approves) / Blocked (what is needed and from whom) / Loaded (vault notes read and why).
 
+## Quality bar (game psychology, from 10-game-design/player-psychology)
+- Time to first fun under 10 seconds; teach by doing, never a wall of text.
+- Fixed reward schedules for progression, variable only for surprise. Never only random.
+- Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.
+- A full loop inside one median session (9.8 min) plus a reason to return tomorrow.
+- Social is the cheapest retention lever: friends, teams, trading, leaderboards.
+- Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
+- Anti-slop: if your output could describe any game, it is generic. Name this game's specifics or do not ship it.
+
 ## Gate (`<run folder>/gate.json`)
+Exact shape: `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`.
 - every stage names an agent from the team list and a concrete output file
 - every stage has a gate
 - the plan ends in the review queue; no stage publishes or posts

@@ -45,6 +45,16 @@ pub fn run_dir(root: &Path, run_id: &str) -> Result<PathBuf, String> {
 }
 
 pub fn prepare(root: &Path, agent: &str, prompt: &str) -> Result<RunRequest, String> {
+    prepare_with_id(root, agent, prompt, &crate::new_id(&format!("run-{agent}")), None)
+}
+
+pub fn prepare_with_id(
+    root: &Path,
+    agent: &str,
+    prompt: &str,
+    run_id: &str,
+    pipeline_id: Option<&str>,
+) -> Result<RunRequest, String> {
     if prompt.trim().is_empty() {
         return Err("prompt is empty".into());
     }
@@ -60,7 +70,7 @@ pub fn prepare(root: &Path, agent: &str, prompt: &str) -> Result<RunRequest, Str
     let pricing = cost::load_pricing(root)?;
     let estimate = cost::estimate(agent, profile, prompt, &pricing)?;
     let req = RunRequest {
-        run_id: crate::new_id(&format!("run-{agent}")),
+        run_id: run_id.to_string(),
         agent: agent.to_string(),
         prompt: prompt.to_string(),
         estimate,
@@ -71,7 +81,7 @@ pub fn prepare(root: &Path, agent: &str, prompt: &str) -> Result<RunRequest, Str
         actual_cost_usd: None,
         result_text: None,
         error: None,
-        pipeline_id: None,
+        pipeline_id: pipeline_id.map(|p| p.to_string()),
     };
     save(root, &req)?;
     Ok(req)

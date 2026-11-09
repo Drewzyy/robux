@@ -1,0 +1,228 @@
+{
+  "id": "q-pipe-pitch-to-build-20261109-105542-ca9c",
+  "kind": "build",
+  "title": "pitch-to-build: Dawn Watch: design doc",
+  "summary": "Pipeline pitch-to-build (pipe-pitch-to-build-20261109-105542-ca9c). Input: Find a rising Roblox trend that a solo developer could make a small, original game for, and pitch three ideas.. Stages: pulse failed, lead failed, architect failed, builder failed. Failed or skipped: pulse, lead, architect, builder. Actual cost $1.5159 (cap $3.87). Approving records your yes only; nothing is published.",
+  "created_at": "2026-11-09T11:06:11Z",
+  "created_by": "pipeline:pitch-to-build",
+  "run_id": "pipe-pitch-to-build-20261109-105542-ca9c",
+  "artifacts": [
+    "runs/pipe-pitch-to-build-20261109-105542-ca9c--1-pulse/pitch.md",
+    "runs/pipe-pitch-to-build-20261109-105542-ca9c--2-lead/plan.md",
+    "runs/pipe-pitch-to-build-20261109-105542-ca9c--3-architect/design.md",
+    "runs/pipe-pitch-to-build-20261109-105542-ca9c--4-builder/build.md",
+    "projects/dawn-watch"
+  ],
+  "gate": {
+    "passed": false,
+    "checks": [
+      {
+        "name": "pulse: claude run finished without error",
+        "passed": true,
+        "detail": "exit Some(0), turns Some(11)"
+      },
+      {
+        "name": "pulse: wrote pitch.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "pulse: agent's own gate passed",
+        "passed": false,
+        "detail": "failed: required vault notes loaded; live market data verified at source"
+      },
+      {
+        "name": "pulse: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 70-competitors, 10-game-design"
+      },
+      {
+        "name": "pulse: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "pulse: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "pulse: names its data sources",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "pulse: ranked pitches present",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "pulse: numbers are sourced or marked UNVERIFIED",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "lead: claude run finished without error",
+        "passed": true,
+        "detail": "exit Some(0), turns Some(7)"
+      },
+      {
+        "name": "lead: wrote plan.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "lead: agent's own gate passed",
+        "passed": false,
+        "detail": "failed: toolchain and external claims verified"
+      },
+      {
+        "name": "lead: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 90-templates-checklists"
+      },
+      {
+        "name": "lead: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "lead: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "lead: plan table with stages",
+        "passed": true,
+        "detail": "6 table rows"
+      },
+      {
+        "name": "lead: has a Blocked section",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "lead: ends in the review queue",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: claude run finished without error",
+        "passed": true,
+        "detail": "exit Some(0), turns Some(7)"
+      },
+      {
+        "name": "architect: wrote design.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "architect: agent's own gate passed",
+        "passed": false,
+        "detail": "failed: nothing on the do-not-sell list is proposed for sale"
+      },
+      {
+        "name": "architect: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 10-game-design"
+      },
+      {
+        "name": "architect: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "architect: core loop section",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: first 60 seconds section",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: first 60 seconds covers 0-5, 5-10, 10-30, 30-60",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "architect: says what we will not do",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "builder: claude run finished without error",
+        "passed": true,
+        "detail": "exit Some(0), turns Some(49)"
+      },
+      {
+        "name": "builder: wrote build.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "builder: agent's own gate passed",
+        "passed": false,
+        "detail": "failed: rojo build; selene lint; stylua --check; lune unit tests"
+      },
+      {
+        "name": "builder: loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 20-luau-rojo"
+      },
+      {
+        "name": "builder: has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "builder: no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "builder: declares its project folder",
+        "passed": true,
+        "detail": "projects/dawn-watch"
+      },
+      {
+        "name": "builder: project folder exists",
+        "passed": true,
+        "detail": "projects/dawn-watch"
+      },
+      {
+        "name": "builder: project has Luau source",
+        "passed": true,
+        "detail": "17 .luau files under src/"
+      },
+      {
+        "name": "builder: rojo build",
+        "passed": true,
+        "detail": "built place file"
+      },
+      {
+        "name": "builder: selene lint",
+        "passed": true,
+        "detail": "clean (offline std: Roblox globals only, API members not checked)"
+      },
+      {
+        "name": "builder: stylua --check",
+        "passed": false,
+        "detail": "...xtUp = Economy.nextUpgrade(glow)\n96  96   | \tlocal board = if nextUp then nextUp.name .. \" in \" .. nextUp.remaining .. \" Glow\" else \"Board complete\"\n97       |-\tself.status.Text = (if carrying then \"Carrying oil\" else \"No oil\") .. \"   |   Glow \" .. glow .. \"   |   Next: \" .. board\n    97   |+\tself.status.Text = (if carrying then \"Carrying oil\" else \"No oil\")\n    98   |+\t\t.. \"   |   Glow \"\n    99   |+\t\t.. glow\n    100  |+\t\t.. \"   |   Next: \"\n    101  |+\t\t.. board\n98  102  | \n99  103  | \tif s.phase == \"Dawn\" then\n100 104  | \t\tself.result.Text = s.stars .. \"/3 stars   +\" .. s.glowAward .. \" Glow\""
+      },
+      {
+        "name": "builder: lune unit tests",
+        "passed": true,
+        "detail": "ok  Validate\nok  Aim\nok  Beam\nok  Fog\nok  NightPlan\nok  Economy\nok  Tutorial\nok  Config\nall specs passed"
+      }
+    ]
+  },
+  "status": "pending",
+  "decision": null
+}

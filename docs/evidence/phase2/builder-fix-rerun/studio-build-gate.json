@@ -1,0 +1,22 @@
+[
+  {
+    "name": "rojo build",
+    "passed": true,
+    "detail": "built place file"
+  },
+  {
+    "name": "selene lint",
+    "passed": true,
+    "detail": "clean (offline std: Roblox globals only, API members not checked)"
+  },
+  {
+    "name": "stylua --check",
+    "passed": true,
+    "detail": "formatted"
+  },
+  {
+    "name": "lune unit tests",
+    "passed": true,
+    "detail": "ok  Validate\nok  Aim\nok  Beam\nok  Fog\nok  NightPlan\nok  Economy\nok  Tutorial\nok  Config\nall specs passed"
+  }
+]

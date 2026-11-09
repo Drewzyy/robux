@@ -1,0 +1,9 @@
+{"passed": false, "checks": [
+{"name": "every stage names a team agent and a concrete output file", "passed": true, "detail": "Architect design.md, Builder projects/dawn-watch/ plus build-notes.md, Playtest playtest-report.md, Lead review summary. Run folder ids for the later agents are placeholders (<architect run>), because they are not assigned yet."},
+{"name": "every stage has a gate", "passed": true, "detail": "Stages 1 and 2 have detailed gates. Stages 3 and 4 have one-line gates."},
+{"name": "plan ends in the review queue; no stage publishes or posts", "passed": true, "detail": "The Review section lists the items. The Builder gate forbids publish, upload and place-save calls."},
+{"name": "anything needing Andrew is under Blocked, not worked around", "passed": true, "detail": "Four items are listed: demand numbers, co-op decision, policy check, and missing vault notes. The co-op item has a stated default (1 to 4 players, bots fill empty stations) that Andrew can reverse at review."},
+{"name": "plain words, no filler", "passed": true, "detail": "Self-assessed."},
+{"name": "vault notes read were limited to the skill's load order", "passed": true, "detail": "Read the router, the 90 index, and Pulse's pitch. Nothing else."},
+{"name": "toolchain and external claims verified", "passed": false, "detail": "NOT RUN. I did not check that Rojo is installed or that Pulse's demand numbers are right. Both are carried as UNVERIFIED. The plan itself is complete, but this check failed, so the overall gate is false."}
+]}

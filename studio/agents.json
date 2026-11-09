@@ -7,7 +7,31 @@
       "context_tokens": 100,
       "output_tokens_per_turn": 150,
       "base_tokens": 6000,
-      "allowed_tools": []
+      "allowed_tools": [],
+      "allowed_sections": [],
+      "output": null
+    },
+    "pulse": {
+      "description": "Reads charts and market data, pitches ranked ideas with evidence.",
+      "model": "claude-sonnet-5-5",
+      "turns": 10,
+      "context_tokens": 20000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "70-competitors",
+        "10-game-design"
+      ],
+      "output": "pitch.md"
     },
     "lead": {
       "description": "Manager. Turns your instruction into a team plan and reports status.",
@@ -21,7 +45,12 @@
         "Glob",
         "Skill",
         "Write"
-      ]
+      ],
+      "allowed_sections": [
+        "00-router",
+        "90-templates-checklists"
+      ],
+      "output": "plan.md"
     },
     "architect": {
       "description": "Turns a pitch into a one-page game design doc.",
@@ -35,7 +64,14 @@
         "Glob",
         "Skill",
         "Write"
-      ]
+      ],
+      "allowed_sections": [
+        "00-router",
+        "10-game-design",
+        "40-monetization",
+        "60-policy"
+      ],
+      "output": "design.md"
     },
     "builder": {
       "description": "Writes Luau as a Rojo project and runs the headless build gate.",
@@ -56,8 +92,183 @@
         "Bash(selene:*)",
         "Bash(stylua:*)",
         "Bash(mkdir:*)",
-        "Bash(ls:*)"
-      ]
+        "Bash(ls:*)",
+        "Bash(python3 ../scripts/gates/build_gate.py:*)"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "20-luau-rojo",
+        "40-monetization"
+      ],
+      "output": "build.md"
+    },
+    "scenic": {
+      "description": "Lighting, atmosphere, and mood as a Rojo config module.",
+      "model": "claude-sonnet-5-5",
+      "turns": 8,
+      "context_tokens": 10000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write",
+        "Edit"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "80-assets",
+        "20-luau-rojo"
+      ],
+      "output": "lighting.md"
+    },
+    "librarian": {
+      "description": "Sources models and effects with licenses checked. No Toolbox models.",
+      "model": "claude-sonnet-5-5",
+      "turns": 8,
+      "context_tokens": 8000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "80-assets",
+        "60-policy"
+      ],
+      "output": "assets.md"
+    },
+    "frame": {
+      "description": "Builds HUD, shop, and menus, phone first.",
+      "model": "claude-sonnet-5-5",
+      "turns": 14,
+      "context_tokens": 12000,
+      "output_tokens_per_turn": 1500,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write",
+        "Edit"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "30-ui-ux",
+        "40-monetization"
+      ],
+      "output": "ui.md"
+    },
+    "playtest": {
+      "description": "Plays or inspects every build and reports specific problems.",
+      "model": "claude-sonnet-5-5",
+      "turns": 14,
+      "context_tokens": 15000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Bash(rojo:*)",
+        "Bash(lune:*)",
+        "Bash(ls:*)",
+        "Bash(python3 ../scripts/gates/build_gate.py:*)"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "90-templates-checklists",
+        "10-game-design",
+        "30-ui-ux"
+      ],
+      "output": "playtest-report.md"
+    },
+    "splash": {
+      "description": "Icon, thumbnail, and promo briefs that match the real game.",
+      "model": "claude-sonnet-5-5",
+      "turns": 6,
+      "context_tokens": 8000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "30-ui-ux",
+        "80-assets",
+        "60-policy"
+      ],
+      "output": "splash.md"
+    },
+    "merchant": {
+      "description": "Launch shop: products and prices, do-not-sell list enforced.",
+      "model": "claude-sonnet-5-5",
+      "turns": 8,
+      "context_tokens": 10000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "40-monetization",
+        "60-policy"
+      ],
+      "output": "shop.md"
+    },
+    "liveops": {
+      "description": "Reads analytics exports and proposes events in Roblox's priority order.",
+      "model": "claude-sonnet-5-5",
+      "turns": 8,
+      "context_tokens": 10000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "50-retention-analytics"
+      ],
+      "output": "liveops.md"
+    },
+    "producer": {
+      "description": "Plans the next update: one reason, one scope, staged for the team.",
+      "model": "claude-sonnet-5-5",
+      "turns": 6,
+      "context_tokens": 8000,
+      "output_tokens_per_turn": 1000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "50-retention-analytics",
+        "90-templates-checklists"
+      ],
+      "output": "update-plan.md"
     }
   }
 }

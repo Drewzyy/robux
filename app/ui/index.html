@@ -31,7 +31,22 @@
       <div class="section-head"><h1>Run an agent</h1></div>
       <p class="hint">Every run shows its cost first and needs your approval. The approved cap is a hard stop.</p>
       <div class="form">
-        <label>Agent
+        <label>What to run
+          <select id="mode-select">
+            <option value="agent">One agent</option>
+            <option value="pipeline">A pipeline (several agents in order, one approval)</option>
+          </select>
+        </label>
+        <div id="pipeline-fields" class="hidden">
+          <label>Pipeline
+            <select id="pipeline-select"></select>
+          </label>
+          <p id="pipeline-desc" class="hint"></p>
+          <label id="project-label">Game project
+            <select id="project-select"><option value="">(none)</option></select>
+          </label>
+        </div>
+        <label id="agent-label">Agent
           <select id="agent-select"></select>
         </label>
         <p id="agent-desc" class="hint"></p>
@@ -43,6 +58,7 @@
       <div id="estimate" class="card hidden"></div>
       <div id="output-wrap" class="hidden">
         <h2>Output</h2>
+        <div id="stages" class="stages"></div>
         <pre id="output"></pre>
         <div id="run-summary" class="card hidden"></div>
       </div>

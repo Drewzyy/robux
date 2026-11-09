@@ -1,0 +1,32 @@
+{
+  "run_id": "pipe-pitch-to-build-20261109-105542-ca9c--1-pulse",
+  "agent": "pulse",
+  "prompt": "Find a rising Roblox trend that a solo developer could make a small, original game for, and pitch three ideas.",
+  "estimate": {
+    "agent": "pulse",
+    "model": "claude-sonnet-5-5",
+    "low_usd": 0.1675,
+    "expected_usd": 0.3349,
+    "high_usd": 0.8374,
+    "cap_usd": 0.84,
+    "cache_write_tokens": 41028,
+    "cache_read_tokens": 254154,
+    "output_tokens": 12000,
+    "assumptions": [
+      "10 model turns, about 1200 output tokens each (thinking included)",
+      "about 20028 tokens of files and prompt read, 9000 tokens of system prompt and tools",
+      "claude-sonnet-5-5 at $2/M input, $10/M output, $0.2/M cache read, cache write 2x input",
+      "Range is 0.5x to 2.5x of expected. The run is stopped if it reaches the cap."
+    ],
+    "pricing_checked": "2026-11-09",
+    "subscription_note": "On a Claude Max plan ($100 to $200 a month) runs count against plan limits, not a per-run bill. These dollar figures are the API-equivalent cost. Heavy autonomous runs billed on the API can cost more than a Max plan."
+  },
+  "status": "done",
+  "created_at": "2026-11-09T10:55:42Z",
+  "approved_at": "2026-11-09T10:55:42Z",
+  "finished_at": "2026-11-09T10:56:58Z",
+  "actual_cost_usd": 0.1905865,
+  "result_text": "I wrote three pitches, but the gate failed (`passed: false`) because the market numbers are unverified and the vault notes I needed weren't usable.\n\n**Data**\n- **Search only:** I ran two web searches and read only their summaries. I did not open Rolimons, RoVitals, BLOXG or the Roblox charts, so every number in `pitch.md` is marked UNVERIFIED.\n- **Conflicting numbers:** The sources disagree. One shows Steal An Egg at 986K concurrent players on Oct 14, another at 1.6M in September.\n\n**Vault**\n- **Stubs:** `70-competitors/index` and `10-game-design/index` are stubs.\n- **Missing notes:** `teardown-template`, `tracker-watchlist` and `copy-vs-avoid` don't exist.\n- **Fallback:** I used the skill's rules instead, so no pitch was checked against a teardown or genre playbook.\n- **Policy:** I didn't load the policy section. The policy-risk scores are my own judgment, so a pre-launch policy check is still needed.\n\n**The trend:** \"Steal / hatch / run\" games, where you guard something valuable in a base while others try to take it. Demand looks strongest there but the genre is crowded. A solo developer can't match the top games' weekly content, so each pitch changes the core verb or the social structure.\n\n**Pitches, best first**\n1. **Dawn Watch:** Up to four friends defend a lighthouse through one 9-minute night. Each player tends a different lamp. Core verb: tend. Dawn always comes, so a failed night is never a hard wipe. Policy risk 1.\n2. **Nest Watch:** A pair shares one nest, and eggs hatch on fixed visible timers. Core verb: guard. A \"stolen\" egg is only borrowed and returns in 60 seconds. Policy risk 3, and it's the riskiest because it's crowded and can read as griefing.\n3. **Tide Table:** A fishing game where the real-clock tide sets which fish bite, and everyone sees the same tide board. Core verb: time. Policy risk 2. Whether Roblox gives a reliable way to read server time for the tide is UNVERIFIED.\n\nNone of the pitches uses gambling or paid random items.\n\nThe pitch file also has the full candidates table (8 candidates, scored) and open questions for you. The main one is whether someone can check the live charts so the numbers can be verified.\n\nFiles are in `/home/user/robux/runs/pipe-pitch-to-build-20261109-105542-ca9c--1-pulse/`:\n- `pitch.md`\n- `gate.json`",
+  "error": null,
+  "pipeline_id": "pipe-pitch-to-build-20261109-105542-ca9c"
+}

@@ -145,12 +145,134 @@ function showAgentDesc() {
 }
 $("agent-select").addEventListener("change", showAgentDesc);
 
+// ---------- pipelines ----------
+let pipelines = {};
+let currentPipe = null; // prepared PipelineRun
+async function loadPipelines() {
+  pipelines = await invoke("pipelines_list");
+  $("pipeline-select").replaceChildren(...Object.keys(pipelines).map((k) => el("option", { value: k }, k)));
+  const projects = await invoke("projects_list").catch(() => []);
+  $("project-select").replaceChildren(el("option", { value: "" }, "(none)"), ...projects.map((p) => el("option", { value: p }, p)));
+  showPipeDesc();
+}
+function showPipeDesc() {
+  const p = pipelines[$("pipeline-select").value];
+  $("pipeline-desc").textContent = p ? p.description + " Stages: " + p.stages.map((s) => s.agent).join(" → ") : "";
+  $("project-label").classList.toggle("hidden", !(p && p.needs_project));
+}
+function isPipeMode() {
+  return $("mode-select").value === "pipeline";
+}
+$("mode-select").addEventListener("change", () => {
+  $("pipeline-fields").classList.toggle("hidden", !isPipeMode());
+  $("agent-label").classList.toggle("hidden", isPipeMode());
+  $("agent-desc").classList.toggle("hidden", isPipeMode());
+  $("estimate").classList.add("hidden");
+});
+$("pipeline-select").addEventListener("change", showPipeDesc);
+
+async function estimatePipeline(box) {
+  try {
+    currentPipe = await invoke("pipeline_prepare", { name: $("pipeline-select").value, input: $("prompt").value, project: $("project-select").value || null });
+  } catch (e) {
+    box.append(el("div", { class: "err" }, String(e)));
+    return;
+  }
+  current = null;
+  const p = currentPipe;
+  const approveBtn = el("button", { class: "approve", onclick: () => approvePipeline(approveBtn, cancelBtn) }, `Approve all stages and run (total cap ${usd(p.cap_usd)})`);
+  const cancelBtn = el("button", {
+    class: "ghost",
+    onclick: async () => {
+      await invoke("pipeline_cancel", { pipelineId: p.pipeline_id }).catch(() => {});
+      box.classList.add("hidden");
+      currentPipe = null;
+    },
+  }, "Cancel");
+  box.append(
+    el("div", { class: "item-head" }, el("span", { class: "item-title" }, "Cost before you run"), el("span", { class: "pill pending" }, "awaiting your approval")),
+    el("div", { class: "est-grid" },
+      el("div", {}, el("span", {}, "Expected (all stages)"), el("div", { class: "money" }, usd(p.expected_usd, 4))),
+      el("div", {}, el("span", {}, "Up to"), el("div", {}, usd(p.high_usd, 4))),
+      el("div", {}, el("span", {}, "Hard cap (sum of stage caps)"), el("div", { class: "money" }, usd(p.cap_usd)))
+    ),
+    el("ul", { class: "checks" }, p.stages.map((s) => el("li", {}, `${s.agent} → ${s.output}`))),
+    el("div", { class: "meta" }, "Each stage runs under its own cap. The result goes to the review queue; nothing is published."),
+    el("div", { class: "actions" }, approveBtn, cancelBtn)
+  );
+}
+
+function renderStages(p, activeIndex) {
+  $("stages").replaceChildren(
+    ...p.stages.map((s, i) => {
+      let cls = "stage";
+      if (s.gate) cls += s.gate.passed ? " pass" : " fail";
+      else if (i === activeIndex) cls += " running";
+      return el("span", { class: cls }, `${i + 1}. ${s.agent}` + (s.gate ? (s.gate.passed ? " ✓" : " ✗") : i === activeIndex ? " …" : ""));
+    })
+  );
+}
+
+async function approvePipeline(approveBtn, cancelBtn) {
+  approveBtn.disabled = true;
+  cancelBtn.disabled = true;
+  $("output-wrap").classList.remove("hidden");
+  $("output").textContent = "";
+  $("run-summary").classList.add("hidden");
+  renderStages(currentPipe, 0);
+  try {
+    await invoke("pipeline_approve_and_start", { pipelineId: currentPipe.pipeline_id, confirmedCapUsd: currentPipe.cap_usd });
+    $("output").textContent = `Approved at total cap ${usd(currentPipe.cap_usd)}. Running ${currentPipe.pipeline_id}...\n`;
+  } catch (e) {
+    $("output").textContent = "Could not start: " + e;
+    approveBtn.disabled = false;
+    cancelBtn.disabled = false;
+  }
+}
+
+T.event.listen("pipe-stage", (ev) => {
+  const d = ev.payload;
+  if (!currentPipe || d.pipeline_id !== currentPipe.pipeline_id) return;
+  if (d.state === "done") {
+    currentPipe.stages[d.index].gate = d.gate;
+    renderStages(currentPipe, d.index + 1);
+    $("output").textContent += `\n=== ${d.agent} finished: gate ${d.gate.passed ? "PASS" : "FAIL"} ===\n`;
+  } else {
+    renderStages(currentPipe, d.index);
+    $("output").textContent += `\n=== ${d.agent} started ===\n`;
+  }
+});
+
+T.event.listen("pipe-done", (ev) => {
+  const p = ev.payload;
+  if (!currentPipe || p.pipeline_id !== currentPipe.pipeline_id) return;
+  const s = $("run-summary");
+  s.classList.remove("hidden");
+  s.replaceChildren(
+    el("div", { class: "item-head" }, el("span", { class: "item-title", id: "pipe-status" }, `Pipeline ${p.status}`), p.queue_item ? el("span", { class: "pill pending" }, "in your review queue") : el("span", {}, "")),
+    el("div", { class: "est-grid" },
+      el("div", {}, el("span", {}, "Estimated"), el("div", {}, usd(currentPipe.expected_usd, 4))),
+      el("div", {}, el("span", {}, "Actual"), el("div", { class: "money" }, usd(p.actual_cost_usd, 4))),
+      el("div", {}, el("span", {}, "Cap"), el("div", {}, usd(currentPipe.cap_usd)))
+    ),
+    el("div", { class: "meta" }, p.error ? "Error: " + p.error : "Open the Review queue tab to approve or reject.")
+  );
+  loadQueue();
+});
+
 $("estimate-btn").addEventListener("click", async () => {
+  if (isPipeMode()) {
+    const box = $("estimate");
+    box.classList.remove("hidden");
+    box.replaceChildren();
+    return estimatePipeline(box);
+  }
   const box = $("estimate");
   box.classList.remove("hidden");
   box.replaceChildren();
   try {
     current = await invoke("run_prepare", { agent: $("agent-select").value, prompt: $("prompt").value });
+    currentPipe = null;
   } catch (e) {
     box.append(el("div", { class: "err" }, String(e)));
     return;
@@ -185,6 +307,7 @@ async function approveAndRun(approveBtn, cancelBtn) {
   cancelBtn.disabled = true;
   $("output-wrap").classList.remove("hidden");
   $("output").textContent = "";
+  $("stages").replaceChildren();
   $("run-summary").classList.add("hidden");
   try {
     await invoke("run_approve_and_start", { runId: current.run_id, confirmedCapUsd: current.estimate.cap_usd });
@@ -221,7 +344,8 @@ function renderStreamLine(line) {
 }
 
 T.event.listen("run-line", (ev) => {
-  if (!current || ev.payload.run_id !== current.run_id) return;
+  const mine = (current && ev.payload.run_id === current.run_id) || (currentPipe && ev.payload.pipeline_id === currentPipe.pipeline_id);
+  if (!mine) return;
   const text = renderStreamLine(ev.payload.line);
   if (text) {
     const out = $("output");
@@ -295,3 +419,4 @@ $("refresh-runs").addEventListener("click", loadRuns);
 loadInfo();
 loadQueue();
 loadAgents().catch((e) => ($("agent-desc").textContent = String(e)));
+loadPipelines().catch((e) => ($("pipeline-desc").textContent = String(e)));

@@ -1,0 +1,31 @@
+{
+  "args": [
+    "-p",
+    "/builder The project projects/dawn-watch fails the studio build gate. Run the gate, fix only what fails (formatting or lint), do not change game behavior, and rerun the gate until it passes. First line of build.md: Project: projects/dawn-watch",
+    "--append-system-prompt",
+    "Run context. Run id: run-builder-20261109-110648-cb6d. Your run folder is /home/user/robux/runs/run-builder-20261109-110648-cb6d (absolute path). Write every output file there, including gate.json. The studio's game projects folder is /home/user/robux/projects. You are running unattended: nobody can answer questions mid-run, so put questions in your output under Open questions.",
+    "--agent",
+    "builder",
+    "--model",
+    "claude-sonnet-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "2.02",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project",
+    "--strict-mcp-config",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Read Glob Grep Skill Write Edit Bash(rojo:*) Bash(lune:*) Bash(selene:*) Bash(stylua:*) Bash(mkdir:*) Bash(ls:*) Bash(python3 ../scripts/gates/build_gate.py:*)",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/run-builder-20261109-110648-cb6d"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

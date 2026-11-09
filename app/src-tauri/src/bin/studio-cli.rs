@@ -6,12 +6,13 @@
 //!   studio-cli queue decide <id> approved|rejected [note]
 //!   studio-cli estimate <agent> <prompt>
 //!   studio-cli run <agent> <prompt> --approve-cap <usd>
+//!   studio-cli pipeline <name> <input> [--project projects/<game>] [--approve-cap <usd>]
 //!
 //! `run` prepares the request, prints the estimate, and only starts when
 //! `--approve-cap` equals the cap it just printed. Without the flag it stops
 //! after printing the estimate.
 
-use studio_core::{bridge, cost, paths, queue, runs};
+use studio_core::{bridge, cost, paths, pipeline, queue, runs};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -99,7 +100,51 @@ fn real_main(args: &[String]) -> Result<(), String> {
             }
             Ok(())
         }
-        _ => Err("usage: studio-cli info | queue list | queue decide <id> approved|rejected [note] | estimate <agent> <prompt> | run <agent> <prompt> [--approve-cap <usd>]".into()),
+        ["pipeline", name, rest @ ..] => {
+            let mut cap: Option<f64> = None;
+            let mut project: Option<String> = None;
+            let mut words = vec![];
+            let mut it = rest.iter();
+            while let Some(w) = it.next() {
+                match *w {
+                    "--approve-cap" => cap = it.next().and_then(|v| v.parse().ok()),
+                    "--project" => project = it.next().map(|s| s.to_string()),
+                    _ => words.push(*w),
+                }
+            }
+            let p = pipeline::prepare(&root, name, &words.join(" "), project.as_deref())?;
+            println!("pipeline: {}", p.pipeline_id);
+            for s in &p.stages {
+                let r = runs::load(&root, &s.run_id)?;
+                println!("  stage {:10} est ${:.4}  cap ${:.2}  -> {}", s.agent, r.estimate.expected_usd, r.estimate.cap_usd, s.output);
+            }
+            println!("total: ${:.4} expected, up to ${:.4}; hard cap ${:.2}", p.expected_usd, p.high_usd, p.cap_usd);
+            let Some(cap) = cap else {
+                pipeline::cancel(&root, &p.pipeline_id)?;
+                println!("not approved: rerun with --approve-cap {:.2} to start", p.cap_usd);
+                return Ok(());
+            };
+            pipeline::approve(&root, &p.pipeline_id, cap).map_err(|e| {
+                let _ = pipeline::cancel(&root, &p.pipeline_id);
+                e
+            })?;
+            let bin = paths::claude_bin()?;
+            println!("approved; running");
+            let done = pipeline::run(&root, &p.pipeline_id, &bin, |ev| match ev {
+                pipeline::Event::StageStart { index, agent, .. } => println!("[{}] {} started", index + 1, agent),
+                pipeline::Event::StageDone { index, agent, gate } => {
+                    println!("[{}] {} gate {}", index + 1, agent, if gate.passed { "PASS" } else { "FAIL" });
+                    for c in &gate.checks {
+                        println!("      {} {}: {}", if c.passed { "ok  " } else { "FAIL" }, c.name, c.detail.chars().take(160).collect::<String>());
+                    }
+                }
+                pipeline::Event::Line { .. } => {}
+            })?;
+            println!("pipeline {}: {}  actual ${:.4}", done.pipeline_id, done.status, done.actual_cost_usd.unwrap_or(0.0));
+            println!("review queue item: {}", done.queue_item.unwrap_or_default());
+            Ok(())
+        }
+        _ => Err("usage: studio-cli info | queue list | queue decide <id> approved|rejected [note] | estimate <agent> <prompt> | run <agent> <prompt> [--approve-cap <usd>] | pipeline <name> <input> [--project p] [--approve-cap <usd>]".into()),
     }
 }
 
