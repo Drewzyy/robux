@@ -99,6 +99,11 @@ def main() -> int:
                     errs.append(f"{s}/index.md: [[{m.group(1)}]] still planned")
             elif not exists:
                 errs.append(f"{s}/index.md: [[{m.group(1)}]] is listed but missing")
+            else:
+                row_status = line.rstrip().rstrip("|").rsplit("|", 1)[-1].strip()
+                fm, _ = frontmatter(VAULT / f"{m.group(1)}.md")
+                if fm and fm.get("status") != row_status:
+                    errs.append(f"{s}/index.md: [[{m.group(1)}]] row says {row_status}, note says {fm.get('status')}")
     print(f"notes: {len(notes)}  stubs: {stubs}  planned index rows: {planned}")
     for w in warns:
         print("warn:", w)

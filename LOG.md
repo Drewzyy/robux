@@ -213,3 +213,65 @@ what they cannot back up. Phase 3 fills the vault.
 Open item for Andrew
 - The Dawn Watch item in the review queue should be rejected (its gate
   failed). It is test output from the acceptance run, not a game to ship.
+
+## Phase 3: vault content fill
+
+What was built
+- 82 section notes plus glossary, policy change log, and sources: 96 notes,
+  about 25,000 words, all written from the research report. Generator scripts
+  are in `scripts/vaultgen/` (one per section) so the source of every note is
+  reviewable.
+- Every note has `description`, `type`, `status`, `last_checked`, `sources`,
+  and a `verify:` line that is either a concrete check or says UNVERIFIED and
+  why. 85 individual claims inside notes are flagged UNVERIFIED where the
+  research flagged them or where I could not confirm them.
+- Status: 18 verified (checked against a primary source or by running code),
+  77 draft (from the research, mostly secondary sources), 1 unverified
+  (`80-assets/lighting-and-mood`: the research has no lighting content, so the
+  note holds goals only instead of guessed values).
+- The corrections the brief asked for are in: Roblox Wallet as the cashout
+  route (`40-monetization/roblox-wallet`), honest benchmarks with a D1 of 15%
+  labeled as about p90 (`50-retention-analytics/benchmarks`), QPTR retired and
+  28-day window (`50-retention-analytics/discovery-signals`), cross-game pass
+  sales off May 30 2026, ProfileStore over ProfileService, the flow claim
+  flagged as contested (Cutting et al. 2023).
+- Section indexes now show each note's real status; `check_vault.py --full`
+  fails if an index row and its note disagree.
+- `scripts/verify_vault_code.py`: extracts the Luau from code-template notes
+  into temporary Rojo projects and runs the build gate.
+
+How it was verified
+1. `check_vault.py --full`: PASS (96 notes, no stubs, no planned rows, every
+   wikilink resolves, every index status matches its note).
+2. Code templates executed: service-controller-template (6 files) and
+   processreceipt-template (3 files) each pass rojo build, Selene, StyLua, and
+   their Lune tests.
+3. Spot check of 5 documents against sources: see
+   `docs/evidence/phase3/spot-checks.md`. Summary:
+   - discovery-signals: matches Roblox's discovery doc. Also confirmed the
+     custom-thumbnail requirement the research had left UNVERIFIED.
+   - content-maturity-guide: research had put social hangouts, private
+     spaces, AI interactions, and fear inside the Restricted label; Roblox's
+     page does not. Corrected with quoted label text.
+   - money-math: DevEx rates, minimum, and eligibility match Roblox's doc.
+     Research's cashout-order claim was wrong; corrected.
+   - first-60-seconds-checklist: Roblox's onboarding doc gives no seconds
+     targets; the 60-second timeline is now labeled community guidance.
+   - code templates: pass when executed.
+   - Not checked: GameAnalytics benchmarks (host not reachable from this
+     session). Stays draft.
+4. Agent run against the full vault: Architect, asked for the first 60
+   seconds of a floating-island obby, read the router, the section index, and
+   5 of 16 game-design notes (10.1% of the vault's words). check_loads PASS.
+   Its own gate passed this time (in Phase 1, against stubs, it failed).
+   Cost $0.124. Evidence: `docs/evidence/phase3/`.
+
+Honest limits
+- 77 notes are draft: they restate the research, which itself mostly cites
+  secondary and community sources. Before an agent relies on a number for a
+  real decision (prices, rates, policy), that number should be checked at its
+  primary source, like the five spot checks above.
+- The god plan's 16-point anti-slop checklist and other god plan sections are
+  referenced but not reproduced, because the god plan is not in this repo.
+- The vault is about 25,000 words, not 200,000. Size was never the goal; the
+  research's own finding is that verified, specific notes beat volume.

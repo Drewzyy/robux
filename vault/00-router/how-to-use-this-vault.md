@@ -22,7 +22,7 @@ Skills follow the same idea: Claude Code loads only each skill's name and descri
 Every note starts with flat YAML frontmatter:
 - `description`: about 150 characters. Lets an agent judge relevance without opening the note.
 - `type`: router, section-index, playbook, template, checklist, reference, teardown.
-- `status`: stub, draft, partial, verified, unverified.
+- `status`: stub (empty), draft (written from the research report, mostly secondary sources; re-check a number before relying on it), verified (checked against a primary source or by running it), unverified (no source yet).
 - `last_checked`: date the facts were last checked against sources.
 - `sources`: where the facts came from.
 - `verify`: how to check the note, or the word UNVERIFIED and why.

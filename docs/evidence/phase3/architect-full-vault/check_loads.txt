@@ -1,0 +1,11 @@
+run run-architect-20261109-112030-ed04  agent architect  status done  cost 0.1239321
+allowed sections: ['00-router', '10-game-design', '40-monetization', '60-policy']
+  Read   section      00-router/index.md  [ok]
+  Read   section      10-game-design/index.md  [ok]
+  Read   section      10-game-design/genre-playbooks/obby.md  [ok]
+  Read   section      10-game-design/first-60-seconds-checklist.md  [ok]
+  Read   section      10-game-design/core-loop-template.md  [ok]
+  Read   section      10-game-design/difficulty-curve-worksheet.md  [ok]
+  Read   section      10-game-design/game-design-doc-template.md  [ok]
+sections loaded, in order: ['00-router', '10-game-design']
+PASS: only allowed sections were loaded

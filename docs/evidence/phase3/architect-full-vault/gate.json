@@ -1,0 +1,8 @@
+{"passed": true, "checks": [
+{"name": "all 11 sections present", "passed": true, "detail": "Sections 1-11 in order in design.md."},
+{"name": "first 60 seconds has all four windows with concrete action", "passed": true, "detail": "0-5, 5-10, 10-30, 30-60 each have a concrete action."},
+{"name": "every number marked as starting value", "passed": true, "detail": "Header declares all numbers are starting values; 'sv' tags on first use per section. Not machine-checked; manual read."},
+{"name": "nothing on do-not-sell list proposed for sale", "passed": true, "detail": "Nothing proposed for sale; coins are cosmetic only. The do-not-sell-list note was not read, so this is checked against the obby playbook's statement that checkpoints are never sold."},
+{"name": "no claim as fact without vault source; others UNVERIFIED", "passed": true, "detail": "Sourced claims cite the playbook, checklist and core-loop template. Section 5 notes reward-schedules was not loaded. Unsourced items are listed UNVERIFIED in section 10. All vault notes read are status draft."},
+{"name": "not generic: at least 3 pitch-specific mechanics", "passed": true, "detail": "Beacon checkpoints, Updraft Pad, crumbling island, safety cloud, Cloud Gate."}
+]}

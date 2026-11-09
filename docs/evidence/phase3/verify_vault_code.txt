@@ -1,0 +1,10 @@
+PASS 20-luau-rojo/service-controller-template.md (6 files)
+   ok   rojo build: built place file
+   ok   selene lint: clean (offline std: Roblox globals only, API members not checked)
+   ok   stylua --check: formatted
+   ok   lune unit tests: all tests passed
+PASS 40-monetization/processreceipt-template.md (3 files)
+   ok   rojo build: built place file
+   ok   selene lint: clean (offline std: Roblox globals only, API members not checked)
+   ok   stylua --check: formatted
+   ok   lune unit tests: all tests passed
