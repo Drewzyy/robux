@@ -1,4 +1,4 @@
-// Robux Studio UI. Plain JS, no build step. Every rule that matters
+// BrewixGames UI. Plain JS, no build step. Every rule that matters
 // (approval, caps, budget, gates) is enforced in Rust; this file shows
 // state and forwards clicks.
 
@@ -144,7 +144,7 @@ function runningSubtitle() {
   const sp = state.spend;
   const run = state.live ? state.live.id : sp && sp.running.length ? sp.running[0] : null;
   return el("span", {},
-    "Robux Studio · ",
+    "BrewixGames · ",
     run ? el("span", {}, "Current run ", el("b", {}, run), ` · est. ${usd(state.live ? state.live.estimate : sp.running_expected_usd, 4)}`) : "No run in progress",
     sp ? ` · ${usd(sp.spent_usd)} spent this month` + (sp.budget_usd > 0 ? ` of ${usd(sp.budget_usd)}` : "") : ""
   );

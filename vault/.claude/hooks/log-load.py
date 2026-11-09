@@ -2,7 +2,7 @@
 """PostToolUse hook: log every file or search an agent touches.
 
 Writes one JSON line per Read/Skill/Glob/Grep call to
-$ROBUX_RUN_DIR/loads.jsonl when the run was started by Robux Studio,
+$ROBUX_RUN_DIR/loads.jsonl when the run was started by BrewixGames,
 otherwise to <vault>/.claude/logs/loads.jsonl. This is how we prove which
 parts of the vault each agent loaded. It never blocks the tool call.
 """

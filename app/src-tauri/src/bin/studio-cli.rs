@@ -199,7 +199,7 @@ fn real_main(args: &[String]) -> Result<(), String> {
         }
         ["notify", "test"] => {
             let st = settings::load();
-            let sent = notify::send(&st, notify::Kind::Test, "Robux Studio is connected", &["Test message from studio-cli.".into()])?;
+            let sent = notify::send(&st, notify::Kind::Test, "BrewixGames is connected", &["Test message from studio-cli.".into()])?;
             println!("{}", if sent { "sent" } else { "not sent (no webhook set)" });
             Ok(())
         }

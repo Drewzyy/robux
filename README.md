@@ -1,4 +1,4 @@
-# Robux Studio (internal)
+# BrewixGames (internal)
 
 Andrew's internal agent studio for making Roblox games. A local desktop app
 that runs Claude Code agents against an Obsidian knowledge vault and puts

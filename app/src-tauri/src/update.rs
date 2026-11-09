@@ -146,14 +146,14 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
             let mut c = Command::new("npm");
             c.current_dir(&app_dir).args(["run", "build", "--", "--bundles", "app"]);
             stream(c, on_line)?;
-            let built = tauri_dir.join("target/release/bundle/macos/Robux Studio.app");
+            let built = tauri_dir.join("target/release/bundle/macos/BrewixGames.app");
             if built != running {
                 on_line(&format!("Replacing {}", running.display()));
                 let mut d = Command::new("ditto");
                 d.arg(&built).arg(&running);
                 stream(d, on_line)?;
             }
-            Ok(running.join("Contents/MacOS/robux-studio"))
+            Ok(running.join("Contents/MacOS/brewixgames"))
         }
     }
 }

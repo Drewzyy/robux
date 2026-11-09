@@ -54,17 +54,17 @@ jobs:
       - name: Install the Tauri CLI
         working-directory: app
         run: npm install
-      - name: Build Robux Studio.app (unsigned)
+      - name: Build BrewixGames.app (unsigned)
         working-directory: app
         run: npm run build -- --bundles app
       - name: Check the bundle
         run: |
-          APP="app/src-tauri/target/release/bundle/macos/Robux Studio.app"
-          test -x "$APP/Contents/MacOS/robux-studio"
+          APP="app/src-tauri/target/release/bundle/macos/BrewixGames.app"
+          test -x "$APP/Contents/MacOS/brewixgames"
           /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist"
-          cd "$(dirname "$APP")" && ditto -c -k --keepParent "Robux Studio.app" robux-studio-macos.zip
+          cd "$(dirname "$APP")" && ditto -c -k --keepParent "BrewixGames.app" brewixgames-macos.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: robux-studio-macos
-          path: app/src-tauri/target/release/bundle/macos/robux-studio-macos.zip
+          name: brewixgames-macos
+          path: app/src-tauri/target/release/bundle/macos/brewixgames-macos.zip
           retention-days: 7

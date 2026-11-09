@@ -16,7 +16,7 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 ROOT = Path(__file__).resolve().parent.parent
-APP = ROOT / "app/src-tauri/target/debug/robux-studio"
+APP = ROOT / "app/src-tauri/target/debug/brewixgames"
 SHOTS = ROOT / "docs/screenshots"
 ok = True
 def check(name, cond, detail=""):

@@ -12,7 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 ROOT = Path(__file__).resolve().parent.parent
-APP = ROOT / "app/src-tauri/target/debug/robux-studio"
+APP = ROOT / "app/src-tauri/target/debug/brewixgames"
 SHOTS = ROOT / "docs/screenshots"
 ROUTES = sys.argv[1:] or ["queue", "agents", "vault", "runs", "runs-new", "run-detail", "settings"]
 

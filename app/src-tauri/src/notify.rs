@@ -54,13 +54,13 @@ pub fn validate_url(url: &str) -> Result<(), String> {
 pub fn payload(kind: Kind, title: &str, lines: &[String]) -> serde_json::Value {
     let description: String = lines.join("\n").chars().take(1800).collect();
     serde_json::json!({
-        "username": "Robux Studio",
+        "username": "BrewixGames",
         "allowed_mentions": { "parse": [] },
         "embeds": [{
             "title": title.chars().take(240).collect::<String>(),
             "description": description,
             "color": kind.color(),
-            "footer": { "text": "Robux Studio · nothing is published without your approval" }
+            "footer": { "text": "BrewixGames · nothing goes live without your approval" }
         }]
     })
 }

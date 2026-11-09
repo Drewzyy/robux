@@ -1,4 +1,4 @@
-//! Core logic for Robux Studio, shared by the desktop app and `studio-cli`.
+//! Core logic for BrewixGames, shared by the desktop app and `studio-cli`.
 //!
 //! Nothing in this crate publishes, posts, or contacts anyone. Agent runs go
 //! through `bridge`, which refuses to start without an approved estimate.

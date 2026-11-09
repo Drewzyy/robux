@@ -62,7 +62,7 @@ async fn notify_test() -> Result<String, String> {
     if s.discord_webhook_url.is_empty() {
         return Err("Add a Discord webhook URL first.".into());
     }
-    notify::send(&s, notify::Kind::Test, "Robux Studio is connected", &["You will get messages here when a build finishes or something needs your approval.".into()])?;
+    notify::send(&s, notify::Kind::Test, "BrewixGames is connected", &["You will get messages here when a build finishes or something needs your approval.".into()])?;
     Ok("Test message sent to Discord.".into())
 }
 
@@ -288,7 +288,7 @@ fn update_apply(app: AppHandle) -> Result<(), String> {
         match update::apply(&r, &mut on) {
             Ok(_) => {
                 on("Update installed. Restarting...");
-                notify::send_quiet(notify::Kind::Update, "Robux Studio updated", &[format!("Now on {}", update::check(&r).map(|s| s.local).unwrap_or_default())]);
+                notify::send_quiet(notify::Kind::Update, "BrewixGames updated", &[format!("Now on {}", update::check(&r).map(|s| s.local).unwrap_or_default())]);
                 std::thread::sleep(std::time::Duration::from_millis(600));
                 app.restart();
             }
@@ -336,5 +336,5 @@ fn main() {
             update_apply
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Robux Studio");
+        .expect("error while running BrewixGames");
 }

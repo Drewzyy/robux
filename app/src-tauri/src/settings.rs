@@ -1,7 +1,7 @@
 //! App settings. Stored outside the repo (they hold the Discord webhook URL,
 //! which must never be committed):
-//! - macOS: ~/Library/Application Support/com.andrewdieu.robuxstudio/settings.json
-//! - other: ~/.config/robux-studio/settings.json
+//! - macOS: ~/Library/Application Support/com.andrewdieu.brewixgames/settings.json
+//! - other: ~/.config/brewixgames/settings.json
 //! - override: ROBUX_CONFIG_DIR (used by tests)
 
 use serde::{Deserialize, Serialize};
@@ -70,9 +70,9 @@ pub fn config_dir() -> PathBuf {
     }
     let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
     if cfg!(target_os = "macos") {
-        home.join("Library/Application Support/com.andrewdieu.robuxstudio")
+        home.join("Library/Application Support/com.andrewdieu.brewixgames")
     } else {
-        home.join(".config/robux-studio")
+        home.join(".config/brewixgames")
     }
 }
 

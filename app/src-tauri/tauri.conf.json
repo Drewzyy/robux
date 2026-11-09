@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Robux Studio",
+  "productName": "BrewixGames",
   "version": "0.1.0",
-  "identifier": "com.andrewdieu.robuxstudio",
+  "identifier": "com.andrewdieu.brewixgames",
   "build": {
     "frontendDist": "../ui"
   },
@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Robux Studio",
+        "title": "BrewixGames",
         "width": 1180,
         "height": 800,
         "minWidth": 900,
