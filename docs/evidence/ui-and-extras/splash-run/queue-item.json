@@ -1,0 +1,95 @@
+{
+  "id": "q-run-splash-20261109-114134-0730",
+  "kind": "thumbnail",
+  "title": "Splash: Make the launch thumbnails and icon for Dawn Watch (design doc: projects/dawn-wa",
+  "summary": "I wrote 10 thumbnail comps and a 512×512 icon, but they're layout comps only because Dawn Watch has no screenshots yet. `gate.json` has `passed: false` because of that. All other checks passed, though I never rendered the SVGs, so text fit and the avatar's share of the frame are unchecked.\n\n- **Placeholders:** every avatar is a generic shape I drew, and the other shapes are simplified from the des",
+  "created_at": "2026-11-09T11:43:51Z",
+  "created_by": "splash",
+  "run_id": "run-splash-20261109-114134-0730",
+  "artifacts": [
+    "runs/run-splash-20261109-114134-0730/splash.md",
+    "runs/run-splash-20261109-114134-0730/thumbnails/icon.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t01.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t02.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t03.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t04.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t05.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t06.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t07.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t08.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t09.svg",
+    "runs/run-splash-20261109-114134-0730/thumbnails/t10.svg"
+  ],
+  "gate": {
+    "passed": false,
+    "checks": [
+      {
+        "name": "claude run finished without error",
+        "passed": true,
+        "detail": "done"
+      },
+      {
+        "name": "wrote splash.md",
+        "passed": true,
+        "detail": "present"
+      },
+      {
+        "name": "agent's own gate passed",
+        "passed": false,
+        "detail": "failed: uses the game's own visuals (real captures embedded)"
+      },
+      {
+        "name": "loaded only allowed vault sections",
+        "passed": true,
+        "detail": "sections: 00-router, 80-assets, 30-ui-ux, 60-policy"
+      },
+      {
+        "name": "has a Loaded section listing vault notes read",
+        "passed": true,
+        "detail": ""
+      },
+      {
+        "name": "no filler phrases",
+        "passed": true,
+        "detail": "none found"
+      },
+      {
+        "name": "10 to 20 thumbnail comps",
+        "passed": true,
+        "detail": "10 found in thumbnails/"
+      },
+      {
+        "name": "thumbnails are 1920x1080",
+        "passed": true,
+        "detail": "all"
+      },
+      {
+        "name": "0 to 3 words of text each",
+        "passed": true,
+        "detail": "all within limit"
+      },
+      {
+        "name": "max 3 saturated colours each",
+        "passed": true,
+        "detail": "all within limit"
+      },
+      {
+        "name": "512x512 icon",
+        "passed": true,
+        "detail": "thumbnails/icon.svg"
+      },
+      {
+        "name": "uses the game's own visuals (real captures embedded)",
+        "passed": false,
+        "detail": "0/10 embed a capture that exists"
+      },
+      {
+        "name": "ranking names a launch pick",
+        "passed": true,
+        "detail": ""
+      }
+    ]
+  },
+  "status": "pending",
+  "decision": null
+}

@@ -1,0 +1,32 @@
+{
+  "run_id": "run-splash-20261109-114134-0730",
+  "agent": "splash",
+  "prompt": "Make the launch thumbnails and icon for Dawn Watch (design doc: projects/dawn-watch/docs/design.md, game: projects/dawn-watch). Follow the MrBeast rule sheet. 10 comps.",
+  "estimate": {
+    "agent": "splash",
+    "model": "claude-sonnet-5-5",
+    "low_usd": 0.3824,
+    "expected_usd": 0.7648,
+    "high_usd": 1.9121,
+    "cap_usd": 1.92,
+    "cache_write_tokens": 63043,
+    "cache_read_tokens": 563365,
+    "output_tokens": 40000,
+    "assumptions": [
+      "16 model turns, about 2500 output tokens each (thinking included)",
+      "about 14043 tokens of files and prompt read, 9000 tokens of system prompt and tools",
+      "claude-sonnet-5-5 at $2/M input, $10/M output, $0.2/M cache read, cache write 2x input",
+      "Range is 0.5x to 2.5x of expected. The run is stopped if it reaches the cap."
+    ],
+    "pricing_checked": "2026-11-09",
+    "subscription_note": "On a Claude Max plan ($100 to $200 a month) runs count against plan limits, not a per-run bill. These dollar figures are the API-equivalent cost. Heavy autonomous runs billed on the API can cost more than a Max plan."
+  },
+  "status": "done",
+  "created_at": "2026-11-09T11:41:34Z",
+  "approved_at": "2026-11-09T11:41:34Z",
+  "finished_at": "2026-11-09T11:43:16Z",
+  "actual_cost_usd": 0.2960347,
+  "result_text": "I wrote 10 thumbnail comps and a 512×512 icon, but they're layout comps only because Dawn Watch has no screenshots yet. `gate.json` has `passed: false` because of that. All other checks passed, though I never rendered the SVGs, so text fit and the avatar's share of the frame are unchecked.\n\n- **Placeholders:** every avatar is a generic shape I drew, and the other shapes are simplified from the design doc, not from real art. Replace them with Studio captures. `splash.md` has a four-shot capture list.\n- **Contents:** each comp has three elements, at most three words of text, and three colours: deep blue, lamp amber and white. Everything shown is something a new player sees in the first minute, going by the design doc. I did not run the build to confirm it.\n- **Ranking:** launch with **t02** (a huge fog creature, text \"WHAT IS IT?\") and test **t06** (a glowing lane with a creature at the far end) next. t10 ranks last because it shows the payoff.\n- **Promo script:** it's a 15-second script in `splash.md` that uses only gameplay from the first minute.\n- **Open questions:** `splash.md` asks whether to use the real avatar rig, whether the game title goes on the thumbnail, and whether the creature and lamp art are final.\n\nNothing was uploaded.\n\nFiles are in `/home/user/robux/runs/run-splash-20261109-114134-0730/`:\n- `splash.md`\n- `gate.json`\n- `thumbnails/t01.svg` to `t10.svg`\n- `thumbnails/icon.svg`",
+  "error": null,
+  "pipeline_id": null
+}

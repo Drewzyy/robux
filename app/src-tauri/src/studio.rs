@@ -341,3 +341,37 @@ fn copy_dir(src: &Path, dst: &Path, n: &mut usize) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// For SVG previews: replace relative `href="...png|jpg"` image links with
+/// data URIs so the comp shows (and exports) with the real game captures.
+/// Only files inside the studio folder are inlined.
+pub fn inline_svg_images(root: &Path, svg_rel: &str, svg: &str) -> String {
+    use base64::Engine;
+    let base = root.join(svg_rel).parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let root_c = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    let mut out = String::with_capacity(svg.len());
+    let mut rest = svg;
+    while let Some(i) = rest.find("href=\"") {
+        let (head, tail) = rest.split_at(i + 6);
+        out.push_str(head);
+        let end = tail.find('"').unwrap_or(0);
+        let href = &tail[..end];
+        let lower = href.to_lowercase();
+        let is_img = lower.ends_with(".png") || lower.ends_with(".jpg") || lower.ends_with(".jpeg");
+        let mut replaced = None;
+        if is_img && !href.starts_with("data:") && !href.starts_with("http") {
+            if let Ok(full) = base.join(href).canonicalize() {
+                if full.starts_with(&root_c) {
+                    if let Ok(bytes) = fs::read(&full) {
+                        let mime = if lower.ends_with(".png") { "image/png" } else { "image/jpeg" };
+                        replaced = Some(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)));
+                    }
+                }
+            }
+        }
+        out.push_str(replaced.as_deref().unwrap_or(href));
+        rest = &tail[end..];
+    }
+    out.push_str(rest);
+    out
+}

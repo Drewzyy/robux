@@ -25,4 +25,4 @@ Formats: .png, .jpg, .gif, .tga, .bmp. Avoid .webp (community reports of silent 
 - No platform logos, catalog items, trademarks, or recognisable characters. Every image is moderated.
 - A custom thumbnail is **required** to receive impressions from homepage recommendations (verified in Roblox creator-docs discovery.md, 2026-11-09).
 
-Capture workflow: [[80-assets/thumbnail-pipeline]].
+Capture workflow: [[80-assets/thumbnail-pipeline]]. What makes a thumbnail get clicked: [[80-assets/thumbnail-mrbeast-logic]].

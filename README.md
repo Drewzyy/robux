@@ -41,6 +41,19 @@ to this repo's path.
 
 Headless twin, same rules: `app/src-tauri/target/debug/studio-cli info`.
 
+## Using the app
+
+- **Review Queue** (opens first): approve or reject what the agents made. A failed check can only be rejected. Approving records your yes; it never publishes.
+- **Agents**: the 12 agents and what each is doing right now.
+- **Vault**: read any note; see which are verified.
+- **Runs**: start a run (you always see the cost and a hard cap first) and open any run to see its steps, what it produced, how it was checked, and estimated vs actual cost.
+- **Settings**:
+  - **Claude**: shows whether Claude Code is signed in with your Claude account. Agents run on your subscription. The app never asks for an API key and strips `ANTHROPIC_API_KEY` from agent runs. "Sign In to Claude" opens Terminal running `claude auth login`.
+  - **Budget**: a monthly limit. Runs stop and ask once this month's spend would pass it.
+  - **Notifications**: paste a Discord webhook (Server Settings, Integrations, Webhooks, New Webhook, Copy URL). You get a message when something needs approval, a build finishes, a run fails, or the budget stops a run. Stored on your Mac only (`~/Library/Application Support/com.andrewdieu.robuxstudio/settings.json`), never in the repo.
+  - **Import a game project**: copies a Rojo game (for example `~/workspace/roblox-games/sky-tower-obby`) into `projects/`.
+  - **Updates**: "Check for Updates" fetches this repo's branch from GitHub; "Update and Restart" pulls, rebuilds the app the way it is running (dev, release, or the .app bundle), and restarts it. It refuses while an agent is running or if files were edited by hand. No release server and nothing public: it uses your existing git access.
+
 ## Cost
 
 Agent runs cost Claude usage. The app shows an estimate and a hard cap before
@@ -61,6 +74,13 @@ item in the review queue. A failed gate can only be rejected.
 
 Headless: `studio-cli pipeline pitch-to-build "<instruction>"` prints the
 estimate and stops; add `--approve-cap <the cap it printed>` to run.
+
+## CI (free)
+
+`.github/workflows/build.yml` runs on every push: Rust tests, the full vault
+check, the vault's Luau templates through Rojo/Selene/StyLua/Lune, and a real
+macOS build of `Robux Studio.app` (kept as a 7-day workflow artifact, not
+published).
 
 ## Toolchain for the build gate (free)
 

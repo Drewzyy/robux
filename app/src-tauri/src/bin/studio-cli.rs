@@ -149,6 +149,18 @@ fn real_main(args: &[String]) -> Result<(), String> {
             println!("review queue item: {}", done.queue_item.unwrap_or_default());
             Ok(())
         }
+        ["recheck", run_id] => {
+            match pipeline::recheck_single(&root, run_id)? {
+                Some(i) => {
+                    println!("{} gate {}", i.id, if i.gate.passed { "PASS" } else { "FAIL" });
+                    for c in i.gate.checks {
+                        println!("  {} {}: {}", if c.passed { "ok  " } else { "FAIL" }, c.name, c.detail.chars().take(120).collect::<String>());
+                    }
+                }
+                None => println!("this agent has no output file; nothing to check"),
+            }
+            Ok(())
+        }
         ["version"] => {
             println!("build {}", update::build_commit());
             Ok(())

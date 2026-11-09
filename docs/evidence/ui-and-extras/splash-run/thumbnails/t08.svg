@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<rect width="1920" height="1080" fill="#0A2CA8"/>
+<g id="el1-avatar-closeup" transform="translate(360,-300) scale(4.4)"><circle cx="100" cy="95" r="75" fill="#FFB800"/><circle cx="72" cy="85" r="22" fill="#FFFFFF"/><circle cx="128" cy="85" r="22" fill="#FFFFFF"/><circle cx="74" cy="87" r="9" fill="#0A2CA8"/><circle cx="126" cy="87" r="9" fill="#0A2CA8"/><ellipse cx="100" cy="140" rx="22" ry="28" fill="#0A2CA8"/></g>
+<g id="el2-eye-glints-in-dark"><circle cx="1700" cy="300" r="40" fill="#FFFFFF"/><circle cx="1800" cy="300" r="40" fill="#FFFFFF"/></g>
+</svg>

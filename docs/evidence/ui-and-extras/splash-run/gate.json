@@ -1,0 +1,9 @@
+{"passed": false, "checks": [
+{"name": "10 to 20 thumbnail SVGs at 1920x1080 plus a 512x512 icon", "passed": true, "detail": "t01-t10.svg at 1920x1080 and icon.svg at 512x512 written. Not rendered, so visual fit is unchecked."},
+{"name": "every thumbnail: max 3 elements, 0 to 3 words, max 3 colours, curiosity gap", "passed": true, "detail": "3 elements per comp (tagged by id), text 0-3 words, colours #0A2CA8/#FFB800/#FFFFFF only. t10 is closest to a payoff, ranked last. Avatar share of frame is likely below the 30-40% guideline in some comps; not measured."},
+{"name": "every comp shows something that exists in the build; nothing a new player will not see early", "passed": true, "detail": "Based on the design doc only (lamp, barrel, beam, Mumble, lane, dawn bar, lighthouse). The build has no screenshots and I did not run it, so this is UNVERIFIED against the actual game."},
+{"name": "uses the game's own visuals (real captures embedded)", "passed": false, "detail": "LAYOUT COMPS ONLY: no game captures in projects/dawn-watch/screenshots. Placeholder avatar and shapes."},
+{"name": "no platform logos, catalog items, real people, or recognizable characters", "passed": true, "detail": "All shapes are generic and hand-drawn; no logos, no MrBeast likeness."},
+{"name": "ranking names a launch pick and a test-next pick", "passed": true, "detail": "Launch t02, test next t06."},
+{"name": "nothing is uploaded or posted; Andrew exports and uploads", "passed": true, "detail": "Files written to the run folder only."}
+]}

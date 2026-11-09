@@ -41,7 +41,57 @@ def project_from(text):
     return m.group(1) if m else None
 
 
-def check(agent, text, project):
+def svg_words(svg):
+    words = []
+    for m in re.finditer(r"<text\b[^>]*>(.*?)</text>", svg, re.S):
+        inner = re.sub(r"<[^>]+>", " ", m.group(1))
+        words += [w for w in re.split(r"\s+", inner) if w.strip()]
+    return words
+
+
+def svg_colors(svg):
+    cols = set()
+    for v in re.findall(r"(?:fill|stroke|stop-color)\s*[:=]\s*\"?(#[0-9a-fA-F]{3,6})", svg):
+        v = v.lower()
+        if len(v) == 4:
+            v = "#" + "".join(ch * 2 for ch in v[1:])
+        r_, g_, b_ = (int(v[i:i + 2], 16) for i in (1, 3, 5))
+        if max(r_, g_, b_) - min(r_, g_, b_) < 24:  # black, white, and greys are not palette colours
+            continue
+        cols.add(v)
+    return cols
+
+
+def splash_checks(text, out_path):
+    r = []
+    tdir = out_path.parent / "thumbnails"
+    thumbs = sorted(p for p in tdir.glob("t*.svg")) if tdir.is_dir() else []
+    icon = tdir / "icon.svg"
+    r.append(c("10 to 20 thumbnail comps", 10 <= len(thumbs) <= 20, f"{len(thumbs)} found in thumbnails/"))
+    bad_size, bad_words, bad_cols, real = [], [], [], 0
+    for t in thumbs:
+        svg = t.read_text(encoding="utf-8", errors="replace")
+        if not re.search(r'width="1920"', svg) or not re.search(r'height="1080"', svg):
+            bad_size.append(t.name)
+        if len(svg_words(svg)) > 3:
+            bad_words.append(f"{t.name} ({len(svg_words(svg))} words)")
+        if len(svg_colors(svg)) > 3:
+            bad_cols.append(f"{t.name} ({len(svg_colors(svg))} colours)")
+        for href in re.findall(r'href="([^"]+\.(?:png|jpe?g))"', svg):
+            if not href.startswith(("http", "data:")) and (t.parent / href).resolve().is_file():
+                real += 1
+                break
+    r.append(c("thumbnails are 1920x1080", thumbs and not bad_size, ", ".join(bad_size) or "all"))
+    r.append(c("0 to 3 words of text each", thumbs and not bad_words, ", ".join(bad_words) or "all within limit"))
+    r.append(c("max 3 saturated colours each", thumbs and not bad_cols, ", ".join(bad_cols) or "all within limit"))
+    isvg = icon.read_text(encoding="utf-8", errors="replace") if icon.is_file() else ""
+    r.append(c("512x512 icon", 'width="512"' in isvg and 'height="512"' in isvg, "thumbnails/icon.svg" if isvg else "missing"))
+    r.append(c("uses the game's own visuals (real captures embedded)", thumbs and real == len(thumbs), f"{real}/{len(thumbs)} embed a capture that exists"))
+    r.append(c("ranking names a launch pick", heading(text, "rank") and has(text, r"launch")))
+    return r
+
+
+def check(agent, text, project, out_path=None):
     r = common(text)
     if agent == "pulse":
         r.append(c("names its data sources", heading(text, "data sources|sources")))
@@ -82,7 +132,7 @@ def check(agent, text, project):
     elif agent == "frame":
         r.append(c("mobile checklist results present", has(text, r"mobile|phone")))
     elif agent == "splash":
-        r.append(c("icon and thumbnail briefs present", heading(text, "icon") and heading(text, "thumbnail")))
+        r.extend(splash_checks(text, Path(out_path)))
     elif agent == "liveops":
         r.append(c("numbers come with dates", has(text, r"\d{4}-\d{2}-\d{2}") or "BLOCKED" in text.upper()))
     elif agent == "producer":
@@ -101,7 +151,7 @@ def main():
     if not text:
         print(json.dumps([c("output readable", False, f"{out.name} missing")]))
         return
-    print(json.dumps(check(agent, text, project)))
+    print(json.dumps(check(agent, text, project, out)))
 
 
 if __name__ == "__main__":

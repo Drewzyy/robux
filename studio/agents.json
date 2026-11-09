@@ -191,23 +191,26 @@
       "output": "playtest-report.md"
     },
     "splash": {
-      "description": "Icon, thumbnail, and promo briefs that match the real game.",
+      "description": "Icon and 10-20 thumbnail comps (MrBeast logic, the game's own visuals), ranked.",
       "model": "claude-sonnet-5-5",
-      "turns": 6,
-      "context_tokens": 8000,
-      "output_tokens_per_turn": 1000,
+      "turns": 16,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 2500,
       "base_tokens": 9000,
       "allowed_tools": [
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "WebSearch",
+        "WebFetch"
       ],
       "allowed_sections": [
         "00-router",
-        "30-ui-ux",
         "80-assets",
-        "60-policy"
+        "30-ui-ux",
+        "60-policy",
+        "50-retention-analytics"
       ],
       "output": "splash.md"
     },

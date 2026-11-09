@@ -275,3 +275,78 @@ Honest limits
   referenced but not reproduced, because the god plan is not in this repo.
 - The vault is about 25,000 words, not 200,000. Size was never the goal; the
   research's own finding is that verified, specific notes beat volume.
+
+## UI redesign and extras (Andrew's UI brief + thumbnails brief)
+
+Inputs: `agent-tool/ui-design-prompt.md` (Apple-style, dark only, red
+`#FF3B30`), the thumbnails brief (now `vault/80-assets/thumbnail-mrbeast-logic`),
+plus: auto-updater, Discord webhook, Claude without an API key, find free ways
+around anything blocked. `agent-tool/claude-code-build-prompt.md` added (the
+UI brief reads it). No conflict between the two prompts on what the app does.
+
+What was built
+- New UI (`app/ui/`): macOS sidebar (Review Queue, Agents, Vault, Runs,
+  Settings) with Claude status and the month's spend plus any running
+  estimate on every screen; review queue cards with thumbnail or icon, one-line
+  summary, producing agent, Approve (red) and Reject (gray); a sheet with
+  artifacts, image grid with Export PNG, and every verification check; agent
+  team view with live status (idle, working, waiting for approval, blocked) in
+  team order; vault browser with a Markdown reader; runs history, a new-run
+  composer that always shows cost first, and a run detail view (steps, status,
+  output, files read, checks, agent reply, estimate before vs actual after);
+  settings with toggles. Tokens exactly as briefed. Inline SVG icons, no emoji.
+- Settings stored outside the repo (`settings.rs`), monthly budget enforced in
+  the backend on every approval (`budget.rs`), Discord webhook notifications
+  that only accept Discord URLs and never ping (`notify.rs`), Claude
+  connection check via `claude auth status` (`claude.rs`), agent runs strip
+  `ANTHROPIC_API_KEY` so they always use the subscription login.
+- Updater (`update.rs`): git fetch, then pull fast-forward only, rebuild
+  matching how the app runs (debug, release, or macOS .app bundle), restart.
+  The build commit is baked into the binary so Settings shows it.
+- Single agent runs now land in the review queue too, checked like pipeline
+  stages. `studio-cli recheck <run>` re-checks a pending item after a checker
+  fix.
+- Thumbnails: Splash follows the new rule sheet, writes 10-20 SVG comps at
+  1920x1080 plus a 512x512 icon; the studio checks count, size, words (0-3),
+  colours (3 or fewer), icon, ranking, and whether real game captures are
+  embedded. The app inlines captures into previews and exports PNGs.
+- Import a game project (way around Phase 4's block: the app runs on Andrew's
+  Mac where Sky Tower Obby is).
+- CI on GitHub Actions (way around "macOS build untested").
+
+How it was verified
+1. Every screen built and screenshotted in the real window
+   (`scripts/ui_shots.py`, `docs/screenshots/ui-*.png`) and looked at. Fixed
+   from the screenshots: alphabetical agent order, a useless summary line,
+   light system dropdowns, number spinners, titles cut mid-word, a 3-line run
+   title, lowercase pills, raw markdown in the item sheet, uneven thumbnail
+   grid.
+2. Click-through test of the real window (`scripts/ui_flows.py`), all PASS:
+   webhook save, Send Test reaches the (mock) webhook, budget save, a run is
+   stopped by a tiny budget with the reason shown, a real run from estimate to
+   approve to live sidebar estimate to done (est. $0.0014, actual $0.0005),
+   a queue item opens with its checks. Found and fixed: the toast blocked a
+   button (now click-through).
+3. Backend headless (`studio-cli`): `claude` reports loggedIn, authMethod
+   oauth_token, uses subscription; a non-Discord webhook URL is refused;
+   budget refusal sends a Discord message; mock webhook received the test and
+   budget payloads with `allowed_mentions` empty (`docs/evidence/ui-and-extras`).
+4. Updater, end to end in the real window, on a throwaway clone with a local
+   origin: Build 43f782a, "1 update ready, latest is 8543450", Update and
+   Restart pulled, rebuilt, and relaunched in 8 s (pid 6171 gone, new pid
+   6876 running the rebuilt binary, which reports 8543450). With a hand-edited
+   file it refuses and pulls nothing.
+5. Thumbnails, real Splash run on Dawn Watch ($0.30): 10 comps plus icon;
+   studio checks PASS on count, 1920x1080, words, colours, icon, ranking;
+   FAIL on "uses the game's own visuals" (no captures yet), which is correct.
+   Two false alarms in the section check (absolute search patterns) fixed and
+   unit-tested; `recheck` then left only the honest failure. In the window: 11
+   previews decode, Export PNG wrote a real 512x512 PNG.
+6. `cargo test` 11/11, `check_vault.py --full` PASS, vault Luau templates PASS.
+
+Not verified here
+- Real Discord delivery (discord.com is not reachable from this sandbox; a
+  local mock received the exact payload). Use Send Test once on the Mac.
+- The .app-bundle update path (Mac only); CI builds the bundle.
+- "Sign In to Claude" opening Terminal (macOS osascript; Linux shows the
+  command instead).

@@ -108,7 +108,11 @@ fn artifact_image(path: String) -> Result<String, String> {
     } else {
         return Err("not an image".into());
     };
-    let bytes = studio::read_artifact(&root()?, &path)?;
+    let r = root()?;
+    let mut bytes = studio::read_artifact(&r, &path)?;
+    if mime == "image/svg+xml" {
+        bytes = studio::inline_svg_images(&r, &path, &String::from_utf8_lossy(&bytes)).into_bytes();
+    }
     Ok(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
 }
 

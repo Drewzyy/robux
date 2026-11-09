@@ -288,7 +288,7 @@ async function itemSheet(item) {
   const note = el("input", { type: "text", placeholder: "Note (optional): why yes or no" });
   sheet(item.title,
     el("div", { class: "meta" }, statusPill(item), el("span", {}, item.created_by), el("span", {}, "·"), el("span", {}, item.created_at)),
-    el("p", { class: "prose" }, item.summary),
+    markdown(item.summary || ""),
     el("h2", { style: "margin-top:18px" }, "What was produced"),
     await artifactsBlock(item.artifacts || []),
     el("h2", { style: "margin-top:18px" }, "How it was verified"),

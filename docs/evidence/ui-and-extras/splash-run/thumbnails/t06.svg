@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+<rect width="1920" height="1080" fill="#0A2CA8"/>
+<g id="el1-glowing-lane"><polygon points="1300,1080 1620,1080 1000,360 940,360" fill="#FFB800" fill-opacity="0.8"/></g>
+<g id="el2-creature-at-lane-end"><circle cx="970" cy="300" r="150" fill="#FFFFFF"/><ellipse cx="925" cy="285" rx="22" ry="10" fill="#0A2CA8"/><ellipse cx="1015" cy="285" rx="22" ry="10" fill="#0A2CA8"/></g>
+<g id="el3-avatar" transform="translate(130,60) scale(2.4)"><rect x="35" y="165" width="130" height="150" rx="18" fill="#FFB800"/><rect x="45" y="310" width="45" height="90" rx="10" fill="#FFB800"/><rect x="110" y="310" width="45" height="90" rx="10" fill="#FFB800"/><circle cx="100" cy="95" r="75" fill="#FFB800"/><circle cx="72" cy="85" r="20" fill="#FFFFFF"/><circle cx="128" cy="85" r="20" fill="#FFFFFF"/><circle cx="74" cy="87" r="9" fill="#0A2CA8"/><circle cx="126" cy="87" r="9" fill="#0A2CA8"/><ellipse cx="100" cy="135" rx="20" ry="26" fill="#0A2CA8"/></g>
+</svg>

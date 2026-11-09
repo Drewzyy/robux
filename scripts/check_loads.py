@@ -9,6 +9,7 @@ vault root with Glob/Grep. The agent's own skill folder, its run folder, and
 projects/ are always allowed.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -75,9 +76,15 @@ def main() -> int:
         if tool in ("Glob", "Grep"):
             # Classify a search by the folder searched (older logs stored the pattern).
             target = inp.get("path") or "(vault root)"
+            pat = str(inp.get("pattern", ""))
+            if not inp.get("path") and pat.startswith("/") and not pat.startswith(str(VAULT) + "/"):
+                target = re.split(r"[*?{\[]", pat)[0].rstrip("/")
         flag = "ok"
         if tool in ("Glob", "Grep") and target in ("(vault root)", ".", str(VAULT)):
-            first = str(inp.get("pattern", "")).split("/")[0]
+            pat = str(inp.get("pattern", ""))
+            if pat.startswith(str(VAULT) + "/"):
+                pat = pat[len(str(VAULT)) + 1:]
+            first = pat.split("/")[0]
             kind, what = ("section", first) if first in SECTIONS else ("vault-root-search", target)
             if first not in allow:
                 flag = "VIOLATION: search over the vault root"

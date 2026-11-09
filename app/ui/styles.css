@@ -204,3 +204,4 @@ details summary { list-style: none; }
 details summary::-webkit-details-marker { display: none; }
 details summary::before { content: "›"; display: inline-block; width: 12px; transition: transform 120ms ease; }
 details[open] summary::before { transform: rotate(90deg); }
+.tgrid { align-items: start; }

@@ -1,0 +1,68 @@
+name: build
+
+# Free CI: tests and vault checks on Linux, and a real macOS build of the app
+# (Andrew's platform), on every push to a work branch. Nothing is published:
+# the macOS app is only kept as a workflow artifact for 7 days.
+
+on:
+  push:
+    branches: ["claude/**", "main"]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - name: Rust unit tests
+        run: cargo test --manifest-path app/src-tauri/Cargo.toml
+      - name: Vault structure (full)
+        run: python3 scripts/check_vault.py --full
+      - name: Roblox toolchain (Rojo, Selene, StyLua, Lune)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - run: cargo binstall -y --locked rojo@7.7.1 selene@0.31.0 stylua@2.6.0 lune@0.11.1
+      - name: Code templates in the vault build, lint, format, and pass their tests
+        run: python3 scripts/verify_vault_code.py
+
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the Tauri CLI
+        working-directory: app
+        run: npm install
+      - name: Build Robux Studio.app (unsigned)
+        working-directory: app
+        run: npm run build -- --bundles app
+      - name: Check the bundle
+        run: |
+          APP="app/src-tauri/target/release/bundle/macos/Robux Studio.app"
+          test -x "$APP/Contents/MacOS/robux-studio"
+          /usr/libexec/PlistBuddy -c "Print :LSMinimumSystemVersion" "$APP/Contents/Info.plist"
+          cd "$(dirname "$APP")" && ditto -c -k --keepParent "Robux Studio.app" robux-studio-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: robux-studio-macos
+          path: app/src-tauri/target/release/bundle/macos/robux-studio-macos.zip
+          retention-days: 7

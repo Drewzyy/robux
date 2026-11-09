@@ -41,6 +41,8 @@ verify: Each term links to the note that defines it; scripts/check_vault.py chec
 | Studio MCP | Roblox Studio's built-in server that lets agents read and act in an open place | [[80-assets/tool-setup]] |
 | Safe area | screen zones UI must avoid: 58 px top bar, bottom thumb controls | [[30-ui-ux/mobile-first-checklist]] |
 | Scale vs Offset | UDim2 sizing relative to screen vs fixed pixels | [[30-ui-ux/mobile-first-checklist]] |
+| CTR | click-through rate; on Roblox the closest signal is play-through rate | [[80-assets/thumbnail-mrbeast-logic]] |
+| Curiosity gap | a thumbnail shows the setup, not the payoff, so the viewer clicks to find out | [[80-assets/thumbnail-mrbeast-logic]] |
 | Gate | the checks an output must pass before review; gate.json plus studio checks | [[90-templates-checklists/agent-output-format]] |
 | Review queue | where Andrew approves or rejects; nothing ships without it | [[90-templates-checklists/launch-checklist]] |
 | UNVERIFIED | a claim not checked against a primary source | [[00-router/how-to-use-this-vault]] |

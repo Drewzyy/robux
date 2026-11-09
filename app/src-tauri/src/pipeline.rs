@@ -373,6 +373,19 @@ fn notify_item(item: &QueueItem, status: &str, cost: f64) {
 /// After a single (non-pipeline) agent run: check its work the same way a
 /// pipeline stage is checked and put it in the review queue. Agents without
 /// an output file (bridge-test) do not create items.
+/// Re-run the studio's checks on a finished single run and replace its
+/// pending review item (used after a checker fix). Decided items are kept.
+pub fn recheck_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, String> {
+    let qid = format!("q-{run_id}");
+    if let Ok(existing) = queue::get(root, &qid) {
+        if existing.status != "pending" {
+            return Err(format!("{qid} was already {}; not changing it", existing.status));
+        }
+        fs::remove_file(queue::items_dir(root).join(format!("{qid}.json"))).map_err(|e| e.to_string())?;
+    }
+    finish_single(root, run_id)
+}
+
 pub fn finish_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, String> {
     let req = runs::load(root, run_id)?;
     let agents = cost::load_agents(root)?;
@@ -549,13 +562,20 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
         let mut target = v.get("target").and_then(|t| t.as_str()).unwrap_or("").to_string();
         if tool == "Glob" || tool == "Grep" {
             let path = v.pointer("/input/path").and_then(|t| t.as_str()).unwrap_or("");
-            if path.is_empty() || Path::new(path) == vault {
-                let pat = v.pointer("/input/pattern").and_then(|t| t.as_str()).unwrap_or("");
+            let pat_abs = v.pointer("/input/pattern").and_then(|t| t.as_str()).unwrap_or("");
+            if path.is_empty() && pat_abs.starts_with('/') && !pat_abs.starts_with(&format!("{}/", vault.display())) {
+                // An absolute pattern outside the vault: judge it by the folder it searches.
+                target = pat_abs.split(['*', '?', '{', '[']).next().unwrap_or("").trim_end_matches('/').to_string();
+            } else if path.is_empty() || Path::new(path) == vault {
+                let pat_raw = v.pointer("/input/pattern").and_then(|t| t.as_str()).unwrap_or("");
+                // An absolute pattern inside the vault is a search of that section.
+                let vault_prefix = format!("{}/", vault.display());
+                let pat = pat_raw.strip_prefix(&vault_prefix).unwrap_or(pat_raw);
                 let first = pat.split('/').next().unwrap_or("");
                 if SECTIONS.contains(&first) {
                     target = first.to_string();
                 } else {
-                    bad.push(format!("{tool} over the vault root ({pat})"));
+                    bad.push(format!("{tool} over the vault root ({pat_raw})"));
                     continue;
                 }
             } else {
@@ -640,5 +660,15 @@ mod tests {
         let (ok, d) = loads_within(&root, &run, "architect", &allowed, &[]);
         assert!(!ok);
         assert!(d.contains("20-luau-rojo") && d.contains("vault root"), "{d}");
+        // Absolute patterns: inside an allowed section, and inside projects/, are fine.
+        let ok_log = format!(
+            "{}\n{}\n{}",
+            r#"{"tool":"Read","target":"00-router/index.md"}"#,
+            format!(r#"{{"tool":"Glob","target":"(vault root)","input":{{"pattern":"{}/10-game-design/*.md"}}}}"#, v.display()),
+            format!(r#"{{"tool":"Glob","target":"(vault root)","input":{{"pattern":"{}/projects/g/**/*"}}}}"#, root.display())
+        );
+        fs::write(run.join("loads.jsonl"), ok_log).unwrap();
+        let (ok, d) = loads_within(&root, &run, "architect", &allowed, &[]);
+        assert!(ok, "{d}");
     }
 }
