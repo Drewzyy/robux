@@ -19,6 +19,13 @@ pub fn studio_root() -> Result<PathBuf, String> {
             MARKER
         ));
     }
+    let s = crate::settings::load();
+    if !s.studio_root.is_empty() {
+        let p = PathBuf::from(&s.studio_root);
+        if p.join(MARKER).is_file() {
+            return Ok(p);
+        }
+    }
     let mut starts = vec![];
     if let Ok(c) = std::env::current_dir() {
         starts.push(c);

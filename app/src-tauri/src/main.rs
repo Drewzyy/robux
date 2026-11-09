@@ -1,29 +1,72 @@
 // Prevents an extra console window on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use base64::Engine;
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use studio_core::{bridge, cost, paths, pipeline, queue, runs};
+use studio_core::{budget, bridge, claude, cost, notify, paths, pipeline, queue, runs, settings, studio, update};
 use tauri::{AppHandle, Emitter};
 
 fn root() -> Result<PathBuf, String> {
     paths::studio_root()
 }
 
+// ---------- app info, Claude, spend ----------
+
 #[tauri::command]
 fn studio_info() -> Value {
     let root = root();
-    let claude = paths::claude_bin();
     let pricing = root.as_ref().ok().and_then(|r| cost::load_pricing(r).ok());
     json!({
         "root": root.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
+        "vault": root.as_ref().map(|p| p.join("vault").display().to_string()).unwrap_or_default(),
         "root_error": root.err(),
-        "claude_bin": claude.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
-        "claude_error": claude.err(),
+        "build": update::build_commit(),
         "pricing_checked": pricing.as_ref().map(|p| p.checked.clone()),
         "subscription_note": pricing.as_ref().map(|p| p.subscription_note.clone()),
+        "config_file": settings::path().display().to_string(),
     })
 }
+
+#[tauri::command]
+async fn claude_status() -> claude::Connection {
+    claude::status()
+}
+
+#[tauri::command]
+fn claude_sign_in() -> Result<String, String> {
+    claude::sign_in()
+}
+
+#[tauri::command]
+fn spend() -> Result<budget::Spend, String> {
+    Ok(budget::spend(&root()?, settings::load().monthly_budget_usd))
+}
+
+// ---------- settings and notifications ----------
+
+#[tauri::command]
+fn settings_get() -> settings::Settings {
+    settings::load()
+}
+
+#[tauri::command]
+fn settings_save(value: settings::Settings) -> Result<settings::Settings, String> {
+    settings::save(&value)?;
+    Ok(settings::load())
+}
+
+#[tauri::command]
+async fn notify_test() -> Result<String, String> {
+    let s = settings::load();
+    if s.discord_webhook_url.is_empty() {
+        return Err("Add a Discord webhook URL first.".into());
+    }
+    notify::send(&s, notify::Kind::Test, "Robux Studio is connected", &["You will get messages here when a build finishes or something needs your approval.".into()])?;
+    Ok("Test message sent to Discord.".into())
+}
+
+// ---------- review queue ----------
 
 #[tauri::command]
 fn queue_list() -> Result<Vec<queue::QueueItem>, String> {
@@ -35,20 +78,13 @@ fn queue_decide(id: String, verdict: String, note: String) -> Result<queue::Queu
     queue::decide(&root()?, &id, &verdict, &note)
 }
 
+/// Text of a file in runs/ or projects/ (folders list their entries).
 #[tauri::command]
-fn queue_artifact(id: String, path: String) -> Result<String, String> {
+fn artifact_text(path: String) -> Result<String, String> {
     let r = root()?;
-    let item = queue::get(&r, &id)?;
-    if !item.artifacts.iter().any(|a| a == &path) {
-        return Err("not an artifact of this item".into());
-    }
     let full = r.join(&path);
-    let canon = full.canonicalize().map_err(|e| e.to_string())?;
-    if !canon.starts_with(r.canonicalize().map_err(|e| e.to_string())?) {
-        return Err("artifact outside studio root".into());
-    }
-    if canon.is_dir() {
-        let mut names: Vec<String> = std::fs::read_dir(&canon)
+    if full.is_dir() && (path.starts_with("projects/") || path.starts_with("runs/")) && !path.contains("..") {
+        let mut names: Vec<String> = std::fs::read_dir(&full)
             .map_err(|e| e.to_string())?
             .flatten()
             .map(|e| e.file_name().to_string_lossy().to_string())
@@ -56,68 +92,65 @@ fn queue_artifact(id: String, path: String) -> Result<String, String> {
         names.sort();
         return Ok(format!("(folder)\n{}", names.join("\n")));
     }
-    let text = std::fs::read_to_string(&canon).map_err(|e| e.to_string())?;
-    Ok(text.chars().take(60_000).collect())
+    let bytes = studio::read_artifact(&r, &path)?;
+    Ok(String::from_utf8_lossy(&bytes).chars().take(80_000).collect())
+}
+
+/// An image artifact as a data URL for previews (svg, png, jpg).
+#[tauri::command]
+fn artifact_image(path: String) -> Result<String, String> {
+    let mime = if path.ends_with(".svg") {
+        "image/svg+xml"
+    } else if path.ends_with(".png") {
+        "image/png"
+    } else if path.ends_with(".jpg") || path.ends_with(".jpeg") {
+        "image/jpeg"
+    } else {
+        return Err("not an image".into());
+    };
+    let bytes = studio::read_artifact(&root()?, &path)?;
+    Ok(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
+}
+
+#[tauri::command]
+fn export_png(svg_path: String, png_base64: String) -> Result<String, String> {
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(png_base64.trim_start_matches("data:image/png;base64,"))
+        .map_err(|e| e.to_string())?;
+    studio::save_export(&root()?, &svg_path, &png)
+}
+
+// ---------- agents, vault, runs ----------
+
+#[tauri::command]
+fn agents_status() -> Result<Vec<studio::AgentStatus>, String> {
+    studio::agent_statuses(&root()?)
 }
 
 #[tauri::command]
 fn agents_list() -> Result<Value, String> {
-    let r = root()?;
-    let cfg = cost::load_agents(&r)?;
-    Ok(serde_json::to_value(cfg.agents).map_err(|e| e.to_string())?)
+    let cfg = cost::load_agents(&root()?)?;
+    serde_json::to_value(cfg.agents).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn run_prepare(agent: String, prompt: String) -> Result<runs::RunRequest, String> {
-    runs::prepare(&root()?, &agent, &prompt)
+fn vault_tree() -> Result<Vec<studio::VaultSection>, String> {
+    studio::vault(&root()?)
 }
 
 #[tauri::command]
-fn run_cancel(run_id: String) -> Result<runs::RunRequest, String> {
-    runs::cancel(&root()?, &run_id)
+fn vault_note(path: String) -> Result<String, String> {
+    studio::vault_note(&root()?, &path)
 }
 
 #[tauri::command]
-fn runs_list() -> Result<Vec<runs::RunRequest>, String> {
-    runs::list(&root()?)
+fn runs_overview() -> Result<Vec<studio::RunSummary>, String> {
+    studio::run_list(&root()?)
 }
 
 #[tauri::command]
-fn run_loads(run_id: String) -> Result<Vec<Value>, String> {
-    let p = runs::run_dir(&root()?, &run_id)?.join("loads.jsonl");
-    let text = std::fs::read_to_string(&p).unwrap_or_default();
-    Ok(text
-        .lines()
-        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
-        .collect())
-}
-
-/// Approve the run at the exact cap shown, then start it on a background
-/// thread. Output lines arrive as `run-line` events; the end as `run-done`.
-#[tauri::command]
-fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
-    let r = root()?;
-    let bin = paths::claude_bin()?;
-    runs::approve(&r, &run_id, confirmed_cap_usd)?;
-    std::thread::spawn(move || {
-        let id = run_id.clone();
-        let app2 = app.clone();
-        let res = bridge::run_approved(&r, &run_id, &bin, |line| {
-            let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
-        });
-        let payload = match res {
-            Ok(o) => serde_json::to_value(o).unwrap_or(Value::Null),
-            Err(e) => json!({ "run_id": run_id, "ok": false, "error": e }),
-        };
-        let _ = app.emit("run-done", payload);
-    });
-    Ok(())
-}
-
-#[tauri::command]
-fn pipelines_list() -> Result<Value, String> {
-    let cfg = pipeline::load_config(&root()?)?;
-    serde_json::to_value(cfg.pipelines).map_err(|e| e.to_string())
+fn run_detail(id: String) -> Result<studio::RunDetail, String> {
+    studio::run_detail(&root()?, &id)
 }
 
 #[tauri::command]
@@ -135,6 +168,54 @@ fn projects_list() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
+fn project_import(path: String) -> Result<String, String> {
+    studio::import_project(&root()?, &path)
+}
+
+// ---------- starting runs (always estimate first, then approve) ----------
+
+#[tauri::command]
+fn run_prepare(agent: String, prompt: String) -> Result<runs::RunRequest, String> {
+    runs::prepare(&root()?, &agent, &prompt)
+}
+
+#[tauri::command]
+fn run_cancel(run_id: String) -> Result<runs::RunRequest, String> {
+    runs::cancel(&root()?, &run_id)
+}
+
+#[tauri::command]
+fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
+    let r = root()?;
+    let bin = paths::claude_bin()?;
+    runs::approve(&r, &run_id, confirmed_cap_usd)?;
+    std::thread::spawn(move || {
+        let id = run_id.clone();
+        let app2 = app.clone();
+        let res = bridge::run_approved(&r, &run_id, &bin, |line| {
+            let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
+        });
+        let item = pipeline::finish_single(&r, &run_id).ok().flatten();
+        let payload = match res {
+            Ok(o) => {
+                let mut v = serde_json::to_value(o).unwrap_or(Value::Null);
+                v["queue_item"] = json!(item.map(|i| i.id));
+                v
+            }
+            Err(e) => json!({ "run_id": run_id, "ok": false, "error": e }),
+        };
+        let _ = app.emit("run-done", payload);
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn pipelines_list() -> Result<Value, String> {
+    let cfg = pipeline::load_config(&root()?)?;
+    serde_json::to_value(cfg.pipelines).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn pipeline_prepare(name: String, input: String, project: Option<String>) -> Result<pipeline::PipelineRun, String> {
     let project = project.filter(|p| !p.is_empty());
     pipeline::prepare(&root()?, &name, &input, project.as_deref())
@@ -145,14 +226,6 @@ fn pipeline_cancel(pipeline_id: String) -> Result<pipeline::PipelineRun, String>
     pipeline::cancel(&root()?, &pipeline_id)
 }
 
-#[tauri::command]
-fn pipeline_runs() -> Result<Vec<pipeline::PipelineRun>, String> {
-    Ok(pipeline::list(&root()?))
-}
-
-/// Approve the whole pipeline at the exact total cap shown, then run its
-/// stages in order on a background thread. Events: `pipe-stage`,
-/// `run-line`, `pipe-done`.
 #[tauri::command]
 fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
     let r = root()?;
@@ -181,25 +254,70 @@ fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap
     Ok(())
 }
 
+// ---------- updates ----------
+
+#[tauri::command]
+async fn update_check() -> Result<update::Status, String> {
+    update::check(&root()?)
+}
+
+/// Download (git pull), rebuild, then restart the app automatically.
+/// Progress arrives as `update-line` events.
+#[tauri::command]
+fn update_apply(app: AppHandle) -> Result<(), String> {
+    let r = root()?;
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let mut on = |l: &str| {
+            let _ = app2.emit("update-line", json!({ "line": l }));
+        };
+        match update::apply(&r, &mut on) {
+            Ok(_) => {
+                on("Update installed. Restarting...");
+                notify::send_quiet(notify::Kind::Update, "Robux Studio updated", &[format!("Now on {}", update::check(&r).map(|s| s.local).unwrap_or_default())]);
+                std::thread::sleep(std::time::Duration::from_millis(600));
+                app.restart();
+            }
+            Err(e) => {
+                let _ = app.emit("update-line", json!({ "line": format!("Update failed: {e}"), "error": true }));
+            }
+        }
+    });
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             studio_info,
+            claude_status,
+            claude_sign_in,
+            spend,
+            settings_get,
+            settings_save,
+            notify_test,
             queue_list,
             queue_decide,
-            queue_artifact,
+            artifact_text,
+            artifact_image,
+            export_png,
+            agents_status,
             agents_list,
+            vault_tree,
+            vault_note,
+            runs_overview,
+            run_detail,
+            projects_list,
+            project_import,
             run_prepare,
             run_cancel,
-            runs_list,
-            run_loads,
             run_approve_and_start,
             pipelines_list,
-            projects_list,
             pipeline_prepare,
             pipeline_cancel,
-            pipeline_runs,
-            pipeline_approve_and_start
+            pipeline_approve_and_start,
+            update_check,
+            update_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Robux Studio");

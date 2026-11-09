@@ -4,7 +4,13 @@
 //! through `bridge`, which refuses to start without an approved estimate.
 
 pub mod bridge;
+pub mod budget;
+pub mod claude;
 pub mod cost;
+pub mod notify;
+pub mod settings;
+pub mod studio;
+pub mod update;
 pub mod paths;
 pub mod pipeline;
 pub mod queue;

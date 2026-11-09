@@ -123,6 +123,16 @@ pub fn list(root: &Path) -> Result<Vec<RunRequest>, String> {
 /// Approve a prepared run. `confirmed_cap_usd` must equal the cap that was
 /// shown to Andrew.
 pub fn approve(root: &Path, run_id: &str, confirmed_cap_usd: f64) -> Result<RunRequest, String> {
+    let req = load(root, run_id)?;
+    if req.status == "awaiting-approval" {
+        crate::budget::check(root, req.estimate.cap_usd)?;
+    }
+    approve_unchecked(root, run_id, confirmed_cap_usd)
+}
+
+/// Approve without the budget check. Only for pipeline stages, whose total
+/// cap was already checked against the budget in `pipeline::approve`.
+pub(crate) fn approve_unchecked(root: &Path, run_id: &str, confirmed_cap_usd: f64) -> Result<RunRequest, String> {
     let mut req = load(root, run_id)?;
     if req.status != "awaiting-approval" {
         return Err(format!("run {run_id} is {}, not awaiting approval", req.status));

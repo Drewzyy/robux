@@ -154,6 +154,9 @@ pub fn run_approved_with<F: FnMut(&str)>(
         .env("ROBUX_RUN_DIR", &dir)
         .env("ROBUX_AGENT", &req.agent)
         .env("ROBUX_STUDIO_ROOT", root)
+        // Agents always run on Andrew's Claude login (his subscription),
+        // never on an API key, even if one is set in the environment.
+        .env_remove("ANTHROPIC_API_KEY")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

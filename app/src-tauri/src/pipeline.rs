@@ -214,9 +214,10 @@ pub fn approve(root: &Path, id: &str, confirmed_cap_usd: f64) -> Result<Pipeline
             p.cap_usd
         ));
     }
+    crate::budget::check(root, p.cap_usd)?;
     for s in &p.stages {
         let req = runs::load(root, &s.run_id)?;
-        runs::approve(root, &s.run_id, req.estimate.cap_usd)?;
+        runs::approve_unchecked(root, &s.run_id, req.estimate.cap_usd)?;
     }
     p.status = "approved".into();
     p.approved_at = Some(crate::now_rfc3339());
@@ -349,9 +350,93 @@ pub fn run<F: FnMut(Event)>(root: &Path, id: &str, claude_bin: &Path, mut on: F)
         decision: None,
     };
     queue::add(root, &item)?;
+    notify_item(&item, &p.status, total);
     p.queue_item = Some(item.id);
     save(root, &p)?;
     Ok(p)
+}
+
+fn notify_item(item: &QueueItem, status: &str, cost: f64) {
+    use crate::notify::{send_quiet, Kind};
+    let failed = item.gate.checks.iter().filter(|c| !c.passed).count();
+    let gate = if item.gate.passed { "passed".to_string() } else { format!("failed ({failed} checks)") };
+    let lines = vec![
+        format!("**{}**", item.title),
+        format!("Status: {status} · gate {gate} · cost ${cost:.2}"),
+        if item.gate.passed { "Waiting for your approval in the review queue.".into() } else { "Gate failed: it can only be rejected. Open the review queue.".into() },
+    ];
+    let kind = if status == "done" { Kind::Finished } else { Kind::Failed };
+    send_quiet(kind, if status == "done" { "Build finished" } else { "Run stopped" }, &lines);
+    send_quiet(Kind::NeedsApproval, "Needs your review", &lines);
+}
+
+/// After a single (non-pipeline) agent run: check its work the same way a
+/// pipeline stage is checked and put it in the review queue. Agents without
+/// an output file (bridge-test) do not create items.
+pub fn finish_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, String> {
+    let req = runs::load(root, run_id)?;
+    let agents = cost::load_agents(root)?;
+    let Some(prof) = agents.agents.get(&req.agent) else { return Ok(None) };
+    let Some(output) = prof.output.clone() else { return Ok(None) };
+    let dir = runs::run_dir(root, run_id)?;
+    let mut gate = evaluate_stage(root, &dir, &req.agent, Some(prof), &output, &[], None);
+    gate.checks.insert(0, check("claude run finished without error", req.status == "done", &req.status));
+    gate.passed = gate.checks.iter().all(|c| c.passed);
+    let mut artifacts = vec![];
+    let rel = format!("runs/{run_id}/{output}");
+    if root.join(&rel).is_file() {
+        artifacts.push(rel);
+    }
+    for extra in ["thumbnails"] {
+        let p = dir.join(extra);
+        if p.is_dir() {
+            if let Ok(entries) = fs::read_dir(&p) {
+                let mut names: Vec<String> = entries.flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
+                names.sort();
+                for n in names {
+                    artifacts.push(format!("runs/{run_id}/{extra}/{n}"));
+                }
+            }
+        }
+    }
+    let item = QueueItem {
+        id: format!("q-{run_id}"),
+        kind: kind_for(&req.agent).into(),
+        title: format!("{}: {}", cap_first(&req.agent), req.prompt.chars().take(80).collect::<String>()),
+        summary: req.result_text.clone().unwrap_or_default().chars().take(400).collect(),
+        created_at: crate::now_rfc3339(),
+        created_by: req.agent.clone(),
+        run_id: Some(run_id.to_string()),
+        artifacts,
+        gate,
+        status: "pending".into(),
+        decision: None,
+    };
+    queue::add(root, &item)?;
+    notify_item(&item, &req.status, req.actual_cost_usd.unwrap_or(0.0));
+    Ok(Some(item))
+}
+
+fn kind_for(agent: &str) -> &'static str {
+    match agent {
+        "pulse" => "pitch",
+        "architect" => "design",
+        "builder" | "scenic" | "frame" => "build",
+        "librarian" => "asset",
+        "splash" => "thumbnail",
+        "playtest" => "playtest-report",
+        "merchant" => "shop",
+        "liveops" | "producer" => "update-plan",
+        _ => "other",
+    }
+}
+
+fn cap_first(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        None => String::new(),
+    }
 }
 
 fn title_for(root: &Path, p: &PipelineRun) -> String {

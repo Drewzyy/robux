@@ -7,79 +7,38 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <div class="brand">Robux Studio <span class="tag">internal</span></div>
-    <nav>
-      <button data-tab="queue" class="active">Review queue <span id="pending-count" class="count"></span></button>
-      <button data-tab="run">Run an agent</button>
-      <button data-tab="runs">Run history</button>
-    </nav>
-    <div id="env" class="env"></div>
-  </header>
-
-  <main>
-    <section id="tab-queue" class="tab active">
-      <div class="section-head">
-        <h1>Review queue</h1>
-        <button id="refresh-queue" class="ghost">Refresh</button>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-title">Robux Studio</div>
+      <nav id="nav">
+        <a href="#queue" data-route="queue"><span class="ic" data-icon="tray"></span>Review Queue<span id="nav-count" class="nav-count"></span></a>
+        <a href="#agents" data-route="agents"><span class="ic" data-icon="people"></span>Agents</a>
+        <a href="#vault" data-route="vault"><span class="ic" data-icon="book"></span>Vault</a>
+        <a href="#runs" data-route="runs"><span class="ic" data-icon="list"></span>Runs</a>
+        <a href="#settings" data-route="settings"><span class="ic" data-icon="gear"></span>Settings</a>
+      </nav>
+      <div class="sidebar-status" id="status">
+        <div class="status-row"><span id="claude-dot" class="dot"></span><span id="claude-line">Checking Claude…</span></div>
+        <div class="status-row secondary" id="running-line">No run in progress</div>
+        <div class="budget-line"><span id="spend-line">This month: …</span></div>
+        <div class="bar"><div id="spend-bar"></div></div>
       </div>
-      <p class="hint">Nothing ships until you approve it here. Approving records your yes; it does not publish anything.</p>
-      <div id="queue-list"></div>
-    </section>
+    </aside>
 
-    <section id="tab-run" class="tab">
-      <div class="section-head"><h1>Run an agent</h1></div>
-      <p class="hint">Every run shows its cost first and needs your approval. The approved cap is a hard stop.</p>
-      <div class="form">
-        <label>What to run
-          <select id="mode-select">
-            <option value="agent">One agent</option>
-            <option value="pipeline">A pipeline (several agents in order, one approval)</option>
-          </select>
-        </label>
-        <div id="pipeline-fields" class="hidden">
-          <label>Pipeline
-            <select id="pipeline-select"></select>
-          </label>
-          <p id="pipeline-desc" class="hint"></p>
-          <label id="project-label">Game project
-            <select id="project-select"><option value="">(none)</option></select>
-          </label>
-        </div>
-        <label id="agent-label">Agent
-          <select id="agent-select"></select>
-        </label>
-        <p id="agent-desc" class="hint"></p>
-        <label>Instruction
-          <textarea id="prompt" rows="4" placeholder="Tell the agent what to do, in plain words."></textarea>
-        </label>
-        <button id="estimate-btn">Estimate cost</button>
-      </div>
-      <div id="estimate" class="card hidden"></div>
-      <div id="output-wrap" class="hidden">
-        <h2>Output</h2>
-        <div id="stages" class="stages"></div>
-        <pre id="output"></pre>
-        <div id="run-summary" class="card hidden"></div>
-      </div>
-    </section>
+    <main id="view" class="view"></main>
+  </div>
 
-    <section id="tab-runs" class="tab">
-      <div class="section-head">
-        <h1>Run history</h1>
-        <button id="refresh-runs" class="ghost">Refresh</button>
+  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true">
+    <div class="sheet-body">
+      <div class="sheet-head">
+        <div id="sheet-title" class="sheet-title"></div>
+        <button id="sheet-close" class="btn secondary small">Done</button>
       </div>
-      <div id="runs-list"></div>
-    </section>
-  </main>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-body">
-      <div class="modal-head"><strong id="modal-title"></strong><button id="modal-close" class="ghost">Close</button></div>
-      <pre id="modal-text"></pre>
+      <div id="sheet-content" class="sheet-content"></div>
     </div>
   </div>
 
+  <div id="toast" class="toast hidden"></div>
   <script src="app.js"></script>
 </body>
 </html>
