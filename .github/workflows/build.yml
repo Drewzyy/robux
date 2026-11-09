@@ -4,9 +4,11 @@ name: build
 # (Andrew's platform), on every push to a work branch. Nothing is published:
 # the macOS app is only kept as a workflow artifact for 7 days.
 
+# Manual only for now: GitHub refused to start jobs on this account
+# ("recent account payments have failed or your spending limit needs to be
+# increased", 2026-11-09). After fixing Billing & plans, run it from the
+# Actions tab, or add back:  push: { branches: ["claude/**", "main"] }
 on:
-  push:
-    branches: ["claude/**", "main"]
   workflow_dispatch:
 
 concurrency:

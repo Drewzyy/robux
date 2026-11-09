@@ -9,6 +9,7 @@ local order = {
 	{ "Lamps", require(Services.LampService) },
 	{ "Creatures", require(Services.CreatureService) },
 	{ "Night", require(Services.NightService) },
+	{ "Guide", require(Services.GuideService) },
 }
 
 local services = {}

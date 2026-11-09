@@ -60,8 +60,17 @@ function CreatureService:Reset()
 end
 
 -- Telegraph a lane now; the creature appears Config.TELEGRAPH_SECONDS later.
-function CreatureService:Schedule(kind, laneIndex, now)
-	table.insert(self.pending, { kind = kind, lane = laneIndex, at = now + Config.TELEGRAPH_SECONDS })
+-- opts (optional, first-minute help): { fast = true } uses the short telegraph and near spawn,
+-- { ring = true } puts a highlight ring on the creature so the player sees what to aim at.
+function CreatureService:Schedule(kind, laneIndex, now, opts)
+	local fast = opts ~= nil and opts.fast == true
+	table.insert(self.pending, {
+		kind = kind,
+		lane = laneIndex,
+		at = now + (if fast then Config.FIRST_TELEGRAPH else Config.TELEGRAPH_SECONDS),
+		dist = if fast then Config.FIRST_SPAWN_DIST else Config.SPAWN_DIST,
+		ring = opts ~= nil and opts.ring == true,
+	})
 end
 
 -- Intensity points alive or already telegraphed.
@@ -96,12 +105,20 @@ function CreatureService:_spawn(p)
 	part.CanCollide = false
 	part.CanQuery = false
 	part.Parent = self.folder
+	if p.ring then
+		local ring = Instance.new("Highlight")
+		ring.FillTransparency = 1
+		ring.OutlineColor = Color3.fromRGB(255, 230, 160)
+		ring.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		ring.Adornee = part
+		ring.Parent = part
+	end
 	table.insert(self.creatures, {
 		kind = p.kind,
 		spec = spec,
 		lane = p.lane,
 		part = part,
-		dist = Config.SPAWN_DIST,
+		dist = p.dist,
 		age = 0,
 		progress = 0,
 		angle = Config.LANE_ANGLES[p.lane],
@@ -127,6 +144,7 @@ function CreatureService:_pop(c)
 	emitter.Parent = burst
 	emitter:Emit(25)
 	Debris:AddItem(burst, 2)
+	self.services.Lamps:FlashAll()
 	-- TODO(UNVERIFIED asset): giggle/chime sounds need real audio ids from Andrew's approved assets. None invented.
 end
 

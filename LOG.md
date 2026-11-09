@@ -350,3 +350,8 @@ Not verified here
 - The .app-bundle update path (Mac only); CI builds the bundle.
 - "Sign In to Claude" opening Terminal (macOS osascript; Linux shows the
   command instead).
+- CI: the workflow was accepted by GitHub, but both jobs were refused in
+  under 3 seconds with "The job was not started because recent account
+  payments have failed or your spending limit needs to be increased" (run
+  42611887113). That is an account billing setting only Andrew can change.
+  The workflow is now manual-only so pushes do not send failure emails.

@@ -83,6 +83,7 @@ function WorldService:Init(services)
 	spawn.Parent = folder
 
 	-- Barrels 3 studs from spawn (z = 11) and opposite (z = -11).
+	self.barrels = {}
 	for index, z in { 11, -11 } do
 		local barrel = makePart(
 			folder,
@@ -99,6 +100,7 @@ function WorldService:Init(services)
 		prompt.MaxActivationDistance = 10
 		prompt.RequiresLineOfSight = false
 		prompt.Parent = barrel
+		table.insert(self.barrels, barrel)
 		prompt.Triggered:Connect(function(player)
 			player:SetAttribute("Oil", 1)
 		end)

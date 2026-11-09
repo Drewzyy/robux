@@ -5,7 +5,9 @@ local Economy = {}
 Economy.BASE = 20
 Economy.PER_STAR = 10
 Economy.DAILY_BONUS = 10
-Economy.FIRST_POP = 5
+Economy.FIRST_POP = 10
+Economy.NEXT_POPS = 5 -- pops 2 and 3
+Economy.GUIDED_POPS = 3
 
 export type Upgrade = { name: string, cost: number }
 
@@ -34,6 +36,19 @@ function Economy.glow(stars: number, firstNightToday: boolean): number
 		total += Economy.DAILY_BONUS
 	end
 	return total
+end
+
+-- Fixed Glow for a player's next pop, given how many pops they already have: 10, 5, 5, then 0.
+function Economy.popReward(popsSoFar: number): number
+	if popsSoFar < 0 or popsSoFar ~= popsSoFar then
+		return 0
+	end
+	if popsSoFar < 1 then
+		return Economy.FIRST_POP
+	elseif popsSoFar < Economy.GUIDED_POPS then
+		return Economy.NEXT_POPS
+	end
+	return 0
 end
 
 -- Average share of the night the lamps were dark, 0 to 1.

@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Aim = require(Shared.Aim)
 local Config = require(Shared.Config)
+local FirstRun = require(Shared.FirstRun)
 
 local LampService = {}
 
@@ -84,7 +85,7 @@ function LampService:_build(id)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Tend"
 	prompt.ObjectText = spec.label
-	prompt.HoldDuration = Config.HOLD_RELIGHT
+	prompt.HoldDuration = Config.FIRST_BEAM_HOLD -- never lit yet: quick first light
 	prompt.MaxActivationDistance = 12
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = lamp
@@ -107,6 +108,8 @@ function LampService:_build(id)
 		effReach = spec.reach,
 		outTime = 0,
 		botTimer = 0,
+		everLit = false, -- lit at least once this night (decides first-light vs relight hold)
+		flash = 0, -- seconds left of the brightness surge after a light-up
 	}
 	self.stations[id] = station
 
@@ -124,6 +127,8 @@ function LampService:Reset()
 		st.targetAim = st.spec.restAim
 		st.outTime = 0
 		st.botTimer = 0
+		st.everLit = false
+		st.flash = 0
 	end
 	for _, player in Players:GetPlayers() do
 		player:SetAttribute("Station", nil)
@@ -152,11 +157,16 @@ function LampService:_onTend(player, st)
 	end
 	local keeperGone = st.keeper == nil or st.keeper.Parent == nil
 	if player:GetAttribute("Oil") == 1 then
+		local wasDark = st.fuel <= 0
 		st.fuel = math.min(Config.FUEL_MAX, st.fuel + Config.OIL_PER_POUR)
 		player:SetAttribute("Oil", 0)
+		if wasDark then
+			st.flash = Config.LAMP_FLASH_SECONDS
+		end
 		if keeperGone or st.keeper == player then
 			self:_assign(player, st)
 		end
+		self.services.Night:OnPoured(player, st.id, st.keeper == player)
 	elseif keeperGone then
 		self:_assign(player, st)
 	end
@@ -179,6 +189,41 @@ function LampService:SetTargetAim(stationId, angle)
 	local st = self.stations[stationId]
 	if st ~= nil then
 		st.targetAim = angle
+	end
+end
+
+-- Snap the beam onto an angle at once (used for the pre-aimed first beam). The server still owns the aim.
+function LampService:PreAim(stationId, angle)
+	local st = self.stations[stationId]
+	if st ~= nil then
+		st.aim = angle
+		st.targetAim = angle
+		st.effAngle = angle
+	end
+end
+
+-- Position of the first station (in STATION_ORDER) with no oil, for the guidance pillar. Nil if none.
+function LampService:FirstDarkPosition()
+	for _, id in Config.STATION_ORDER do
+		local st = self.stations[id]
+		if st.fuel <= 0 then
+			return st.pos
+		end
+	end
+	return nil
+end
+
+function LampService:IsLow(stationId)
+	local st = self.stations[stationId]
+	return st ~= nil and st.fuel < Config.LOW_FUEL
+end
+
+-- Brightness surge on every lit lamp (the pop celebration).
+function LampService:FlashAll()
+	for _, st in self.stations do
+		if st.fuel > 0 then
+			st.flash = Config.LAMP_FLASH_SECONDS
+		end
 	end
 end
 
@@ -250,6 +295,7 @@ function LampService:Tick(dt, ctx, creatureSnapshot)
 			st.keeper = nil
 		end
 		local human = st.keeper ~= nil
+		st.flash = math.max(0, st.flash - dt)
 
 		if ctx.active then
 			local graceActive = ctx.tutorial and ctx.t < Config.TUTORIAL_GRACE
@@ -293,8 +339,12 @@ end
 
 function LampService:_render(st, active)
 	local lit = st.fuel > 0
-	st.prompt.HoldDuration = if lit then Config.HOLD_TEND else Config.HOLD_RELIGHT
-	st.light.Brightness = if lit then 1 + 3 * st.fuel / Config.FUEL_MAX else 0
+	if lit then
+		st.everLit = true
+	end
+	st.prompt.HoldDuration = FirstRun.holdFor(Config, lit, st.everLit)
+	local surge = 4 * st.flash / Config.LAMP_FLASH_SECONDS
+	st.light.Brightness = if lit then 1 + 3 * st.fuel / Config.FUEL_MAX + surge else 0
 	st.lamp.Material = if lit then Enum.Material.Neon else Enum.Material.Glass
 	st.lamp.Color = if lit then WARM else Color3.fromRGB(70, 70, 80)
 	st.fill.Size = UDim2.fromScale(st.fuel / Config.FUEL_MAX, 1)

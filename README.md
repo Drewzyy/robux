@@ -77,10 +77,13 @@ estimate and stops; add `--approve-cap <the cap it printed>` to run.
 
 ## CI (free)
 
-`.github/workflows/build.yml` runs on every push: Rust tests, the full vault
-check, the vault's Luau templates through Rojo/Selene/StyLua/Lune, and a real
-macOS build of `Robux Studio.app` (kept as a 7-day workflow artifact, not
-published).
+`.github/workflows/build.yml`: Rust tests, the full vault check, the vault's
+Luau templates through Rojo/Selene/StyLua/Lune, and a real macOS build of
+`Robux Studio.app` (kept as a 7-day workflow artifact, not published).
+It is manual-only right now because GitHub refused to start jobs on this
+account ("recent account payments have failed or your spending limit needs
+to be increased"). Fix that under GitHub Settings, Billing & plans, then run
+it from the repo's Actions tab.
 
 ## Toolchain for the build gate (free)
 

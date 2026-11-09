@@ -124,8 +124,11 @@ def check(agent, text, project, out_path=None):
         r.append(c("states how it tested", heading(text, "how tested|method")))
         r.append(c("has a verdict", heading(text, "verdict")))
         r.append(c("problems have severities", has(text, r"\b(blocker|major|minor)\b") or has(text, r"no issue found")))
-        live = has(text, r"played live|live in studio|studio mcp")
-        r.append(c("does not claim live play without saying how", True, "claims live play" if live else "headless or code walk"))
+        denies = has(text, r"nothing was played live|not played live|no live play|code walk only|studio mcp was not used")
+        claims = has(text, r"\bplayed (it )?live\b|\blive in studio\b|\bvia (the )?studio mcp\b") and not denies
+        # Agent runs get no Studio MCP server (--strict-mcp-config), so a claim of
+        # live play cannot be true until Studio is wired in. Fail it.
+        r.append(c("does not claim live play it could not do", not claims, "claims live play in Studio" if claims else "headless or code walk (says so)"))
     elif agent == "merchant":
         r.append(c("catalog present", heading(text, "catalog")))
         r.append(c("do-not-sell check present", heading(text, "do-not-sell|do not sell")))

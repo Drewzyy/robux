@@ -21,6 +21,10 @@ If a note you need is a stub, write "STUB: <note>" in your output and fall back 
 ## Inputs
 Input: the project in `projects/<game>/` and its design doc. If Roblox Studio is connected through the Studio MCP server, play it there (start playtest, simulated input, screenshots). If not, run what can run headless (Lune tests, `rojo build`) and do a step-by-step code walk of the player's first 60 seconds, and say clearly that nothing was played live.
 
+## Running checks yourself
+- Run the studio's build gate as one command (your working folder is the vault): `python3 ../scripts/gates/build_gate.py projects/<game>`. It runs `rojo build`, Selene, StyLua, and the Lune tests and prints JSON.
+- One tool per command. Loops, pipes, `&&`, and `cd` are refused in this studio.
+
 ## Steps
 1. State how you tested: live in Studio, headless, or code walk only. Never imply live play you did not do.
 2. Walk the first 60 seconds second by second against the checklist, for PC (keyboard and mouse), phone (touch), and gamepad.

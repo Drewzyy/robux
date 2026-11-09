@@ -1,0 +1,41 @@
+{
+  "pipeline_id": "pipe-improve-build-20261109-114821-2155",
+  "pipeline": "improve-build",
+  "input": "Improve the first 60 seconds: the player should do the core verb within 10 seconds of spawning and get the first reward within 30 seconds.",
+  "project": "projects/dawn-watch",
+  "stages": [
+    {
+      "agent": "architect",
+      "run_id": "pipe-improve-build-20261109-114821-2155--1-architect",
+      "output": "design.md",
+      "status": "pending",
+      "gate": null,
+      "cost_usd": null
+    },
+    {
+      "agent": "builder",
+      "run_id": "pipe-improve-build-20261109-114821-2155--2-builder",
+      "output": "build.md",
+      "status": "pending",
+      "gate": null,
+      "cost_usd": null
+    },
+    {
+      "agent": "playtest",
+      "run_id": "pipe-improve-build-20261109-114821-2155--3-playtest",
+      "output": "playtest-report.md",
+      "status": "pending",
+      "gate": null,
+      "cost_usd": null
+    }
+  ],
+  "expected_usd": 1.4562,
+  "high_usd": 3.6408,
+  "cap_usd": 3.66,
+  "status": "cancelled",
+  "created_at": "2026-11-09T11:48:21Z",
+  "approved_at": null,
+  "finished_at": null,
+  "queue_item": null,
+  "actual_cost_usd": null
+}

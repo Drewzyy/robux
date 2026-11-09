@@ -17,6 +17,17 @@ return function()
 	assert(math.abs(Economy.outFraction({ 54, 54, 54 }, 540) - 0.1) < 1e-9)
 	assert(Economy.outFraction({}, 540) == 0)
 
+	-- Fixed pop schedule: 10, 5, 5, then nothing. Never random.
+	assert(Economy.popReward(0) == 10)
+	assert(Economy.popReward(1) == 5)
+	assert(Economy.popReward(2) == 5)
+	assert(Economy.popReward(3) == 0)
+	assert(Economy.popReward(-1) == 0)
+	assert(Economy.popReward(0 / 0) == 0, "NaN pays nothing")
+	-- After the first three pops the bar toward Lamp Polish reads 20 of 40.
+	local afterThree = Economy.popReward(0) + Economy.popReward(1) + Economy.popReward(2)
+	assert(afterThree == 20)
+
 	local first = Economy.nextUpgrade(0)
 	assert(first ~= nil and first.name == "Lamp Polish" and first.remaining == 40)
 	local second = Economy.nextUpgrade(40)

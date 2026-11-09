@@ -4,10 +4,10 @@ local Tutorial = {}
 
 export type State = {
 	phase: string,
-	tutorial: boolean,
+	tutorial: boolean, -- guided: tutorial night, or this player is still in their first pops
 	carrying: boolean,
 	anyLit: boolean,
-	popped: number,
+	popped: number, -- this player's own pops
 	oilLow: boolean,
 }
 
@@ -23,6 +23,9 @@ function Tutorial.hint(state: State): string
 	end
 	if state.tutorial and state.popped == 0 then
 		return "Light it up."
+	end
+	if state.tutorial and state.popped == 1 then
+		return "Aim at glow." -- design says "Aim at the glow." (4 words); kept to the 3-word cap
 	end
 	if state.oilLow then
 		return "Refuel!"

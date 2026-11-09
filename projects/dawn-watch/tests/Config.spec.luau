@@ -18,6 +18,9 @@ return function()
 	assert(Config.CREATURES.Hushhog.beams == 2)
 	-- Telegraph is 3 s so a surprise death is impossible.
 	assert(Config.TELEGRAPH_SECONDS == 3)
+	-- The first Mumble gets a shorter, still-visible telegraph.
+	assert(Config.FIRST_TELEGRAPH == 2 and Config.FIRST_TELEGRAPH > 0)
+	assert(Config.FIRST_BEAM_HOLD == 0.4 and Config.FIRST_SPAWN_DIST == 60)
 	-- Lamps cannot run dry for the first 30 s of the tutorial.
 	assert(Config.TUTORIAL_GRACE == 30)
 	-- Two pours fill an empty lamp; the first pour must light it.

@@ -8,6 +8,7 @@ local specs = {
 	{ "Economy", require("./Economy.spec") },
 	{ "Tutorial", require("./Tutorial.spec") },
 	{ "Config", require("./Config.spec") },
+	{ "FirstRun", require("./FirstRun.spec") },
 }
 
 for _, spec in specs do

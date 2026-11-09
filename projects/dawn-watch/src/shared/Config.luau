@@ -21,6 +21,16 @@ Config.BOT_REFUEL_DELAY = 6
 Config.TUTORIAL_GRACE = 30 -- lamps cannot run dry for the first 30 s of the tutorial night
 Config.BOT_START_TUTORIAL = 20
 
+-- "Fast First Minute" (design change). STARTING VALUES to tune in playtest.
+Config.FIRST_BEAM_HOLD = 0.4 -- hold to light a lamp that has never been lit this night (was 2)
+Config.FIRST_SPAWN_DIST = 60 -- studs out for the first / welcome Mumble (was 110)
+Config.FIRST_TELEGRAPH = 2 -- seconds of telegraph for the first / welcome Mumble (was 3)
+Config.FIRST_LANE = { Harbor = 2, Stormside = 4, Crown = 2 } -- pre-aimed lane per station
+Config.SECOND_LANE = { Harbor = 1, Stormside = 3, Crown = 1 } -- second Mumble needs a real aim
+Config.LAMP_FLASH_SECONDS = 0.6
+Config.FIRST_RUN_POPS = 3 -- pops that pay the guided Glow schedule and show guidance
+Config.TUTORIAL_CAP_SECONDS = 60 -- real seconds the tutorial alive-cap stays at 2
+
 Config.AIM_MIN_INTERVAL = 0.04 -- server rate limit per player (25 msgs/s max)
 
 -- Four lanes: two on the east (Harbor) side, two on the west (Stormside) side. Angles in radians around the tower.
