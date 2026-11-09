@@ -1,0 +1,11 @@
+{
+  "checked": "2026-11-09",
+  "source": "Anthropic model price table as cached by the Claude API skill on 2026-10-06. Haiku 5.5 cache-read and the 2x 1-hour cache-write multiplier were confirmed by recomputing two real claude -p runs to the cent (see LOG.md, Phase 0). Re-check at the Anthropic pricing page before relying on these numbers.",
+  "subscription_note": "On a Claude Max plan ($100 to $200 a month) runs count against plan limits, not a per-run bill. These dollar figures are the API-equivalent cost. Heavy autonomous runs billed on the API can cost more than a Max plan.",
+  "models": {
+    "claude-haiku-5-5":  { "input": 0.10, "output": 0.50,  "cache_read": 0.01, "cache_write_multiplier": 2.0 },
+    "claude-sonnet-5-5": { "input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write_multiplier": 2.0 },
+    "claude-opus-5-5":   { "input": 4.00, "output": 20.00, "cache_read": 0.20, "cache_write_multiplier": 2.0 },
+    "claude-fable-5-1":  { "input": 10.00, "output": 50.00, "cache_read": 0.25, "cache_write_multiplier": 2.0 }
+  }
+}

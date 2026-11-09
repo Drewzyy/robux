@@ -1,0 +1,13 @@
+{
+  "agents": {
+    "bridge-test": {
+      "description": "Phase 0 test agent. Reads nothing, replies with one line. Proves the app can run claude and show output.",
+      "model": "claude-haiku-5-5",
+      "turns": 1,
+      "context_tokens": 100,
+      "output_tokens_per_turn": 150,
+      "base_tokens": 6000,
+      "allowed_tools": []
+    }
+  }
+}

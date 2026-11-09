@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robux Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">Robux Studio <span class="tag">internal</span></div>
+    <nav>
+      <button data-tab="queue" class="active">Review queue <span id="pending-count" class="count"></span></button>
+      <button data-tab="run">Run an agent</button>
+      <button data-tab="runs">Run history</button>
+    </nav>
+    <div id="env" class="env"></div>
+  </header>
+
+  <main>
+    <section id="tab-queue" class="tab active">
+      <div class="section-head">
+        <h1>Review queue</h1>
+        <button id="refresh-queue" class="ghost">Refresh</button>
+      </div>
+      <p class="hint">Nothing ships until you approve it here. Approving records your yes; it does not publish anything.</p>
+      <div id="queue-list"></div>
+    </section>
+
+    <section id="tab-run" class="tab">
+      <div class="section-head"><h1>Run an agent</h1></div>
+      <p class="hint">Every run shows its cost first and needs your approval. The approved cap is a hard stop.</p>
+      <div class="form">
+        <label>Agent
+          <select id="agent-select"></select>
+        </label>
+        <p id="agent-desc" class="hint"></p>
+        <label>Instruction
+          <textarea id="prompt" rows="4" placeholder="Tell the agent what to do, in plain words."></textarea>
+        </label>
+        <button id="estimate-btn">Estimate cost</button>
+      </div>
+      <div id="estimate" class="card hidden"></div>
+      <div id="output-wrap" class="hidden">
+        <h2>Output</h2>
+        <pre id="output"></pre>
+        <div id="run-summary" class="card hidden"></div>
+      </div>
+    </section>
+
+    <section id="tab-runs" class="tab">
+      <div class="section-head">
+        <h1>Run history</h1>
+        <button id="refresh-runs" class="ghost">Refresh</button>
+      </div>
+      <div id="runs-list"></div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-body">
+      <div class="modal-head"><strong id="modal-title"></strong><button id="modal-close" class="ghost">Close</button></div>
+      <pre id="modal-text"></pre>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

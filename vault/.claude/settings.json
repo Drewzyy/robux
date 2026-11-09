@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Read|Skill|Glob|Grep",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-load.py\"" }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(rbxcloud:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(rm -rf:*)",
+      "Edit(/.obsidian/**)",
+      "Write(/.obsidian/**)"
+    ]
+  }
+}

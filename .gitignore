@@ -1,0 +1,12 @@
+app/src-tauri/target/
+app/src-tauri/gen/
+node_modules/
+runs/*
+!runs/README.md
+queue/items/*
+!queue/items/.gitkeep
+queue/decisions.jsonl
+vault/.claude/logs/
+vault/.obsidian/workspace*.json
+.DS_Store
+__pycache__/

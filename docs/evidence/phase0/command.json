@@ -1,0 +1,24 @@
+{
+  "args": [
+    "-p",
+    "hello from the app window",
+    "--agent",
+    "bridge-test",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-budget-usd",
+    "0.05",
+    "--no-session-persistence",
+    "--permission-mode",
+    "dontAsk",
+    "--add-dir",
+    "/home/user/robux/projects",
+    "--add-dir",
+    "/home/user/robux/runs/run-bridge-test-20261109-103906-ebcd"
+  ],
+  "bin": "/opt/node22/bin/claude",
+  "cwd": "/home/user/robux/vault"
+}

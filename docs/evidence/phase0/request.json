@@ -1,0 +1,32 @@
+{
+  "run_id": "run-bridge-test-20261109-103906-ebcd",
+  "agent": "bridge-test",
+  "prompt": "hello from the app window",
+  "estimate": {
+    "agent": "bridge-test",
+    "model": "claude-haiku-5-5",
+    "low_usd": 0.0007,
+    "expected_usd": 0.0014,
+    "high_usd": 0.0035,
+    "cap_usd": 0.05,
+    "cache_write_tokens": 6257,
+    "cache_read_tokens": 6107,
+    "output_tokens": 150,
+    "assumptions": [
+      "1 model turns, about 150 output tokens each (thinking included)",
+      "about 107 tokens of files and prompt read, 6000 tokens of system prompt and tools",
+      "claude-haiku-5-5 at $0.1/M input, $0.5/M output, $0.01/M cache read, cache write 2x input",
+      "Range is 0.5x to 2.5x of expected. The run is stopped if it reaches the cap."
+    ],
+    "pricing_checked": "2026-11-09",
+    "subscription_note": "On a Claude Max plan ($100 to $200 a month) runs count against plan limits, not a per-run bill. These dollar figures are the API-equivalent cost. Heavy autonomous runs billed on the API can cost more than a Max plan."
+  },
+  "status": "done",
+  "created_at": "2026-11-09T10:39:06Z",
+  "approved_at": "2026-11-09T10:39:06Z",
+  "finished_at": "2026-11-09T10:39:14Z",
+  "actual_cost_usd": 0.00050938,
+  "result_text": "BRIDGE_OK hello from the app window",
+  "error": null,
+  "pipeline_id": null
+}
