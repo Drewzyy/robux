@@ -45,7 +45,7 @@ pub fn build_commit() -> String {
 
 /// Where downloaded copies of the app get updates from (public; holds only
 /// the built app, never the code).
-pub const RELEASES_REPO: &str = "Drewzyy/brewixgames-releases";
+pub const RELEASES_REPO: &str = "Drewzyy/robux";
 pub const RELEASE_ASSET: &str = "BrewixGames-macos.zip";
 
 /// The release tag this app was built as (set by the release build).
