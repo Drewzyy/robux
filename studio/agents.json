@@ -274,6 +274,49 @@
         "90-templates-checklists"
       ],
       "output": "update-plan.md"
+    },
+    "assistant": {
+      "description": "Ask Claude: answers questions and fixes things in your game projects.",
+      "model": "claude-sonnet-5-5",
+      "turns": 14,
+      "context_tokens": 12000,
+      "output_tokens_per_turn": 900,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Write",
+        "Edit",
+        "Bash(brewix gate build:*)",
+        "Bash(brewix gate stage:*)",
+        "Bash(stylua:*)",
+        "Bash(ls:*)"
+      ],
+      "allowed_sections": [],
+      "output": null
+    },
+    "simulator": {
+      "description": "Predicts how players of different ages experience a game: time played, quit points, a rating, and fixes.",
+      "model": "claude-sonnet-5-5",
+      "turns": 16,
+      "context_tokens": 30000,
+      "output_tokens_per_turn": 1500,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write"
+      ],
+      "allowed_sections": [
+        "00-router",
+        "50-retention-analytics",
+        "10-game-design",
+        "30-ui-ux"
+      ],
+      "output": "simulation.md"
     }
   }
 }

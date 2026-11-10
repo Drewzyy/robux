@@ -49,11 +49,11 @@ pub fn tool(name: &str) -> PathBuf {
     if let Ok(path) = std::env::var("PATH") {
         dirs.extend(std::env::split_paths(&path));
     }
-    if let Ok(home) = std::env::var("HOME") {
-        dirs.push(PathBuf::from(home).join(".cargo/bin"));
+    if let Some(home) = crate::paths::home() {
+        dirs.push(home.join(".cargo/bin"));
     }
     dirs.into_iter()
-        .map(|d| d.join(name))
+        .flat_map(|d| [d.join(name), d.join(format!("{name}.exe"))])
         .find(|p| p.is_file())
         .unwrap_or_else(|| PathBuf::from(name))
 }
@@ -306,9 +306,79 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
         "splash" => r.extend(splash_checks(&text, out_path)),
         "liveops" => r.push(c("numbers come with dates", has(&text, r"\d{4}-\d{2}-\d{2}") || text.to_uppercase().contains("BLOCKED"), "")),
         "producer" => r.push(c("one named reason", heading(&text, "reason"), "")),
+        "simulator" => r.extend(simulation_checks(out_path)),
         _ => {}
     }
     r
+}
+
+/// The simulator's structured result must be complete and honest about
+/// what it is (an estimate from reading the game, not real players).
+fn simulation_checks(out_path: &Path) -> Vec<GateCheck> {
+    let f = out_path.parent().unwrap_or(Path::new(".")).join("simulation.json");
+    let Ok(t) = fs::read_to_string(&f) else { return vec![c("simulation.json written", false, "missing")] };
+    let v: serde_json::Value = match serde_json::from_str(&t) {
+        Ok(v) => v,
+        Err(e) => return vec![c("simulation.json parses", false, &e.to_string().chars().take(120).collect::<String>())],
+    };
+    let personas = v.get("personas").and_then(|p| p.as_array()).cloned().unwrap_or_default();
+    let s = |x: &serde_json::Value, k: &str| x.get(k).and_then(|y| y.as_str()).unwrap_or("").to_string();
+    let n = |x: &serde_json::Value, k: &str| x.get(k).and_then(|y| y.as_f64());
+    let mut bands: Vec<String> = personas.iter().map(|p| s(p, "age_band")).filter(|b| !b.is_empty()).collect();
+    bands.sort();
+    bands.dedup();
+    let complete = personas.iter().all(|p| {
+        n(p, "session_minutes").map(|m| (0.0..=180.0).contains(&m)).unwrap_or(false)
+            && n(p, "fun").map(|m| (1.0..=10.0).contains(&m)).unwrap_or(false)
+            && !s(p, "quit_reason").is_empty()
+            && !s(p, "evidence").is_empty()
+            && ["yes", "maybe", "no"].contains(&s(p, "would_return").as_str())
+    });
+    let score = v.pointer("/rating/score").and_then(|x| x.as_f64());
+    let imps = v.get("improvements").and_then(|p| p.as_array()).cloned().unwrap_or_default();
+    let imps_ok = imps.len() >= 3 && imps.iter().all(|i| !s(i, "title").is_empty() && !s(i, "how").is_empty() && !s(i, "why").is_empty());
+    let method = s(&v, "method").to_lowercase();
+    vec![
+        c("simulation.json parses", true, &format!("{} personas", personas.len())),
+        c("at least 5 personas across 4+ age bands", personas.len() >= 5 && bands.len() >= 4, &bands.join(", ")),
+        c("every persona has minutes, fun, quit reason, evidence, return answer", !personas.is_empty() && complete, ""),
+        c("rating between 0 and 100", score.map(|x| (0.0..=100.0).contains(&x)).unwrap_or(false), &score.map(|x| x.to_string()).unwrap_or_default()),
+        c("3 or more improvements with why and how", imps_ok, &format!("{} improvements", imps.len())),
+        c("says it is an estimate, not real player data", method.contains("not real") || method.contains("estimate"), ""),
+    ]
+}
+
+/// Score one thumbnail comp against the parts of the rule sheet a program
+/// can check. This is a rule score, not a prediction of clicks.
+pub fn thumb_score(path: &Path) -> serde_json::Value {
+    let svg = fs::read_to_string(path).unwrap_or_default();
+    let href = re(r#"href="([^"]+\.(?:png|jpe?g))""#);
+    let words = svg_words(&svg);
+    let cols = svg_colors(&svg);
+    let capture = href.captures_iter(&svg).any(|m| {
+        let h = &m[1];
+        !h.starts_with("http") && !h.starts_with("data:") && path.parent().map(|d| d.join(h).is_file()).unwrap_or(false)
+    });
+    let outlined = words == 0 || svg.contains("stroke=");
+    let checks = vec![
+        ("1920x1080", svg.contains(r#"width="1920""#) && svg.contains(r#"height="1080""#)),
+        ("0 to 3 words", words <= 3),
+        ("3 colours or fewer", (1..=3).contains(&cols)),
+        ("text has a heavy outline", outlined),
+        ("uses a real game capture", capture),
+    ];
+    let pass = checks.iter().filter(|(_, ok)| *ok).count();
+    let grade = match pass {
+        5 => "A+",
+        4 => "A",
+        3 => "B",
+        2 => "C",
+        _ => "D",
+    };
+    serde_json::json!({
+        "score": pass, "of": checks.len(), "grade": grade, "words": words, "colours": cols,
+        "checks": checks.iter().map(|(n, ok)| serde_json::json!({"name": n, "passed": ok})).collect::<Vec<_>>()
+    })
 }
 
 fn count_luau(dir: &Path) -> usize {

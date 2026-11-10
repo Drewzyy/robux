@@ -24,8 +24,8 @@ pub fn agent_statuses(root: &Path) -> Result<Vec<AgentStatus>, String> {
     let all = runs::list(root)?; // newest first
     let items = queue::list(root)?;
     let mut out = vec![];
-    const TEAM: [&str; 12] = ["pulse", "lead", "architect", "builder", "scenic", "librarian", "frame", "playtest", "splash", "merchant", "liveops", "producer"];
-    let mut names: Vec<&String> = cfg.agents.keys().filter(|n| n.as_str() != "bridge-test").collect();
+    const TEAM: [&str; 13] = ["pulse", "lead", "architect", "builder", "scenic", "librarian", "frame", "playtest", "simulator", "splash", "merchant", "liveops", "producer"];
+    let mut names: Vec<&String> = cfg.agents.keys().filter(|n| n.as_str() != "bridge-test" && n.as_str() != "assistant").collect();
     names.sort_by_key(|n| TEAM.iter().position(|t| t == n).unwrap_or(99));
     for name in names {
         let a = &cfg.agents[name];
@@ -294,7 +294,7 @@ pub fn save_export(root: &Path, svg_rel: &str, png: &[u8]) -> Result<String, Str
 /// Packages, and build output. Never overwrites an existing project.
 pub fn import_project(root: &Path, src: &str) -> Result<String, String> {
     let src = if let Some(rest) = src.strip_prefix("~/") {
-        PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(rest)
+        crate::paths::home().unwrap_or_default().join(rest)
     } else {
         PathBuf::from(src)
     };
@@ -422,8 +422,8 @@ pub fn sounds_set_asset(root: &Path, project: &str, id: &str, asset_id: &str, li
 /// pipelines, prices), made by the release build.
 pub fn bundled_template() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?.canonicalize().ok()?;
-    let t = exe.parent()?.join("../Resources/studio-template.tar.gz");
-    t.is_file().then_some(t)
+    let dir = exe.parent()?;
+    [dir.join("../Resources/studio-template.tar.gz"), dir.join("studio-template.tar.gz")].into_iter().find(|t| t.is_file())
 }
 
 /// First launch of a downloaded app: unpack the studio into ~/BrewixGames.
@@ -433,7 +433,7 @@ pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
         return Ok(None);
     }
     let Some(t) = bundled_template() else { return Ok(None) };
-    let home = PathBuf::from(std::env::var("HOME").map_err(|e| e.to_string())?);
+    let home = crate::paths::home().ok_or("no home folder")?;
     let dest = home.join("BrewixGames");
     fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
     untar(&t, &dest)?;
@@ -504,4 +504,87 @@ fn copy_dir_all(src: &Path, dst: &Path, n: &mut usize) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn project_ok(root: &Path, project: &str) -> Result<PathBuf, String> {
+    let ok = project.starts_with("projects/") && !project.contains("..") && project.len() > 9 && project[9..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+    if !ok || !root.join(project).is_dir() {
+        return Err("choose a project first".into());
+    }
+    Ok(root.join(project))
+}
+
+/// Runs by one agent whose instruction mentions this project, newest first.
+fn agent_runs_for(root: &Path, agent: &str, project: &str) -> Vec<runs::RunRequest> {
+    runs::list(root)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|r| r.agent == agent && r.status == "done" && r.prompt.contains(project))
+        .collect()
+}
+
+/// Player simulations for a project, newest first.
+pub fn simulations(root: &Path, project: &str) -> Result<Vec<serde_json::Value>, String> {
+    project_ok(root, project)?;
+    let mut out = vec![];
+    for r in agent_runs_for(root, "simulator", project) {
+        let f = root.join("runs").join(&r.run_id).join("simulation.json");
+        if let Some(mut v) = fs::read_to_string(&f).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) {
+            v["run_id"] = serde_json::json!(r.run_id);
+            v["at"] = serde_json::json!(r.finished_at);
+            v["cost_usd"] = serde_json::json!(r.actual_cost_usd);
+            out.push(v);
+        }
+    }
+    Ok(out)
+}
+
+/// The newest thumbnail set for a project, each comp with its rule score.
+pub fn thumbnails(root: &Path, project: &str) -> Result<serde_json::Value, String> {
+    let pdir = project_ok(root, project)?;
+    let mut shots: Vec<String> = fs::read_dir(pdir.join("screenshots"))
+        .map(|rd| rd.flatten().map(|e| e.file_name().to_string_lossy().to_string()).filter(|n| n.ends_with(".png") || n.ends_with(".jpg") || n.ends_with(".jpeg")).collect())
+        .unwrap_or_default();
+    shots.sort();
+    let mut thumbs = vec![];
+    let mut run = serde_json::Value::Null;
+    if let Some(r) = agent_runs_for(root, "splash", project).into_iter().next() {
+        let dir = root.join("runs").join(&r.run_id).join("thumbnails");
+        let mut files: Vec<PathBuf> = fs::read_dir(&dir).map(|rd| rd.flatten().map(|e| e.path()).filter(|p| p.extension().and_then(|x| x.to_str()) == Some("svg")).collect()).unwrap_or_default();
+        files.sort();
+        for f in files {
+            let name = f.file_name().unwrap().to_string_lossy().to_string();
+            let mut v = crate::gates::thumb_score(&f);
+            v["path"] = serde_json::json!(format!("runs/{}/thumbnails/{}", r.run_id, name));
+            v["name"] = serde_json::json!(name);
+            v["icon"] = serde_json::json!(name == "icon.svg");
+            thumbs.push(v);
+        }
+        thumbs.sort_by(|a, b| b["score"].as_u64().cmp(&a["score"].as_u64()));
+        run = serde_json::json!({"run_id": r.run_id, "at": r.finished_at, "cost_usd": r.actual_cost_usd});
+    }
+    Ok(serde_json::json!({"screenshots": shots, "thumbnails": thumbs, "run": run}))
+}
+
+/// Copy a screenshot of the real game into projects/<game>/screenshots/ so
+/// thumbnails can use the game's own visuals.
+pub fn add_screenshot(root: &Path, project: &str, src: &str) -> Result<String, String> {
+    let pdir = project_ok(root, project)?;
+    let src = if let Some(rest) = src.trim().strip_prefix("~/") { crate::paths::home().unwrap_or_default().join(rest) } else { PathBuf::from(src.trim()) };
+    let name = src.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let lower = name.to_lowercase();
+    if !(lower.ends_with(".png") || lower.ends_with(".jpg") || lower.ends_with(".jpeg")) {
+        return Err("choose a .png or .jpg screenshot".into());
+    }
+    let bytes = fs::read(&src).map_err(|e| format!("{}: {e}", src.display()))?;
+    let is_png = bytes.starts_with(b"\x89PNG");
+    let is_jpg = bytes.starts_with(&[0xFF, 0xD8]);
+    if !(is_png || is_jpg) {
+        return Err("that file is not a PNG or JPG image".into());
+    }
+    let safe: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '-' }).collect();
+    let dir = pdir.join("screenshots");
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    fs::write(dir.join(&safe), bytes).map_err(|e| e.to_string())?;
+    Ok(format!("Added {safe}"))
 }

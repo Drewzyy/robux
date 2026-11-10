@@ -39,6 +39,8 @@ const ICONS = {
   book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5V19c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5V5.5z"/><path d="M12 6v13.5"/></svg>',
   list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2L5.5 5.5"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v7a2.5 2.5 0 01-2.5 2.5H11l-4.5 3.5V16A2.5 2.5 0 014 13.5v-7z"/></svg>',
+  pulse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6H21"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
   cube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>',
   doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6V3z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>',
@@ -46,7 +48,7 @@ const ICONS = {
   image: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></svg>',
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
 };
-document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = ICONS[n.dataset.icon]));
+
 const KIND_ICON = { build: "cube", design: "doc", pitch: "spark", thumbnail: "image", "playtest-report": "check", asset: "cube" };
 
 let toastTimer;
@@ -151,7 +153,7 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "queue";
   const [name, ...rest] = h.split("/");
@@ -729,6 +731,13 @@ async function viewSettings() {
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Claude Code"), el("span", { class: "note" }, c.version ? `${c.version} · ${c.bin}` : "–"))
     ),
 
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "AI engine"),
+      el("div", { class: "list" },
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
+          segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: $("ollama-model").value.trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Local model"), el("div", { class: "hint" }, "Needs Ollama 0.14 or newer running on this computer, and the model already downloaded in Ollama.")),
+          el("div", { class: "inline", style: "width:320px" }, el("input", { type: "text", id: "ollama-model", placeholder: "for example qwen3-coder", value: s.ollama_model }), el("button", { class: "btn secondary", onclick: () => save({ ollama_model: $("ollama-model").value.trim() }, "Local model saved.") }, "Save"))))),
+
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Monthly budget (USD)"), el("div", { class: "hint" }, "Runs stop and ask once this month's spend would pass this. 0 means no budget.")),
@@ -784,6 +793,183 @@ T.event.listen("update-line", (ev) => {
   log.scrollTop = log.scrollHeight;
   if (ev.payload.error) toast(ev.payload.line, true);
 });
+
+// =====================================================================
+// Shared: project picker and a cost card for one-agent runs
+// =====================================================================
+state.project = "";
+async function projectPicker(onChange) {
+  const projects = await invoke("projects_list").catch(() => []);
+  if (!state.project || !projects.includes(state.project)) state.project = projects[0] || "";
+  const sel = el("select", { id: "project-pick", style: "width:260px" }, projects.length ? projects.map((p) => el("option", { value: p }, p.replace("projects/", ""))) : el("option", { value: "" }, "No projects yet"));
+  sel.value = state.project;
+  sel.addEventListener("change", () => { state.project = sel.value; onChange(); });
+  return sel;
+}
+async function costCard(box, agent, prompt, label) {
+  box.replaceChildren();
+  let r;
+  try {
+    r = await invoke("run_prepare", { agent, prompt });
+  } catch (e) {
+    box.append(el("div", { class: "card", style: "margin-top:16px" }, el("div", { class: "row-title" }, "Can't start this"), el("p", { class: "note" }, String(e))));
+    return;
+  }
+  const e = r.estimate;
+  const go = el("button", { class: "btn primary", id: "approve-run", onclick: async () => {
+    go.disabled = true;
+    try {
+      await invoke("run_approve_and_start", { runId: r.run_id, confirmedCapUsd: e.cap_usd });
+      state.live = { kind: "run", id: r.run_id, estimate: e.expected_usd, cap: e.cap_usd };
+      state.logs[r.run_id] = "";
+      location.hash = "#run/" + r.run_id;
+    } catch (err) { go.disabled = false; toast(String(err), true); }
+  } }, e.expected_usd > 0 ? `${label} · cap ${usd(e.cap_usd)}` : `${label} · free`);
+  box.append(el("div", { class: "card", style: "margin-top:16px" },
+    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Cost before you run"), el("span", { class: "pill red-soft" }, "Needs your approval")),
+    el("div", { class: "cost-grid" },
+      el("div", {}, el("div", { class: "k" }, "Expected"), el("div", { class: "v" }, usd(e.expected_usd, 2))),
+      el("div", {}, el("div", { class: "k" }, "Hard cap"), el("div", { class: "v" }, usd(e.cap_usd)))),
+    el("div", { class: "note" }, e.subscription_note),
+    el("div", { class: "inline", style: "margin-top:14px" }, go,
+      el("button", { class: "btn secondary", onclick: async () => { await invoke("run_cancel", { runId: r.run_id }).catch(() => {}); box.replaceChildren(); } }, "Cancel"))));
+}
+
+// =====================================================================
+// Ask Claude
+// =====================================================================
+state.chatBusy = null; // run id while a reply is being written
+state.chatStatus = "";
+async function viewChat() {
+  await refreshStatus();
+  const { chat, cap_usd, engine } = await invoke("chat_get");
+  const who = engine === "ollama" ? "Local model" : "Claude";
+  const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
+  const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: async () => {
+    const text = input.value;
+    send.disabled = true;
+    try {
+      state.chatBusy = await invoke("chat_send", { text });
+      state.chatStatus = "Thinking…";
+      viewChat();
+    } catch (e) { send.disabled = false; toast(String(e), true); }
+  } }, cap_usd > 0 ? `Send · up to ${usd(cap_usd)}` : "Send · free");
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send.click(); });
+  const msgs = chat.messages.map((m) =>
+    el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
+      m.role === "you" ? el("div", {}, m.text) : markdown(m.text),
+      m.role !== "you" ? el("div", { class: "bubble-meta" }, who, m.cost_usd != null ? ` · ${usd(m.cost_usd, 2)}` : "", m.run_id ? el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + m.run_id) }, "Details") : null) : null));
+  if (state.chatBusy) msgs.push(el("div", { class: "bubble them typing", id: "chat-typing" }, state.chatStatus || "Thinking…"));
+  const list = el("div", { class: "chat-list", id: "chat-list" }, msgs.length ? msgs :
+    el("div", { class: "empty", style: "padding:64px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
+      el("div", {}, "It can answer questions about your games and fix things in your projects. Each message counts toward your budget.")));
+  show(el("div", { class: "page chat-page" },
+    head("Ask Claude", runningSubtitle(), chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null),
+    list,
+    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Send is your approval for that message. ⌘ Return to send."), send))));
+  list.scrollTop = list.scrollHeight;
+  input.focus();
+}
+T.event.listen("chat-line", (ev) => {
+  const t = renderLine(ev.payload.line);
+  if (!t) return;
+  state.chatStatus = t.split("\n").pop().slice(0, 140);
+  const n = $("chat-typing");
+  if (n) n.textContent = state.chatStatus;
+});
+T.event.listen("chat-done", () => {
+  state.chatBusy = null;
+  state.chatStatus = "";
+  refreshStatus();
+  if ((location.hash || "") === "#chat") viewChat();
+  else toast("Claude replied in Ask Claude.");
+});
+
+// =====================================================================
+// Simulator
+// =====================================================================
+function ring(score, grade) {
+  const r = 52, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, score));
+  return el("div", { class: "ring", html: `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#2C2C2E" stroke-width="9"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#FF3B30" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * v) / 100} ${c}" transform="rotate(-90 60 60)"/><text x="60" y="58" text-anchor="middle" fill="#fff" font-size="30" font-weight="600" font-family="-apple-system,Inter,sans-serif">${Math.round(v)}</text><text x="60" y="80" text-anchor="middle" fill="#8E8E93" font-size="13" font-family="-apple-system,Inter,sans-serif">Grade ${String(grade || "").replace(/[<>&]/g, "")}</text></svg>` });
+}
+async function viewSimulator() {
+  await refreshStatus();
+  const pick = await projectPicker(viewSimulator);
+  const box = el("div", {});
+  const run = el("button", { class: "btn primary", id: "sim-run", disabled: !state.project, onclick: () => costCard(box, "simulator", `Simulate players of different ages on ${state.project}.`, "Run Simulation") }, "Simulate Players");
+  let sims = [];
+  if (state.project) sims = await invoke("simulations", { project: state.project }).catch(() => []);
+  const s = sims[0];
+  let body;
+  if (!s) {
+    body = el("div", { class: "empty" }, el("div", { class: "ic-big", html: ICONS.pulse }), el("div", { class: "empty-title" }, state.project ? "No simulation yet" : "Import a game first"),
+      el("div", {}, state.project ? "Simulated players aged 7 to adult walk your game and say how long they would play, where they would quit, and what to fix." : "Add a game project in Settings, then simulate it here."));
+  } else {
+    const maxMin = Math.max(10, ...s.personas.map((p) => p.session_minutes));
+    body = el("div", {},
+      el("div", { class: "card sim-top" }, ring(s.rating.score, s.rating.grade),
+        el("div", { class: "grow" }, el("h2", {}, "Rating"), el("p", { class: "prose", style: "margin:0 0 10px" }, s.rating.summary),
+          el("div", { class: "cost-grid", style: "margin:0" },
+            el("div", {}, el("div", { class: "k" }, "Typical first session"), el("div", { class: "v small" }, `${Number(s.predicted?.median_session_minutes ?? 0).toFixed(1)} min`)),
+            el("div", {}, el("div", { class: "k" }, "Come back next day"), el("div", { class: "v small" }, `${Math.round(100 * (s.predicted?.day1_return_share ?? 0))}%`)),
+            el("div", {}, el("div", { class: "k" }, "Roblox median"), el("div", { class: "v small" }, "9.8 min · 10%"))))),
+      el("div", { class: "section" }, el("div", { class: "section-label" }, "Who stays and who leaves"),
+        el("div", { class: "list" }, s.personas.map((p) =>
+          el("div", { class: "srow", style: "align-items:flex-start" },
+            el("div", { style: "width:120px;flex:none" }, el("div", { class: "label" }, `Age ${p.age_band}`), el("div", { class: "hint" }, p.device)),
+            el("div", { class: "grow" },
+              el("div", { class: "inline" }, el("div", { class: "bar", style: "flex:1;height:6px" }, el("div", { style: `width:${(100 * p.session_minutes) / maxMin}%` })), el("span", { class: "note", style: "width:64px;text-align:right" }, `${Number(p.session_minutes).toFixed(1)} min`)),
+              el("div", { class: "hint", style: "margin-top:6px;white-space:normal" }, `Leaves: ${String(p.quit_point || "").replace(/[.\s]+$/, "")}. ${p.quit_reason}`)),
+            el("div", { style: "flex:none;text-align:right;width:96px" }, el("span", { class: "pill " + (p.would_return === "yes" ? "white" : p.would_return === "no" ? "red-soft" : "") }, p.would_return === "yes" ? "Returns" : p.would_return === "no" ? "Gone" : "Maybe"), el("div", { class: "hint", style: "margin-top:4px" }, `Fun ${p.fun}/10`)))))),
+      el("div", { class: "section" }, el("div", { class: "section-label" }, "Fix these first"),
+        el("div", { class: "list" }, s.improvements.map((i, k) =>
+          el("div", { class: "step" }, el("div", { class: "step-num" + (i.impact === "high" ? " on" : "") }, String(k + 1)),
+            el("div", {}, el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, i.title), el("span", { class: "pill" + (i.impact === "high" ? " red" : "") }, cap(i.impact || "") + " impact")),
+              el("div", { class: "note", style: "margin-top:4px" }, i.why), el("div", { style: "margin-top:6px;font-size:14px" }, i.how),
+              el("button", { class: "link", style: "margin-top:8px", onclick: () => { state.composer = { ...state.composer, mode: "pipeline", pipeline: "improve-build", project: state.project, prompt: `${i.title}. ${i.how}` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Have the team build this")))))),
+      el("p", { class: "note", style: "margin-top:14px" }, `${s.method} Simulated ${ago(s.at)} for ${usd(s.cost_usd, 2)}.`, el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + s.run_id) }, "Details")));
+  }
+  show(page(head("Simulator", runningSubtitle(), el("div", { class: "inline" }, pick, run)), box, body));
+}
+
+// =====================================================================
+// Thumbnails
+// =====================================================================
+async function viewThumbnails() {
+  await refreshStatus();
+  const pick = await projectPicker(viewThumbnails);
+  const box = el("div", {});
+  let data = { screenshots: [], thumbnails: [], run: null };
+  if (state.project) data = await invoke("thumbnails", { project: state.project }).catch(() => data);
+  const make = el("button", { class: "btn primary", id: "thumb-run", disabled: !state.project, onclick: () => costCard(box, "splash", `Make the launch thumbnails and icon for ${state.project}. Follow the MrBeast rule sheet. 12 comps. Use the captures in ${state.project}/screenshots.`, "Make Thumbnails") }, "Make Thumbnails");
+  const shotPath = el("input", { type: "text", id: "shot-path", placeholder: "~/Desktop/my-game-screenshot.png" });
+  const shots = el("div", { class: "card" },
+    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Game screenshots"), el("span", { class: "note" }, `${data.screenshots.length} added`)),
+    el("p", { class: "note" }, "Thumbnails must show your real game. Take screenshots in Roblox Studio, then add them here. Without one, you get layout sketches only and they cannot reach A+."),
+    el("div", { class: "inline" }, shotPath, el("button", { class: "btn secondary", onclick: async () => { try { toast(await invoke("screenshot_add", { project: state.project, path: shotPath.value })); viewThumbnails(); } catch (e) { toast(String(e), true); } } }, "Add Screenshot")),
+    data.screenshots.length ? el("div", { class: "files" }, data.screenshots.map((n) => el("span", { class: "pill" }, n))) : null);
+  let grid;
+  if (!data.thumbnails.length) {
+    grid = el("div", { class: "empty" }, el("div", { class: "ic-big", html: ICONS.image }), el("div", { class: "empty-title" }, "No thumbnails yet"),
+      el("div", {}, "One subject, one strong emotion, one prize or danger, three words or fewer. The same rules the biggest YouTube thumbnails follow, applied to your game."));
+  } else {
+    const cells = await Promise.all(data.thumbnails.map(async (t) => {
+      let src = "";
+      try { src = await invoke("artifact_image", { path: t.path }); } catch {}
+      return el("div", { class: "tcell" + (t.icon ? " icon" : "") }, el("img", { src, alt: t.name }),
+        el("div", { class: "tfoot" }, el("span", { class: "inline", style: "gap:6px" }, el("span", { class: "pill " + (t.grade === "A+" ? "red" : t.grade === "A" ? "white" : "") , title: t.checks.map((c) => (c.passed ? "✓ " : "✕ ") + c.name).join("\n") }, t.grade), el("span", {}, t.name)),
+          el("button", { class: "link", onclick: () => exportPng(t.path, src).catch((e) => toast(String(e), true)) }, "Export PNG")));
+    }));
+    const best = data.thumbnails.filter((t) => !t.icon)[0];
+    grid = el("div", { class: "section" },
+      el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "section-label" }, `Latest set · made ${ago(data.run.at)} for ${usd(data.run.cost_usd, 2)}`), el("button", { class: "link", onclick: () => (location.hash = "#run/" + data.run.run_id) }, "Ranking and details")),
+      el("div", { class: "tgrid big" }, cells),
+      el("p", { class: "note", style: "margin-top:12px" }, `Grades check the rules a program can measure (size, 3 words or fewer, 3 colours or fewer, outlined text, real game capture). ${best && best.grade !== "A+" ? "None is A+ yet: add a real screenshot and make a new set. " : ""}The real test is your play-through rate after launch.`));
+  }
+  show(page(head("Thumbnails", runningSubtitle(), el("div", { class: "inline" }, pick, make)), box, shots, grid));
+}
+
+document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = ICONS[n.dataset.icon]));
 
 // ---------- start ----------
 refreshClaude();

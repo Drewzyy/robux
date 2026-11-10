@@ -18,7 +18,10 @@ lines = [
 for name, a in cfg.items():
     if name == "bridge-test":
         continue
-    skill = (ROOT / f"vault/.claude/skills/{name}/SKILL.md").read_text()
+    sp = ROOT / f"vault/.claude/skills/{name}/SKILL.md"
+    if not sp.is_file():
+        sp = ROOT / f"vault/.claude/agents/{name}.md"
+    skill = sp.read_text()
     m = re.search(r"^description: (.*)$", skill, re.M)
     job = m.group(1).split(". Run by")[0].replace(f"{name.capitalize()}'s job. ", "") if m else ""
     tools = ", ".join(a.get("allowed_tools", []))

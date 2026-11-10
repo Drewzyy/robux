@@ -5,6 +5,7 @@
 
 pub mod bridge;
 pub mod budget;
+pub mod chat;
 pub mod claude;
 pub mod cost;
 pub mod gates;

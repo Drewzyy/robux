@@ -81,7 +81,6 @@ pub fn build_args(
         "--verbose".into(),
         "--max-budget-usd".into(),
         format!("{:.2}", req.estimate.cap_usd),
-        "--no-session-persistence".into(),
         // Only the vault's own settings (hooks, deny rules) and no MCP
         // servers: agents do not inherit plugins or tools from the user's
         // personal Claude Code setup.
@@ -91,6 +90,14 @@ pub fn build_args(
         "--permission-mode".into(),
         "dontAsk".into(),
     ];
+    match (&req.chat, &req.resume) {
+        (Some(_), Some(session)) if !session.is_empty() => {
+            a.push("--resume".into());
+            a.push(session.clone());
+        }
+        (Some(_), _) => {}
+        _ => a.push("--no-session-persistence".into()),
+    }
     if !allowed_tools.is_empty() {
         a.push("--allowedTools".into());
         a.push(allowed_tools.join(" "));
@@ -160,7 +167,12 @@ pub fn run_approved_with<F: FnMut(&str)>(
     req.status = "running".into();
     runs::save(root, &req)?;
 
-    let mut child = Command::new(claude_bin)
+    let mut cmd = Command::new(claude_bin);
+    if req.engine.as_deref() == Some("ollama") {
+        // Free local engine: Ollama 0.14+ speaks the Anthropic Messages API.
+        cmd.env("ANTHROPIC_BASE_URL", "http://localhost:11434").env("ANTHROPIC_AUTH_TOKEN", "ollama");
+    }
+    let mut child = cmd
         .args(&args)
         .current_dir(&vault)
         .env("PATH", agent_path())
@@ -294,6 +306,9 @@ mod tests {
             result_text: None,
             error: None,
             pipeline_id: None,
+            chat: None,
+            resume: None,
+            engine: None,
         };
         let a = build_args(
             &req,
@@ -334,13 +349,18 @@ pub fn agent_path() -> std::ffi::OsString {
                 let _ = std::os::unix::fs::symlink(&exe, &link);
             }
         }
+        #[cfg(windows)]
+        {
+            let _ = fs::write(bin.join("brewix.cmd"), format!("@\"{}\" %*\r\n", exe.display()));
+        }
         dirs.push(bin);
         if let Some(d) = exe.parent() {
             dirs.push(d.join("../Resources/tools"));
+            dirs.push(d.join("tools"));
         }
     }
-    if let Ok(home) = std::env::var("HOME") {
-        dirs.push(PathBuf::from(home).join(".cargo/bin"));
+    if let Some(home) = crate::paths::home() {
+        dirs.push(home.join(".cargo/bin"));
     }
     if let Some(p) = std::env::var_os("PATH") {
         dirs.extend(std::env::split_paths(&p));

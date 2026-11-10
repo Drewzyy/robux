@@ -118,6 +118,41 @@ def sounds_checks(text, project):
     return out
 
 
+def simulation_checks(out_path):
+    f = out_path.parent / "simulation.json"
+    if not f.is_file():
+        return [c("simulation.json written", False, "missing")]
+    try:
+        v = json.loads(f.read_text())
+    except Exception as e:
+        return [c("simulation.json parses", False, str(e)[:120])]
+    s = lambda x, k: x.get(k) if isinstance(x.get(k), str) else ""
+    def n(x, k):
+        y = x.get(k)
+        return float(y) if isinstance(y, (int, float)) and not isinstance(y, bool) else None
+    personas = v.get("personas") if isinstance(v.get("personas"), list) else []
+    bands = sorted({s(p, "age_band") for p in personas if s(p, "age_band")})
+    complete = all(
+        n(p, "session_minutes") is not None and 0 <= n(p, "session_minutes") <= 180
+        and n(p, "fun") is not None and 1 <= n(p, "fun") <= 10
+        and s(p, "quit_reason") and s(p, "evidence")
+        and s(p, "would_return") in ("yes", "maybe", "no")
+        for p in personas)
+    rating = v.get("rating") if isinstance(v.get("rating"), dict) else {}
+    score = n(rating, "score")
+    imps = v.get("improvements") if isinstance(v.get("improvements"), list) else []
+    imps_ok = len(imps) >= 3 and all(s(i, "title") and s(i, "how") and s(i, "why") for i in imps)
+    method = s(v, "method").lower()
+    return [
+        c("simulation.json parses", True, f"{len(personas)} personas"),
+        c("at least 5 personas across 4+ age bands", len(personas) >= 5 and len(bands) >= 4, ", ".join(bands)),
+        c("every persona has minutes, fun, quit reason, evidence, return answer", bool(personas) and complete),
+        c("rating between 0 and 100", score is not None and 0 <= score <= 100, "" if score is None else str(score)),
+        c("3 or more improvements with why and how", imps_ok, f"{len(imps)} improvements"),
+        c("says it is an estimate, not real player data", "not real" in method or "estimate" in method),
+    ]
+
+
 def check(agent, text, project, out_path=None):
     r = common(text)
     if agent == "pulse":
@@ -167,6 +202,8 @@ def check(agent, text, project, out_path=None):
         r.extend(splash_checks(text, Path(out_path)))
     elif agent == "liveops":
         r.append(c("numbers come with dates", has(text, r"\d{4}-\d{2}-\d{2}") or "BLOCKED" in text.upper()))
+    elif agent == "simulator":
+        r.extend(simulation_checks(Path(out_path)))
     elif agent == "producer":
         r.append(c("one named reason", heading(text, "reason")))
     return r

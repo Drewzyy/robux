@@ -49,6 +49,15 @@ pub struct Settings {
     pub discord_webhook_url: String,
     #[serde(default)]
     pub notify: NotifyPrefs,
+    /// "claude" (your Claude subscription) or "ollama" (free local models).
+    #[serde(default = "default_engine")]
+    pub engine: String,
+    /// Local model name for the Ollama engine, e.g. "qwen3-coder".
+    #[serde(default)]
+    pub ollama_model: String,
+}
+fn default_engine() -> String {
+    "claude".into()
 }
 fn default_budget() -> f64 {
     25.0
@@ -60,6 +69,8 @@ impl Default for Settings {
             monthly_budget_usd: default_budget(),
             discord_webhook_url: String::new(),
             notify: NotifyPrefs::default(),
+            engine: default_engine(),
+            ollama_model: String::new(),
         }
     }
 }
@@ -68,7 +79,10 @@ pub fn config_dir() -> PathBuf {
     if let Ok(d) = std::env::var("ROBUX_CONFIG_DIR") {
         return PathBuf::from(d);
     }
-    let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
+    let home = crate::paths::home().unwrap_or_else(|| PathBuf::from("."));
+    if cfg!(target_os = "windows") {
+        return std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or(home).join("BrewixGames");
+    }
     if cfg!(target_os = "macos") {
         home.join("Library/Application Support/com.andrewdieu.brewixgames")
     } else {
@@ -90,6 +104,12 @@ pub fn load() -> Settings {
 pub fn validate(s: &Settings) -> Result<(), String> {
     if !(s.monthly_budget_usd.is_finite() && s.monthly_budget_usd >= 0.0) {
         return Err("budget must be a number, 0 or more".into());
+    }
+    if s.engine != "claude" && s.engine != "ollama" {
+        return Err("engine must be claude or ollama".into());
+    }
+    if s.engine == "ollama" && s.ollama_model.trim().is_empty() {
+        return Err("Type the local model's name (for example qwen3-coder) before switching to Ollama.".into());
     }
     if !s.discord_webhook_url.is_empty() {
         crate::notify::validate_url(&s.discord_webhook_url)?;

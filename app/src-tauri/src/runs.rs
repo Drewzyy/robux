@@ -29,6 +29,15 @@ pub struct RunRequest {
     /// Optional pipeline this run belongs to.
     #[serde(default)]
     pub pipeline_id: Option<String>,
+    /// Chat this run belongs to (Ask Claude). Chat runs keep their session.
+    #[serde(default)]
+    pub chat: Option<String>,
+    /// Claude Code session to continue (chat follow-ups).
+    #[serde(default)]
+    pub resume: Option<String>,
+    /// "claude" or "ollama": which engine this run was prepared for.
+    #[serde(default)]
+    pub engine: Option<String>,
 }
 
 pub fn runs_dir(root: &Path) -> PathBuf {
@@ -68,7 +77,17 @@ pub fn prepare_with_id(
         return Err(format!("agent file missing: {}", agent_file.display()));
     }
     let pricing = cost::load_pricing(root)?;
-    let estimate = cost::estimate(agent, profile, prompt, &pricing)?;
+    let mut estimate = cost::estimate(agent, profile, prompt, &pricing)?;
+    let st = crate::settings::load();
+    if st.engine == "ollama" {
+        // Local models cost nothing to run; the cap stays as a formality.
+        estimate.model = st.ollama_model.clone();
+        estimate.low_usd = 0.0;
+        estimate.expected_usd = 0.0;
+        estimate.high_usd = 0.0;
+        estimate.assumptions = vec![format!("Runs on your computer with the local model {} through Ollama. No Claude usage, no cost.", st.ollama_model), "Local models are weaker than Claude: expect more failed checks and slower runs.".into()];
+        estimate.subscription_note = "Free: local model.".into();
+    }
     let req = RunRequest {
         run_id: run_id.to_string(),
         agent: agent.to_string(),
@@ -82,6 +101,9 @@ pub fn prepare_with_id(
         result_text: None,
         error: None,
         pipeline_id: pipeline_id.map(|p| p.to_string()),
+        chat: None,
+        resume: None,
+        engine: Some(st.engine.clone()),
     };
     save(root, &req)?;
     Ok(req)

@@ -6,11 +6,18 @@
 Flows: settings save (budget, webhook) and Send Test to a local mock
 webhook; a run blocked by a tiny budget shows the reason; a real
 bridge-test run (about $0.001) from estimate to approve to live output to
-done; a queue item opened in its sheet. Needs scripts/mockhook on 8765.
+done; a queue item opened in its sheet. Starts its own mock webhook on 8765.
 """
 import os, subprocess, sys, time, json
 from pathlib import Path
 from selenium import webdriver
+import http.server, threading
+class _Hook(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        self.rfile.read(int(self.headers.get("Content-Length", 0)))
+        self.send_response(204); self.end_headers()
+    def log_message(self, *a): pass
+threading.Thread(target=http.server.HTTPServer(("127.0.0.1", 8765), _Hook).serve_forever, daemon=True).start()
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -25,7 +32,7 @@ def check(name, cond, detail=""):
     print(("PASS " if cond else "FAIL ") + name + (f" · {detail}" if detail else ""))
 
 def main():
-    env = dict(os.environ, ROBUX_STUDIO_ROOT=str(ROOT))
+    env = dict(os.environ, ROBUX_STUDIO_ROOT=str(ROOT), ROBUX_ALLOW_LOCAL_WEBHOOK="1")
     drv = subprocess.Popen(["tauri-driver"], env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(2)
     o = webdriver.ChromeOptions(); o.set_capability("browserName", "wry"); o.set_capability("tauri:options", {"application": str(APP)})

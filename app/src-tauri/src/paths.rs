@@ -26,8 +26,8 @@ pub fn studio_root() -> Result<PathBuf, String> {
             return Ok(p);
         }
     }
-    if let Ok(home) = std::env::var("HOME") {
-        let d = PathBuf::from(home).join("BrewixGames");
+    if let Some(home) = home() {
+        let d = home.join("BrewixGames");
         if d.join(MARKER).is_file() {
             return Ok(d);
         }
@@ -77,11 +77,12 @@ pub fn claude_bin() -> Result<PathBuf, String> {
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
             candidates.push(dir.join("claude"));
+            candidates.push(dir.join("claude.exe"));
         }
     }
-    if let Ok(home) = std::env::var("HOME") {
-        let h = PathBuf::from(home);
+    if let Some(h) = home() {
         candidates.push(h.join(".local/bin/claude"));
+        candidates.push(h.join(".local/bin/claude.exe"));
         candidates.push(h.join(".claude/local/claude"));
         candidates.push(h.join(".npm-global/bin/claude"));
     }
@@ -93,4 +94,9 @@ pub fn claude_bin() -> Result<PathBuf, String> {
         .ok_or_else(|| {
             "Could not find the `claude` CLI. Install Claude Code or set CLAUDE_BIN.".to_string()
         })
+}
+
+/// The user's home folder (HOME on macOS/Linux, USERPROFILE on Windows).
+pub fn home() -> Option<PathBuf> {
+    std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from)
 }

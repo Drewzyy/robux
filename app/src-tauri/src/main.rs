@@ -4,7 +4,7 @@
 use base64::Engine;
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use studio_core::{budget, bridge, claude, cost, notify, paths, pipeline, queue, runs, settings, studio, update};
+use studio_core::{budget, bridge, chat, claude, cost, notify, paths, pipeline, queue, runs, settings, studio, update};
 use tauri::{AppHandle, Emitter};
 
 fn root() -> Result<PathBuf, String> {
@@ -273,6 +273,54 @@ fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap
     Ok(())
 }
 
+// ---------- Ask Claude (chat) ----------
+
+#[tauri::command]
+fn chat_get() -> Result<Value, String> {
+    let r = root()?;
+    Ok(json!({ "chat": chat::load(&r), "cap_usd": chat::cap(&r)?, "engine": settings::load().engine }))
+}
+
+#[tauri::command]
+fn chat_reset() -> Result<(), String> {
+    chat::reset(&root()?)
+}
+
+/// Send one message. Pressing Send approves this message at the cap shown.
+#[tauri::command]
+fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
+    let r = root()?;
+    let bin = paths::claude_bin()?;
+    let run_id = chat::begin(&r, &text)?;
+    let id = run_id.clone();
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let id2 = id.clone();
+        let msg = chat::finish(&r, &id, &bin, |line| {
+            let _ = app2.emit("chat-line", json!({ "run_id": id2, "line": line }));
+        });
+        let _ = app.emit("chat-done", json!({ "run_id": id, "message": msg }));
+    });
+    Ok(run_id)
+}
+
+// ---------- simulator and thumbnails ----------
+
+#[tauri::command]
+fn simulations(project: String) -> Result<Vec<Value>, String> {
+    studio::simulations(&root()?, &project)
+}
+
+#[tauri::command]
+fn thumbnails(project: String) -> Result<Value, String> {
+    studio::thumbnails(&root()?, &project)
+}
+
+#[tauri::command]
+fn screenshot_add(project: String, path: String) -> Result<String, String> {
+    studio::add_screenshot(&root()?, &project, &path)
+}
+
 // ---------- updates ----------
 
 #[tauri::command]
@@ -347,6 +395,12 @@ fn main() {
             pipeline_prepare,
             pipeline_cancel,
             pipeline_approve_and_start,
+            chat_get,
+            chat_reset,
+            chat_send,
+            simulations,
+            thumbnails,
+            screenshot_add,
             update_check,
             update_apply
         ])
