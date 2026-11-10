@@ -25,22 +25,21 @@ Not a product. No accounts, no pricing, no server.
 
 ## Get it on your Mac (no Terminal)
 
-Download **BrewixGames.dmg** from the public releases repo
-(`Drewzyy/brewixgames-releases`, Releases page), open it, and drag BrewixGames
-to Applications. First open: System Settings, Privacy & Security, Open Anyway
-(once). In the app: Settings, Install Claude Code, then Sign In to Claude.
+Download **BrewixGames.dmg** from this repo's
+[Releases](https://github.com/Drewzyy/robux/releases/latest), open it, and drag
+BrewixGames to Applications. First open: System Settings, Privacy & Security,
+Open Anyway (once). In the app: Settings, Install Claude Code, then Sign In to
+Claude.
 
 On first launch the app sets up `~/BrewixGames` (vault, agents, settings) from
 the copy packed inside it. Rojo, Selene, StyLua and Lune are packed inside the
-app too, and the studio's checks are built in, so nothing else needs
-installing: no Xcode, no Python, no Terminal.
+app, and the studio's checks are built in: no Xcode, no Python, no Terminal.
 
-How the download is made: `release-repo/.github/workflows/release.yml` runs in
-the public `brewixgames-releases` repo on GitHub's free Mac machines, reads
-this private repo with a read-only token, and publishes only the finished
-app. It checks for new code every 6 hours. Updates: Settings, Check for
-Updates, Update and Restart (downloads the new app, refreshes the vault with
-a backup in `~/BrewixGames/backups`, keeps runs, projects and the queue).
+`.github/workflows/release.yml` builds the app on GitHub's Mac machines on
+every push to the work branch and publishes it to Releases. Updates: Settings,
+Check for Updates, Update and Restart (downloads the new app, refreshes the
+vault with a backup in `~/BrewixGames/backups`, keeps runs, projects and the
+review queue). Apple Silicon Macs only.
 
 Developer route (needs Rust and Node): `cd app && npm install && npm run dev`.
 

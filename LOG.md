@@ -479,3 +479,11 @@ Not verified
   GitHub to run it. Whether the account billing hold also blocks public-repo
   Actions is unknown until the first run.
 - Apple Silicon only (GitHub's macos-14 machines are arm64).
+
+Update (2026-11-10): Andrew made the robux repo public. The release workflow
+now lives in robux itself. Run 42727283205 on GitHub's macos-latest machine
+succeeded on every step (bundled tools, template, build, bundle checks) and
+published release v0.1.3 with BrewixGames.dmg (24 MB) and
+BrewixGames-macos.zip. Before the repo went public, jobs were refused (billing
+hold, then "configuration not supported"). Secret scan after going public:
+no webhook URLs, keys, tokens, or email in the repo.
