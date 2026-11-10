@@ -713,7 +713,7 @@ async function viewSettings() {
   const root = el("input", { type: "text", id: "studio-root", placeholder: "Auto-detected", value: s.studio_root });
   const importPath = el("input", { type: "text", id: "import-path", placeholder: "~/workspace/roblox-games/sky-tower-obby" });
   const updLog = el("pre", { class: "log hidden", id: "update-log", style: "margin-top:12px" });
-  const updRow = el("div", { class: "srow", id: "update-row" }, el("div", { class: "grow" }, el("div", { class: "label", id: "build-label" }, `Build ${info.build}`), el("div", { class: "hint", id: "update-hint" }, "Updates download the latest code from GitHub, rebuild, and restart the app.")),
+  const updRow = el("div", { class: "srow", id: "update-row" }, el("div", { class: "grow" }, el("div", { class: "label", id: "build-label" }, `Build ${info.build}`), el("div", { class: "hint", id: "update-hint" }, "Downloads the newest BrewixGames, installs it, and restarts. Your projects and review queue are kept.")),
     el("button", { class: "btn secondary", id: "update-check", onclick: () => checkUpdates(updRow, updLog) }, "Check for Updates"));
   const sp = state.spend;
   show(page(
@@ -723,7 +723,8 @@ async function viewSettings() {
     el("div", { class: "list" },
       el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, c.logged_in ? "Connected" : "Not connected"), el("div", { class: "hint", id: "claude-msg" }, c.message || "Checking…")),
         el("button", { class: "btn secondary", onclick: async () => { await refreshClaude(); viewSettings(); } }, "Check Again"),
-        !(c.logged_in && c.uses_subscription) ? el("button", { class: "btn primary", onclick: async () => { try { toast(await invoke("claude_sign_in")); } catch (e) { toast(String(e), true); } } }, "Sign In to Claude") : null),
+        !c.installed ? el("button", { class: "btn primary", id: "install-claude", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Installing…"; try { toast(await invoke("claude_install")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Install Claude Code") : null,
+        c.installed && !(c.logged_in && c.uses_subscription) ? el("button", { class: "btn primary", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Waiting for browser…"; try { toast(await invoke("claude_sign_in")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Sign In to Claude") : null),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Login method"), el("span", { class: "note" }, c.auth_method ? (c.uses_subscription ? "Claude account login · uses your subscription, no API key" : c.auth_method) : "–")),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Claude Code"), el("span", { class: "note" }, c.version ? `${c.version} · ${c.bin}` : "–"))
     ),

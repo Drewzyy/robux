@@ -7,6 +7,7 @@ pub mod bridge;
 pub mod budget;
 pub mod claude;
 pub mod cost;
+pub mod gates;
 pub mod notify;
 pub mod settings;
 pub mod studio;

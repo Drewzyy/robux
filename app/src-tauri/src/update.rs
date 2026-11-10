@@ -43,7 +43,58 @@ pub fn build_commit() -> String {
     option_env!("STUDIO_COMMIT").unwrap_or("unknown").to_string()
 }
 
+/// Where downloaded copies of the app get updates from (public; holds only
+/// the built app, never the code).
+pub const RELEASES_REPO: &str = "Drewzyy/brewixgames-releases";
+pub const RELEASE_ASSET: &str = "BrewixGames-macos.zip";
+
+/// The release tag this app was built as (set by the release build).
+pub fn release_tag() -> Option<&'static str> {
+    option_env!("STUDIO_RELEASE")
+}
+
+fn is_git_checkout(root: &Path) -> bool {
+    root.join(".git").exists()
+}
+
+fn latest_release() -> Result<(String, String), String> {
+    let url = format!("https://api.github.com/repos/{RELEASES_REPO}/releases/latest");
+    let v: serde_json::Value = ureq::get(&url)
+        .set("User-Agent", "BrewixGames")
+        .set("Accept", "application/vnd.github+json")
+        .timeout(std::time::Duration::from_secs(20))
+        .call()
+        .map_err(|e| format!("could not reach GitHub releases: {e}"))?
+        .into_json()
+        .map_err(|e| e.to_string())?;
+    let tag = v.get("tag_name").and_then(|t| t.as_str()).ok_or("no release published yet")?.to_string();
+    let asset = v
+        .get("assets")
+        .and_then(|a| a.as_array())
+        .and_then(|a| a.iter().find(|x| x.get("name").and_then(|n| n.as_str()) == Some(RELEASE_ASSET)))
+        .and_then(|x| x.get("browser_download_url").and_then(|u| u.as_str()))
+        .ok_or_else(|| format!("release {tag} has no {RELEASE_ASSET}"))?
+        .to_string();
+    Ok((tag, asset))
+}
+
 pub fn check(root: &Path) -> Result<Status, String> {
+    if !is_git_checkout(root) {
+        let current = release_tag().unwrap_or("dev").to_string();
+        let (latest, _) = latest_release()?;
+        let newer = latest != current;
+        return Ok(Status {
+            branch: "release".into(),
+            local: current.clone(),
+            remote: latest.clone(),
+            behind: newer as u32,
+            ahead: 0,
+            dirty: false,
+            can_update: newer,
+            message: if newer { format!("Version {latest} is ready.") } else { "You have the latest version.".into() },
+            build: current,
+        });
+    }
     let branch = git(root, &["rev-parse", "--abbrev-ref", "HEAD"])?;
     git(root, &["fetch", "--quiet", "origin", &branch])?;
     let local = git(root, &["rev-parse", "--short", "HEAD"])?;
@@ -124,6 +175,9 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
     if !busy.is_empty() {
         return Err(format!("An agent run is in progress ({}). Update after it finishes.", busy.join(", ")));
     }
+    if !is_git_checkout(root) {
+        return apply_release(root, on_line);
+    }
     on_line(&format!("Downloading {} update(s) from origin/{}...", st.behind, st.branch));
     let out = git(root, &["pull", "--ff-only", "origin", &st.branch])?;
     on_line(&out);
@@ -156,4 +210,44 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
             Ok(running.join("Contents/MacOS/brewixgames"))
         }
     }
+}
+
+/// Downloaded copies: fetch the newest app from the public releases page,
+/// replace this app, refresh the vault (with a backup), and hand back the
+/// new binary to restart into.
+fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, String> {
+    let Mode::Bundle(running) = mode() else {
+        return Err("This copy is not an installed app; update it from GitHub instead.".into());
+    };
+    let (tag, url) = latest_release()?;
+    on_line(&format!("Downloading BrewixGames {tag}..."));
+    let tmp = std::env::temp_dir().join(format!("brewix-update-{tag}"));
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
+    let zip = tmp.join(RELEASE_ASSET);
+    let resp = ureq::get(&url)
+        .set("User-Agent", "BrewixGames")
+        .timeout(std::time::Duration::from_secs(600))
+        .call()
+        .map_err(|e| format!("download failed: {e}"))?;
+    let mut f = std::fs::File::create(&zip).map_err(|e| e.to_string())?;
+    std::io::copy(&mut resp.into_reader(), &mut f).map_err(|e| e.to_string())?;
+    on_line("Unpacking...");
+    let mut x = Command::new("ditto");
+    x.args(["-x", "-k"]).arg(&zip).arg(&tmp);
+    stream(x, on_line)?;
+    let new_app = tmp.join("BrewixGames.app");
+    if !new_app.join("Contents/MacOS/brewixgames").is_file() {
+        return Err("the download did not contain BrewixGames.app".into());
+    }
+    on_line(&format!("Replacing {}", running.display()));
+    let mut d = Command::new("ditto");
+    d.arg(&new_app).arg(&running);
+    stream(d, on_line)?;
+    let template = running.join("Contents/Resources/studio-template.tar.gz");
+    if template.is_file() {
+        on_line(&crate::studio::refresh_from_template(root, &template)?);
+    }
+    let _ = std::fs::remove_dir_all(&tmp);
+    Ok(running.join("Contents/MacOS/brewixgames"))
 }

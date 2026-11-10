@@ -33,4 +33,4 @@ Monetization
 - [ ] Every developer product handled in `ProcessReceipt`, idempotent ([[40-monetization/processreceipt-template]]).
 
 Gate ([[20-luau-rojo/headless-test-gate]])
-- [ ] `python3 ../scripts/gates/build_gate.py projects/<game>` passes.
+- [ ] `brewix gate build projects/<game>` passes.

@@ -23,23 +23,26 @@ Not a product. No accounts, no pricing, no server.
 | `LOG.md` | Build log: what was done and how it was verified |
 | `docs/AGENTS.md` | The 12 agents: job, output, model, sections, tools (generated) |
 
-## Run it on the Mac (first time)
+## Get it on your Mac (no Terminal)
 
-Needs Rust (`rustup`), Node 18+, Xcode command line tools, and Claude Code
-logged in (`claude` works in Terminal).
+Download **BrewixGames.dmg** from the public releases repo
+(`Drewzyy/brewixgames-releases`, Releases page), open it, and drag BrewixGames
+to Applications. First open: System Settings, Privacy & Security, Open Anyway
+(once). In the app: Settings, Install Claude Code, then Sign In to Claude.
 
-```
-cd app
-npm install            # installs the Tauri CLI only
-npm run dev            # opens the app window
-npm run build          # makes Robux Studio.app and a .dmg in src-tauri/target/release/bundle
-```
+On first launch the app sets up `~/BrewixGames` (vault, agents, settings) from
+the copy packed inside it. Rojo, Selene, StyLua and Lune are packed inside the
+app too, and the studio's checks are built in, so nothing else needs
+installing: no Xcode, no Python, no Terminal.
 
-If the app says it cannot find `claude`, set `CLAUDE_BIN` to the output of
-`which claude`. If it cannot find the studio folder, set `ROBUX_STUDIO_ROOT`
-to this repo's path.
+How the download is made: `release-repo/.github/workflows/release.yml` runs in
+the public `brewixgames-releases` repo on GitHub's free Mac machines, reads
+this private repo with a read-only token, and publishes only the finished
+app. It checks for new code every 6 hours. Updates: Settings, Check for
+Updates, Update and Restart (downloads the new app, refreshes the vault with
+a backup in `~/BrewixGames/backups`, keeps runs, projects and the queue).
 
-Headless twin, same rules: `app/src-tauri/target/debug/studio-cli info`.
+Developer route (needs Rust and Node): `cd app && npm install && npm run dev`.
 
 ## Using the app
 

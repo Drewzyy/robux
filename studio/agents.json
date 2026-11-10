@@ -93,7 +93,7 @@
         "Bash(stylua:*)",
         "Bash(mkdir:*)",
         "Bash(ls:*)",
-        "Bash(python3 ../scripts/gates/build_gate.py:*)"
+        "Bash(brewix gate build:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -136,7 +136,7 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(python3 ../scripts/gates/check_stage.py:*)"
+        "Bash(brewix gate stage:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -182,7 +182,7 @@
         "Bash(rojo:*)",
         "Bash(lune:*)",
         "Bash(ls:*)",
-        "Bash(python3 ../scripts/gates/build_gate.py:*)"
+        "Bash(brewix gate build:*)"
       ],
       "allowed_sections": [
         "00-router",

@@ -19,7 +19,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StageDef {
@@ -537,22 +536,8 @@ pub fn evaluate_stage(
         checks.push(check("loaded only allowed vault sections", ok, &detail));
     }
 
-    // Agent-specific checks run by the studio (scripts/gates/check_stage.py).
-    let mut cmd = Command::new("python3");
-    cmd.arg(root.join("scripts/gates/check_stage.py"))
-        .arg(agent)
-        .arg(&out)
-        .current_dir(root);
-    if let Some(pr) = project {
-        cmd.arg("--project").arg(pr);
-    }
-    match cmd.output() {
-        Ok(o) => match serde_json::from_slice::<Vec<GateCheck>>(&o.stdout) {
-            Ok(list) => checks.extend(list),
-            Err(e) => checks.push(check("studio checks ran", false, &format!("bad output from check_stage.py: {e}; stderr: {}", String::from_utf8_lossy(&o.stderr).chars().take(300).collect::<String>()))),
-        },
-        Err(e) => checks.push(check("studio checks ran", false, &e.to_string())),
-    }
+    // Agent-specific checks, built into the app (gates.rs).
+    checks.extend(crate::gates::check_stage(root, agent, &out, project));
     let passed = checks.iter().all(|c| c.passed);
     Gate { passed, checks }
 }

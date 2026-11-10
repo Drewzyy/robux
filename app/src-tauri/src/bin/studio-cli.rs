@@ -18,6 +18,9 @@ use studio_core::{budget, bridge, claude, cost, notify, paths, pipeline, queue, 
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) = studio_core::gates::cli(&args) {
+        std::process::exit(code);
+    }
     if let Err(e) = real_main(&args) {
         eprintln!("error: {e}");
         std::process::exit(1);

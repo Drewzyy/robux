@@ -10,3 +10,5 @@ vault/.claude/logs/
 vault/.obsidian/workspace*.json
 .DS_Store
 __pycache__/
+app/src-tauri/studio-template.tar.gz
+app/src-tauri/tools/

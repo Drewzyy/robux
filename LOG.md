@@ -428,3 +428,54 @@ How it was verified
 5. Regression: cargo test 11/11, vault --full PASS, Luau templates PASS, UI
    flows PASS.
 Evidence: `docs/evidence/forgegui-sounds/`, screenshot `ui-sounds.png`.
+
+## BrewixGames: download-and-run, no Terminal (2026-11-10)
+
+Andrew: the app is called BrewixGames; he wants to download it from GitHub
+and run it, no Xcode, no Terminal; GitHub billing will not be fixed; the
+download lives in a public releases repo (like vyral-releases).
+
+Constraint found: a Mac app can only be built on a Mac. GitHub's Mac machines
+are free for public repos. `vyral-releases` holds only a README and uploaded
+files (no build workflow), so it gave no build to copy.
+
+What was built
+- Renamed everywhere visible: BrewixGames (bundle id com.andrewdieu.brewixgames).
+- The studio's checks are built into the app (`gates.rs`): build gate, per
+  agent output checks, and the load-logging hook. Agents and the vault hook
+  call them as `brewix ...` (a link to the app put first on agents' PATH).
+  No Python needed on the Mac. Parity test `scripts/gate_parity.py`: the
+  built-in checks give the same result as the Python reference on all 15
+  real agent outputs.
+- First launch of a downloaded app unpacks `~/BrewixGames` from a template
+  inside the app (`scripts/make_template.sh`). Rojo, Selene, StyLua, Lune are
+  packed in the app (`tauri.release.json` resources).
+- Settings: Install Claude Code (runs Anthropic's documented installer,
+  `curl -fsSL https://claude.ai/install.sh | bash`), Sign In to Claude in the
+  background with the login opened in the browser (Terminal only as fallback).
+- Updater for downloaded copies: latest release from the public repo,
+  replaces the app, refreshes vault and agents with a backup, keeps runs,
+  projects and the queue. Git-based updates remain for developer checkouts.
+- Release workflow for the public repo: `release-repo/.github/workflows/release.yml`,
+  plus `release-repo/README.md` (download steps for Andrew).
+
+How it was verified
+1. Simulated download on Linux: a fake BrewixGames.app (binary, template,
+   tools) with an empty home and a PATH without dev tools. First launch
+   created ~/BrewixGames; the window opened on the empty queue; Settings
+   showed "Claude Code not found" with Install Claude Code. The build gate
+   using only the packed tools: rojo, selene, stylua, lune all PASS.
+2. Bug found and fixed: `brewix gate` with no studio folder fell through to
+   opening the window; it now prints an error and exits.
+3. Real Architect run ($0.13) with the hook as `brewix hook-log`: 7 loads
+   logged, gate PASS.
+4. Regression: cargo test 11/11, vault --full PASS, Luau templates PASS, UI
+   flows PASS, gate parity PASS.
+
+Not verified
+- Install Claude Code: running an outside install script is blocked in this
+  sandbox. Real on the Mac.
+- The macOS build and Gatekeeper prompt: needs the public repo to exist and
+  GitHub to run it. Whether the account billing hold also blocks public-repo
+  Actions is unknown until the first run.
+- Apple Silicon only (GitHub's macos-14 machines are arm64).

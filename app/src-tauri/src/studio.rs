@@ -417,3 +417,91 @@ pub fn sounds_set_asset(root: &Path, project: &str, id: &str, asset_id: &str, li
     fs::rename(&tmp, &p).map_err(|e| e.to_string())?;
     Ok(v)
 }
+
+/// The studio template bundled inside the downloaded app (vault, agents,
+/// pipelines, prices), made by the release build.
+pub fn bundled_template() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?.canonicalize().ok()?;
+    let t = exe.parent()?.join("../Resources/studio-template.tar.gz");
+    t.is_file().then_some(t)
+}
+
+/// First launch of a downloaded app: unpack the studio into ~/BrewixGames.
+/// Does nothing when a studio folder already exists or this is a dev build.
+pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
+    if crate::paths::studio_root().is_ok() {
+        return Ok(None);
+    }
+    let Some(t) = bundled_template() else { return Ok(None) };
+    let home = PathBuf::from(std::env::var("HOME").map_err(|e| e.to_string())?);
+    let dest = home.join("BrewixGames");
+    fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+    untar(&t, &dest)?;
+    for d in ["runs", "projects", "queue/items"] {
+        fs::create_dir_all(dest.join(d)).map_err(|e| e.to_string())?;
+    }
+    Ok(Some(dest))
+}
+
+fn untar(archive: &Path, dest: &Path) -> Result<(), String> {
+    let st = std::process::Command::new("tar")
+        .arg("-xzf")
+        .arg(archive)
+        .arg("-C")
+        .arg(dest)
+        .status()
+        .map_err(|e| format!("tar: {e}"))?;
+    if !st.success() {
+        return Err(format!("could not unpack {}", archive.display()));
+    }
+    Ok(())
+}
+
+/// After an app update: refresh the vault and studio config from the new
+/// app's template. Your runs, projects, review queue and settings are never
+/// touched. The old vault and config are kept in backups/<time>.tar.gz.
+pub fn refresh_from_template(root: &Path, template: &Path) -> Result<String, String> {
+    let backups = root.join("backups");
+    fs::create_dir_all(&backups).map_err(|e| e.to_string())?;
+    let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
+    let bk = backups.join(format!("before-update-{stamp}.tar.gz"));
+    let st = std::process::Command::new("tar")
+        .arg("-czf")
+        .arg(&bk)
+        .arg("-C")
+        .arg(root)
+        .args(["vault", "studio"])
+        .status()
+        .map_err(|e| e.to_string())?;
+    if !st.success() {
+        return Err("could not back up the vault before updating".into());
+    }
+    let tmp = std::env::temp_dir().join(format!("brewix-template-{stamp}"));
+    fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
+    untar(template, &tmp)?;
+    for d in ["vault", "studio"] {
+        let src = tmp.join(d);
+        if src.is_dir() {
+            let _ = fs::remove_dir_all(root.join(d));
+            let mut n = 0;
+            copy_dir_all(&src, &root.join(d), &mut n)?;
+        }
+    }
+    let _ = fs::remove_dir_all(&tmp);
+    Ok(format!("Vault and agents updated. Previous copy saved to backups/{}", bk.file_name().unwrap().to_string_lossy()))
+}
+
+fn copy_dir_all(src: &Path, dst: &Path, n: &mut usize) -> Result<(), String> {
+    fs::create_dir_all(dst).map_err(|e| e.to_string())?;
+    for e in fs::read_dir(src).map_err(|e| e.to_string())?.flatten() {
+        let p = e.path();
+        let to = dst.join(e.file_name());
+        if p.is_dir() {
+            copy_dir_all(&p, &to, n)?;
+        } else {
+            fs::copy(&p, &to).map_err(|e| e.to_string())?;
+            *n += 1;
+        }
+    }
+    Ok(())
+}

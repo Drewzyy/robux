@@ -163,6 +163,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     let mut child = Command::new(claude_bin)
         .args(&args)
         .current_dir(&vault)
+        .env("PATH", agent_path())
         .env("ROBUX_RUN_ID", run_id)
         .env("ROBUX_RUN_DIR", &dir)
         .env("ROBUX_AGENT", &req.agent)
@@ -315,4 +316,34 @@ mod tests {
         assert!(joined.contains("--allowedTools Read Glob"));
         assert!(!joined.contains("skip-permissions"));
     }
+}
+
+/// PATH for agent runs: a folder holding `brewix` (a link back to this app,
+/// so agents and the vault's hook can run the built-in checks), the app's
+/// bundled Roblox tools, then the normal PATH.
+pub fn agent_path() -> std::ffi::OsString {
+    let mut dirs: Vec<PathBuf> = vec![];
+    let bin = crate::settings::config_dir().join("bin");
+    if let Ok(exe) = std::env::current_exe().and_then(|e| e.canonicalize()) {
+        let _ = fs::create_dir_all(&bin);
+        let link = bin.join("brewix");
+        #[cfg(unix)]
+        {
+            if fs::read_link(&link).ok().as_deref() != Some(exe.as_path()) {
+                let _ = fs::remove_file(&link);
+                let _ = std::os::unix::fs::symlink(&exe, &link);
+            }
+        }
+        dirs.push(bin);
+        if let Some(d) = exe.parent() {
+            dirs.push(d.join("../Resources/tools"));
+        }
+    }
+    if let Ok(home) = std::env::var("HOME") {
+        dirs.push(PathBuf::from(home).join(".cargo/bin"));
+    }
+    if let Some(p) = std::env::var_os("PATH") {
+        dirs.extend(std::env::split_paths(&p));
+    }
+    std::env::join_paths(dirs).unwrap_or_default()
 }

@@ -26,6 +26,12 @@ pub fn studio_root() -> Result<PathBuf, String> {
             return Ok(p);
         }
     }
+    if let Ok(home) = std::env::var("HOME") {
+        let d = PathBuf::from(home).join("BrewixGames");
+        if d.join(MARKER).is_file() {
+            return Ok(d);
+        }
+    }
     let mut starts = vec![];
     if let Ok(c) = std::env::current_dir() {
         starts.push(c);

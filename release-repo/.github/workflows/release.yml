@@ -1,0 +1,106 @@
+name: release
+
+# Builds BrewixGames for Mac on GitHub's free Mac machines (free because this
+# repo is public) and publishes it on this repo's Releases page.
+# The source code is read from the private repo with a read-only token and is
+# never committed here; only the finished app is published.
+#
+# Runs by itself every 6 hours and builds only if the code changed, or on
+# demand from the Actions tab (Run workflow).
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Build even if the code has not changed"
+        type: boolean
+        default: false
+
+env:
+  SOURCE_REPO: Drewzyy/robux
+  SOURCE_REF: claude/beautiful-carson-h75brk
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.cmp.outputs.changed }}
+      sha: ${{ steps.src.outputs.sha }}
+    steps:
+      - id: src
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN }}
+        run: echo "sha=$(gh api repos/$SOURCE_REPO/commits/$SOURCE_REF --jq .sha)" >> "$GITHUB_OUTPUT"
+      - id: cmp
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh release view -R "$GITHUB_REPOSITORY" --json body --jq .body 2>/dev/null | sed -n 's/^source: //p' | head -1)
+          if [ "${{ inputs.force }}" = "true" ] || [ "$last" != "${{ steps.src.outputs.sha }}" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-mac:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPO }}
+          ref: ${{ needs.check.outputs.sha }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
+          path: src
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - name: Roblox tools to bundle (Rojo, Selene, StyLua, Lune)
+        run: |
+          cargo binstall -y --locked rojo@7.7.1 selene@0.31.0 stylua@2.6.0 lune@0.11.1
+          mkdir -p src/app/src-tauri/tools
+          for t in rojo selene stylua lune; do cp "$HOME/.cargo/bin/$t" src/app/src-tauri/tools/; done
+      - name: Studio template (vault, agents, config)
+        run: sh src/scripts/make_template.sh
+      - name: Build BrewixGames.app and .dmg
+        working-directory: src/app
+        env:
+          STUDIO_RELEASE: v0.1.${{ github.run_number }}
+        run: |
+          npm install
+          npm run build -- --config src-tauri/tauri.release.json
+      - name: Check and package
+        run: |
+          APP="src/app/src-tauri/target/release/bundle/macos/BrewixGames.app"
+          test -x "$APP/Contents/MacOS/brewixgames"
+          test -f "$APP/Contents/Resources/studio-template.tar.gz"
+          for t in rojo selene stylua lune; do test -x "$APP/Contents/Resources/tools/$t"; done
+          codesign --verify --verbose "$APP" || true
+          mkdir out
+          ditto -c -k --keepParent "$APP" out/BrewixGames-macos.zip
+          cp src/app/src-tauri/target/release/bundle/dmg/*.dmg out/BrewixGames.dmg
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v0.1.${{ github.run_number }}" out/BrewixGames.dmg out/BrewixGames-macos.zip \
+            -R "$GITHUB_REPOSITORY" \
+            --title "BrewixGames v0.1.${{ github.run_number }}" \
+            --notes "Download BrewixGames.dmg, open it, and drag BrewixGames to Applications.
+
+          source: ${{ needs.check.outputs.sha }}"

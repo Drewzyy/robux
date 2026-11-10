@@ -21,7 +21,7 @@ fn studio_info() -> Value {
         "root": root.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
         "vault": root.as_ref().map(|p| p.join("vault").display().to_string()).unwrap_or_default(),
         "root_error": root.err(),
-        "build": update::build_commit(),
+        "build": update::release_tag().map(|t| t.to_string()).unwrap_or_else(update::build_commit),
         "pricing_checked": pricing.as_ref().map(|p| p.checked.clone()),
         "subscription_note": pricing.as_ref().map(|p| p.subscription_note.clone()),
         "config_file": settings::path().display().to_string(),
@@ -34,8 +34,13 @@ async fn claude_status() -> claude::Connection {
 }
 
 #[tauri::command]
-fn claude_sign_in() -> Result<String, String> {
+async fn claude_sign_in() -> Result<String, String> {
     claude::sign_in()
+}
+
+#[tauri::command]
+async fn claude_install() -> Result<String, String> {
+    claude::install()
 }
 
 #[tauri::command]
@@ -301,11 +306,21 @@ fn update_apply(app: AppHandle) -> Result<(), String> {
 }
 
 fn main() {
+    // `brewix gate ...` / `brewix hook-log`: headless helpers agents call.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) = studio_core::gates::cli(&args) {
+        std::process::exit(code);
+    }
+    // Downloaded app, first launch: set up ~/BrewixGames from the bundled template.
+    if let Err(e) = studio::ensure_studio() {
+        eprintln!("could not set up the studio folder: {e}");
+    }
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             studio_info,
             claude_status,
             claude_sign_in,
+            claude_install,
             spend,
             settings_get,
             settings_save,

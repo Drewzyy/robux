@@ -8,9 +8,9 @@ verify: Verified 2026-11-09: gate passes a known-good project and fails a projec
 ---
 # Headless test gate
 
-Run it yourself before finishing (your working folder is the vault):
+Run it yourself before finishing:
 ```
-python3 ../scripts/gates/build_gate.py projects/<game>
+brewix gate build projects/<game>
 ```
 The studio runs the same script again after you finish; your gate.json does not replace it.
 

@@ -32,8 +32,8 @@ If a note you need is a stub, write "STUB: <note>" in your output and fall back 
 - `selene.toml` with `std = "roblox"`; `stylua.toml`; run `stylua src` before you finish so `stylua --check` passes.
 - Pure game logic (prices, curves, rules) lives in `src/shared` modules that do not touch `game` or Instances, so Lune can test them.
 - `tests/run.luau` runs every test with Lune and calls `error()` on the first failure. Tests `require` pure modules by relative path, for example `require("../src/shared/Economy")`.
-- Check your work with the studio's own gate, run exactly as one command (your working folder is the vault, so the path starts with `../`):
-  `python3 ../scripts/gates/build_gate.py projects/<game>`
+- Check your work with the studio's own gate, run exactly as one command:
+  `brewix gate build projects/<game>`
   It runs `rojo build`, `selene`, `stylua --check`, and `lune run tests/run.luau` and prints JSON results. Fix what fails and run it again. To format, run `stylua <absolute path to the project>/src` as its own command.
 - Shell rule: run one tool per command. Loops, pipes, `&&`, and `cd` are refused in this studio.
 - After you finish, the studio runs the same gate again itself. Your gate.json does not replace that.
