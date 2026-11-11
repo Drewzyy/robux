@@ -42,7 +42,7 @@ try:
     for b in d.find_elements(By.XPATH, "//button[text()='New Chat']"): b.click(); time.sleep(1.5)
     d.save_screenshot(str(SHOTS / "ui-chat-empty.png"))
     send = d.find_element(By.ID, "chat-send")
-    check("Send button shows the cap", "up to $" in send.text, send.text)
+    check("Send button is plain", send.text.strip() == "Send", send.text)
     d.find_element(By.ID, "chat-input").send_keys("In one short sentence: which of my projects exist and how many Luau files does the first one have?")
     send.click()
     WebDriverWait(d, 240).until(lambda x: len(x.find_elements(By.CSS_SELECTOR, ".bubble.them:not(.typing)")) >= 1)
@@ -65,7 +65,7 @@ try:
     d.save_screenshot(str(SHOTS / "ui-simulator-fixes.png"))
     d.execute_script("document.getElementById('view').scrollTop=0")
     d.find_element(By.ID, "sim-run").click(); time.sleep(2)
-    check("simulation shows cost before running", "Cost before you run" in view())
+    check("simulation shows cost before running", "Usage before you run" in view())
     d.find_element(By.XPATH, "//button[text()='Cancel']").click(); time.sleep(0.5)
 
     d.execute_script("location.hash='#thumbnails'"); time.sleep(3)
@@ -85,7 +85,7 @@ try:
         d.find_element(By.ID, "decision-note").send_keys("Add a persona for a 13-15 year old on gamepad.")
         d.find_element(By.ID, "request-changes").click(); time.sleep(4)
         pr = d.find_element(By.ID, "prompt").get_attribute("value")
-        check("redo opens with the note and a cost", "gamepad" in pr and "Cost before you run" in view(), pr[-90:])
+        check("redo opens with the note and a cost", "gamepad" in pr and "Usage before you run" in view(), pr[-90:])
         d.save_screenshot(str(SHOTS / "ui-request-changes.png"))
         d.find_element(By.ID, "cancel-run").click(); time.sleep(0.5)
     else:

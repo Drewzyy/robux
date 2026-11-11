@@ -116,7 +116,7 @@ async function refreshStatus() {
   const sp = state.spend;
   if (sp) {
     const used = sp.spent_usd + sp.reserved_usd;
-    $("spend-line").textContent = sp.budget_usd > 0 ? `This month ${usd(sp.spent_usd)} of ${usd(sp.budget_usd)}` : `This month ${usd(sp.spent_usd)} (no budget)`;
+    $("spend-line").textContent = sp.budget_usd > 0 ? `Plan usage ${usd(sp.spent_usd)} of ${usd(sp.budget_usd)}` : `Plan usage ${usd(sp.spent_usd)}`;
     $("spend-bar").style.width = sp.budget_usd > 0 ? Math.min(100, (100 * used) / sp.budget_usd) + "%" : "0%";
     $("running-line").textContent = state.live
       ? `Running · est. ${usd(state.live.estimate, 4)} (cap ${usd(state.live.cap)})`
@@ -148,7 +148,7 @@ function runningSubtitle() {
   return el("span", {},
     "BrewixGames · ",
     run ? el("span", {}, "Current run ", el("b", {}, run), ` · est. ${usd(state.live ? state.live.estimate : sp.running_expected_usd, 4)}`) : "No run in progress",
-    sp ? ` · ${usd(sp.spent_usd)} spent this month` + (sp.budget_usd > 0 ? ` of ${usd(sp.budget_usd)}` : "") : ""
+    sp ? ` · ${usd(sp.spent_usd)} plan usage this month` + (sp.budget_usd > 0 ? ` of ${usd(sp.budget_usd)}` : "") : ""
   );
 }
 
@@ -594,7 +594,7 @@ async function viewComposer(tabs) {
           el("div", { class: "field" }, el("label", { for: "pipeline-select" }, "Pipeline"), pipeSel, el("div", { class: "note" }, pdef.description + " Stages: " + pdef.stages.map((s) => cap(s.agent)).join(", "))),
           pdef.needs_project ? el("div", { class: "field" }, el("label", { for: "project-select" }, "Game project"), projSel, projects.length ? null : el("div", { class: "note" }, "No projects yet. Import one in Settings.")) : null),
     el("div", { class: "field" }, el("label", { for: "prompt" }, "Instruction"), prompt),
-    el("div", { class: "inline" }, el("button", { class: "btn primary", id: "estimate-btn", onclick: () => estimate(estimateBox) }, "Estimate Cost"), el("span", { class: "note" }, "Nothing runs until you approve the cost."))
+    el("div", { class: "inline" }, el("button", { class: "btn primary", id: "estimate-btn", onclick: () => estimate(estimateBox) }, "Estimate Usage"), el("span", { class: "note" }, "Nothing runs until you approve the cost."))
   );
   show(page(head("Runs", runningSubtitle(), tabs), form, estimateBox));
 }
@@ -618,12 +618,12 @@ async function estimate(box) {
   const sp = state.spend;
   const approve = el("button", { class: "btn primary", id: "approve-run", onclick: () => approveRun(approve) }, `Approve and Run · cap ${usd(p.cap)}`);
   box.append(el("div", { class: "card", style: "margin-top:16px" },
-    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Cost before you run"), el("span", { class: "pill red-soft" }, "Needs your approval")),
+    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Usage before you run"), el("span", { class: "pill red-soft" }, "Needs your approval")),
     el("div", { class: "cost-grid" },
       el("div", {}, el("div", { class: "k" }, "Expected"), el("div", { class: "v" }, usd(p.expected, 4))),
       el("div", {}, el("div", { class: "k" }, p.low !== null ? "Range" : "Up to"), el("div", { class: "v small" }, p.low !== null ? `${usd(p.low, 4)} to ${usd(p.high, 4)}` : usd(p.high, 4))),
       el("div", {}, el("div", { class: "k" }, "Hard cap"), el("div", { class: "v" }, usd(p.cap))),
-      sp && sp.budget_usd > 0 ? el("div", {}, el("div", { class: "k" }, "Budget left this month"), el("div", { class: "v small" }, usd(Math.max(0, sp.budget_usd - sp.spent_usd - sp.reserved_usd)))) : null),
+      sp && sp.budget_usd > 0 ? el("div", {}, el("div", { class: "k" }, "Usage left this month"), el("div", { class: "v small" }, usd(Math.max(0, sp.budget_usd - sp.spent_usd - sp.reserved_usd)))) : null),
     el("ul", { class: "assumptions" }, p.assumptions.map((a) => el("li", {}, a))),
     el("div", { class: "note" }, p.note),
     el("div", { class: "inline", style: "margin-top:14px" }, approve,
@@ -829,7 +829,7 @@ async function viewSettings() {
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
       el("div", { class: "list" },
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Monthly budget (USD)"), el("div", { class: "hint" }, "Runs stop and ask once this month's spend would pass this. 0 means no budget.")),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Monthly usage limit"), el("div", { class: "hint" }, "Counted in API-equivalent dollars, not money you pay. Runs stop and ask once this month's usage would pass it. 0 means no limit.")),
           el("div", { class: "inline", style: "width:220px" }, budget, el("button", { class: "btn secondary", id: "save-budget", onclick: () => save({ monthly_budget_usd: Number(budget.value) }, "Budget saved.") }, "Save"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "This month"), el("div", { class: "bar", style: "margin-top:8px" }, el("div", { style: `width:${sp && sp.budget_usd > 0 ? Math.min(100, (100 * (sp.spent_usd + sp.reserved_usd)) / sp.budget_usd) : 0}%` }))),
           el("span", { class: "note" }, sp ? `${usd(sp.spent_usd)} spent · ${usd(sp.reserved_usd)} reserved` : "–")))),
@@ -915,7 +915,7 @@ async function costCard(box, agent, prompt, label) {
     } catch (err) { go.disabled = false; toast(String(err), true); }
   } }, e.expected_usd > 0 ? `${label} · cap ${usd(e.cap_usd)}` : `${label} · free`);
   box.append(el("div", { class: "card", style: "margin-top:16px" },
-    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Cost before you run"), el("span", { class: "pill red-soft" }, "Needs your approval")),
+    el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, "Usage before you run"), el("span", { class: "pill red-soft" }, "Needs your approval")),
     el("div", { class: "cost-grid" },
       el("div", {}, el("div", { class: "k" }, "Expected"), el("div", { class: "v" }, usd(e.expected_usd, 2))),
       el("div", {}, el("div", { class: "k" }, "Hard cap"), el("div", { class: "v" }, usd(e.cap_usd)))),
@@ -942,7 +942,7 @@ async function viewChat() {
       state.chatStatus = "Thinking…";
       viewChat();
     } catch (e) { send.disabled = false; toast(String(e), true); }
-  } }, cap_usd > 0 ? `Send · up to ${usd(cap_usd)}` : "Send · free");
+  } }, cap_usd > 0 ? "Send" : "Send · free");
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send.click(); });
   const msgs = chat.messages.map((m) =>
     el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
