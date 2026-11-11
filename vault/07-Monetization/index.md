@@ -27,3 +27,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[07-Monetization/currency-satisfaction]] | One or two currencies, count-up feel, visible targets, sinks, honest pack pricing. | draft |
 | [[07-Monetization/microtransaction-playbook]] | Offer table with why each works, first purchase, spend depth, and the fairness line. | draft |
 | [[07-Monetization/server-boosts]] | Why social boosts work, shape, announce, extend not stack, server-only state. | draft |
+| [[07-Monetization/economy-pacing]] | Cost curves, rebirth and offline pacing targets, buy max, big numbers, odds rules, tested library. | draft |

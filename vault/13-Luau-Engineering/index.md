@@ -23,3 +23,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[13-Luau-Engineering/common-bugs-checklist]] | Pre-commit review list of the bugs that lose data or get exploited. | draft |
 | [[13-Luau-Engineering/toolchain]] | Rokit, Wally, StyLua, Selene, luau-lsp, Lune, rbxcloud, Rojo, GitHub Actions CI; pinned versions. | verified |
 | [[13-Luau-Engineering/headless-test-gate]] | The Builder's build gate: rojo build, Selene, StyLua check, Lune unit tests. What passing means. | verified |
+| [[13-Luau-Engineering/networking-hardening]] | Transport table, layered validation, yield race, token bucket, limits, Server Authority. | draft |

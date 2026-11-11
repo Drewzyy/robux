@@ -25,3 +25,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[08-UI-UX/ui-animation]] | Duration and easing table, UIScale not Size, under 0.3 s, reduced motion, premium touches. | draft |
 | [[08-UI-UX/ui-sound-pairing]] | Sound per UI action, pitch variation, consistency, rate cap. | draft |
 | [[08-UI-UX/accessibility]] | Roblox's 3 accessibility settings, colourblind mode, visual twins for sounds, captions, controls. | draft |
+| [[08-UI-UX/roblox-ui-production]] | Named-Instance shell, ResetOnSpawn, safe insets, responsive layout, Activated, focus, restrained motion, tests. | draft |

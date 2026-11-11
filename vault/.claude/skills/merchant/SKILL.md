@@ -17,7 +17,7 @@ Task: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
-When the task touches these topics, read the note's Do this block first (stop there if it answers you): `07-Monetization/microtransaction-playbook`, `07-Monetization/currency-satisfaction`, `07-Monetization/server-boosts`.
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `07-Monetization/microtransaction-playbook`, `07-Monetization/currency-satisfaction`, `07-Monetization/server-boosts`, `07-Monetization/economy-pacing`.
 
 ## Inputs
 Input: the design doc. Creating real products in Creator Dashboard needs Andrew's account: list them, do not create them.

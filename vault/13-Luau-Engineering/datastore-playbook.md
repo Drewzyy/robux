@@ -34,3 +34,10 @@ If a load fails, do not let the player play on a default profile: the next save 
 
 ## Studio
 Enable "Studio Access to API Services" or DataStores fail silently in Studio. DataStores do not work from a LocalScript.
+
+## Extra rules (from the roblox-datastores skill, gamedev-skills/awesome-gamedev-agent-skills, Apache-2.0)
+- Gate saves on "load succeeded" (`~= true`), not "load did not fail": a player can leave while the load is still running.
+- The UpdateAsync callback must not yield and may run more than once; do no side effects inside it (no granting, no remotes).
+- Retry only writes that are safe to repeat (writing the full state is safe, IncrementAsync is not); confirm with an uncached read when it matters.
+- BindToClose gets at most about 30 seconds: save all players in parallel and wait.
+- Studio uses the same live data as players once API access is on; test in a separate place.
