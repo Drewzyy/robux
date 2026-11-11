@@ -3,7 +3,7 @@
 //! API key, and agent runs strip ANTHROPIC_API_KEY from their environment.
 
 use serde::Serialize;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Connection {
@@ -32,14 +32,14 @@ pub fn status() -> Connection {
             }
         }
     };
-    let version = Command::new(&bin)
+    let version = crate::paths::command(&bin)
         .arg("--version")
         .stdin(Stdio::null())
         .output()
         .ok()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_default();
-    let out = Command::new(&bin)
+    let out = crate::paths::command(&bin)
         .args(["auth", "status", "--json"])
         .env_remove("ANTHROPIC_API_KEY")
         .stdin(Stdio::null())
@@ -80,11 +80,11 @@ pub fn install() -> Result<String, String> {
 /// on Windows.
 pub fn official_installer(unix: &str, windows: &str) -> Result<std::process::Output, String> {
     let mut c = if cfg!(windows) {
-        let mut c = Command::new("powershell");
+        let mut c = crate::paths::command("powershell");
         c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", windows]);
         c
     } else {
-        let mut c = Command::new("/bin/bash");
+        let mut c = crate::paths::command("/bin/bash");
         c.args(["-c", unix]);
         c
     };
@@ -111,7 +111,7 @@ pub fn install_uv() -> Result<String, String> {
 pub fn sign_in() -> Result<String, String> {
     use std::io::{BufRead, BufReader};
     let bin = crate::paths::claude_bin()?;
-    let mut child = Command::new(&bin)
+    let mut child = crate::paths::command(&bin)
         .args(["auth", "login"])
         .env_remove("ANTHROPIC_API_KEY")
         .stdin(Stdio::null())
@@ -140,7 +140,7 @@ pub fn sign_in() -> Result<String, String> {
                 seen.push('\n');
                 if !opened {
                     if let Some(url) = line.split_whitespace().find(|w| w.starts_with("https://")) {
-                        let _ = Command::new(if cfg!(target_os = "macos") { "open" } else { "xdg-open" }).arg(url).status();
+                        crate::paths::open_url(url);
                         opened = true;
                     }
                 }
@@ -162,7 +162,7 @@ pub fn sign_in() -> Result<String, String> {
             "tell application \"Terminal\" to do script \"'{}' auth login\"\ntell application \"Terminal\" to activate",
             bin.display().to_string().replace('\'', "")
         );
-        let _ = Command::new("osascript").args(["-e", &script]).status();
+        let _ = crate::paths::command("osascript").args(["-e", &script]).status();
         return Ok("Finish signing in in the window that opened, then press Check Again.".into());
     }
     Err(format!("Sign-in did not finish. Output: {}", seen.lines().rev().take(3).collect::<Vec<_>>().join(" | ")))

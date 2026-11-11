@@ -464,7 +464,7 @@ pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
 }
 
 fn untar(archive: &Path, dest: &Path) -> Result<(), String> {
-    let st = std::process::Command::new("tar")
+    let st = crate::paths::command("tar")
         .arg("-xzf")
         .arg(archive)
         .arg("-C")
@@ -485,7 +485,7 @@ pub fn refresh_from_template(root: &Path, template: &Path) -> Result<String, Str
     fs::create_dir_all(&backups).map_err(|e| e.to_string())?;
     let stamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
     let bk = backups.join(format!("before-update-{stamp}.tar.gz"));
-    let st = std::process::Command::new("tar")
+    let st = crate::paths::command("tar")
         .arg("-czf")
         .arg(&bk)
         .arg("-C")
@@ -532,11 +532,11 @@ pub fn open_in_studio(root: &Path, project: &str) -> Result<String, String> {
     project_ok(root, project)?;
     let place = crate::gates::build_place(root, project)?;
     let st = if cfg!(target_os = "macos") {
-        std::process::Command::new("open").arg(&place).status()
+        crate::paths::command("open").arg(&place).status()
     } else if cfg!(windows) {
-        std::process::Command::new("cmd").args(["/C", "start", ""]).arg(&place).status()
+        crate::paths::command("cmd").args(["/C", "start", ""]).arg(&place).status()
     } else {
-        std::process::Command::new("xdg-open").arg(&place).status()
+        crate::paths::command("xdg-open").arg(&place).status()
     };
     match st {
         Ok(s) if s.success() => Ok(place.display().to_string()),

@@ -26,7 +26,7 @@ pub struct Status {
 }
 
 fn git(root: &Path, args: &[&str]) -> Result<String, String> {
-    let o = Command::new("git")
+    let o = crate::paths::command("git")
         .arg("-C")
         .arg(root)
         .args(args)
@@ -194,7 +194,7 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
         Mode::Debug | Mode::Release => {
             let release = mode() == Mode::Release;
             on_line(&format!("Rebuilding ({})...", if release { "release" } else { "debug" }));
-            let mut c = Command::new("cargo");
+            let mut c = crate::paths::command("cargo");
             c.current_dir(&tauri_dir).arg("build").arg("--bins");
             if release {
                 c.arg("--release");
@@ -204,13 +204,13 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
         }
         Mode::Bundle(running) => {
             on_line("Rebuilding the app bundle (this takes a few minutes)...");
-            let mut c = Command::new("npm");
+            let mut c = crate::paths::command("npm");
             c.current_dir(&app_dir).args(["run", "build", "--", "--bundles", "app"]);
             stream(c, on_line)?;
             let built = tauri_dir.join("target/release/bundle/macos/BrewixGames.app");
             if built != running {
                 on_line(&format!("Replacing {}", running.display()));
-                let mut d = Command::new("ditto");
+                let mut d = crate::paths::command("ditto");
                 d.arg(&built).arg(&running);
                 stream(d, on_line)?;
             }
@@ -249,11 +249,11 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         // The vault refresh happens on that next launch (sync_release).
         on_line("Installing. BrewixGames will close and reopen by itself.");
         let script = format!("start \"\" /wait \"{}\" /P & start \"\" \"{}\"", zip.display(), running.display());
-        Command::new("cmd").args(["/C", &script]).spawn().map_err(|e| format!("could not start the installer: {e}"))?;
+        crate::paths::command("cmd").args(["/C", &script]).spawn().map_err(|e| format!("could not start the installer: {e}"))?;
         std::process::exit(0);
     }
     on_line("Unpacking...");
-    let mut x = Command::new("ditto");
+    let mut x = crate::paths::command("ditto");
     x.args(["-x", "-k"]).arg(&zip).arg(&tmp);
     stream(x, on_line)?;
     let new_app = tmp.join("BrewixGames.app");
@@ -261,7 +261,7 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         return Err("the download did not contain BrewixGames.app".into());
     }
     on_line(&format!("Replacing {}", running.display()));
-    let mut d = Command::new("ditto");
+    let mut d = crate::paths::command("ditto");
     d.arg(&new_app).arg(&running);
     stream(d, on_line)?;
     let _ = root; // the vault refresh runs on the next launch (studio::sync_release)

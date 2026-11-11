@@ -15,7 +15,7 @@ use serde::Serialize;
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct RunOutcome {
@@ -196,7 +196,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     req.status = "running".into();
     runs::save(root, &req)?;
 
-    let mut cmd = Command::new(claude_bin);
+    let mut cmd = crate::paths::command(claude_bin);
     if req.engine.as_deref() == Some("ollama") {
         // Free local engine: Ollama 0.14+ speaks the Anthropic Messages API.
         cmd.env("ANTHROPIC_BASE_URL", "http://localhost:11434").env("ANTHROPIC_AUTH_TOKEN", "ollama");

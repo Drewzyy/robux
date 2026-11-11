@@ -155,3 +155,29 @@ pub fn expand_home(p: &str) -> PathBuf {
 pub fn home() -> Option<PathBuf> {
     std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from)
 }
+
+/// Start a program without flashing a console window on Windows (the
+/// CREATE_NO_WINDOW flag); identical to Command::new elsewhere. Every
+/// background program BrewixGames runs goes through here.
+pub fn command<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
+    #[allow(unused_mut)]
+    let mut c = std::process::Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        c.creation_flags(CREATE_NO_WINDOW);
+    }
+    c
+}
+
+/// Open a web link in the default browser.
+pub fn open_url(url: &str) {
+    let _ = if cfg!(windows) {
+        command("rundll32").args(["url.dll,FileProtocolHandler", url]).status()
+    } else if cfg!(target_os = "macos") {
+        command("open").arg(url).status()
+    } else {
+        command("xdg-open").arg(url).status()
+    };
+}

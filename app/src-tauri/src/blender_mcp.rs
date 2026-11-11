@@ -41,7 +41,7 @@ pub fn uvx() -> Option<std::path::PathBuf> {
 /// (Edit, Preferences, Add-ons, Install from Disk). Returns the path.
 pub fn fetch_addon(root: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let uvx = uvx().ok_or("uv is not installed. It is free: astral.sh/uv")?;
-    let mut cmd = std::process::Command::new(uvx);
+    let mut cmd = crate::paths::command(uvx);
     cmd.args(["--from", PACKAGE, "python", "-c", "import os, blender_mcp.bundled as b; print(os.path.join(os.path.dirname(b.__file__), 'addon.py'))"]);
     for k in TELEMETRY_OFF {
         cmd.env(k, "1");

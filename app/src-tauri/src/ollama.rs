@@ -4,7 +4,6 @@
 
 use serde::Serialize;
 use std::io::{BufRead, BufReader};
-use std::process::Command;
 
 pub const BASE: &str = "http://localhost:11434";
 /// Oldest Ollama that speaks the Anthropic API Claude Code uses.
@@ -62,10 +61,10 @@ pub fn memory_gb() -> Option<f64> {
         let kb: f64 = t.lines().find(|l| l.starts_with("MemTotal:"))?.split_whitespace().nth(1)?.parse().ok()?;
         kb * 1024.0
     } else if cfg!(target_os = "macos") {
-        let o = Command::new("sysctl").args(["-n", "hw.memsize"]).output().ok()?;
+        let o = crate::paths::command("sysctl").args(["-n", "hw.memsize"]).output().ok()?;
         String::from_utf8_lossy(&o.stdout).trim().parse().ok()?
     } else if cfg!(windows) {
-        let o = Command::new("powershell")
+        let o = crate::paths::command("powershell")
             .args(["-NoProfile", "-Command", "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory"])
             .output()
             .ok()?;

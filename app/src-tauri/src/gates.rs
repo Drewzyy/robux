@@ -12,7 +12,7 @@ use crate::queue::GateCheck;
 use regex::Regex;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 
 const OFFLINE_STD: &str = include_str!("../../../scripts/gates/roblox-offline.yml");
 
@@ -81,7 +81,7 @@ pub fn tool(name: &str) -> PathBuf {
 }
 
 fn run(name: &str, args: &[&str], cwd: &Path) -> (Option<i32>, String) {
-    match Command::new(tool(name)).args(args).current_dir(cwd).stdin(Stdio::null()).output() {
+    match crate::paths::command(tool(name)).args(args).current_dir(cwd).stdin(Stdio::null()).output() {
         Ok(o) => (o.status.code(), format!("{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr))),
         Err(_) => (None, format!("NOT RUN: {name} not installed")),
     }
