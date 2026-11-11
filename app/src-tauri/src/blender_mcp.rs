@@ -29,6 +29,7 @@ pub fn uvx() -> Option<std::path::PathBuf> {
     if let Some(h) = crate::paths::home() {
         dirs.push(h.join(".local/bin"));
         dirs.push(h.join(".cargo/bin"));
+        dirs.push(h.join("AppData/Local/uv/bin"));
     }
     dirs.push("/opt/homebrew/bin".into());
     dirs.push("/usr/local/bin".into());

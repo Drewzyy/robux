@@ -100,6 +100,18 @@ try:
     rows = d.find_elements(By.CSS_SELECTOR, "#vault-results .row")
     check("vault search finds notes with highlights", len(rows) >= 2 and "DataStore" in rows[0].text and d.find_elements(By.CSS_SELECTOR, "#vault-results mark"), rows[0].text.replace("\n", " ")[:90] if rows else "none")
     d.save_screenshot(str(SHOTS / "ui-vault-search.png"))
+    import tempfile, json as _j, shutil as _sh2
+    newdir = Path(tempfile.mkdtemp()) / "MovedStudio"
+    d.execute_script("location.hash='#settings'"); time.sleep(3)
+    box = d.find_element(By.ID, "studio-root"); box.clear(); box.send_keys(str(newdir))
+    d.find_element(By.ID, "studio-move").click()
+    WebDriverWait(d, 120).until(lambda x: "Copied" in x.find_element(By.ID, "toast").text or "not" in x.find_element(By.ID, "toast").text)
+    check("studio folder moves to a new folder", (newdir / "studio/agents.json").is_file() and (newdir / "projects/dawn-watch").is_dir() and "Copied your studio to" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text[:100])
+    time.sleep(2)
+    box = d.find_element(By.ID, "studio-root"); box.clear(); box.send_keys(str(ROOT))
+    d.find_element(By.ID, "studio-move").click(); time.sleep(3)
+    check("switches back to an existing studio", "Switched to the studio in" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text[:100])
+    _sh2.rmtree(newdir.parent, ignore_errors=True)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Ollama detected with memory and version", "Ollama is ready" in view() and "GB memory" in view() and "v0.14.3" in view())
     Select(d.find_element(By.ID, "ollama-model")).select_by_value("qwen3:4b"); time.sleep(0.5)

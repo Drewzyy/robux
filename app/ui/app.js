@@ -790,7 +790,7 @@ async function viewSettings() {
   };
   const budget = el("input", { type: "number", min: "0", step: "1", id: "budget", value: String(s.monthly_budget_usd) });
   const hook = el("input", { type: "password", id: "webhook", placeholder: "https://discord.com/api/webhooks/…", value: s.discord_webhook_url });
-  const root = el("input", { type: "text", id: "studio-root", placeholder: "Auto-detected", value: s.studio_root });
+  const root = el("input", { type: "text", id: "studio-root", placeholder: "New folder, e.g. ~/Documents/BrewixGames", value: s.studio_root });
   const importPath = el("input", { type: "text", id: "import-path", placeholder: "~/workspace/roblox-games/sky-tower-obby" });
   const updLog = el("pre", { class: "log hidden", id: "update-log", style: "margin-top:12px" });
   const updRow = el("div", { class: "srow", id: "update-row" }, el("div", { class: "grow" }, el("div", { class: "label", id: "build-label" }, `Build ${info.build}`), el("div", { class: "hint", id: "update-hint" }, "Downloads the newest BrewixGames, installs it, and restarts. Your projects and review queue are kept.")),
@@ -806,7 +806,12 @@ async function viewSettings() {
         !c.installed ? el("button", { class: "btn primary", id: "install-claude", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Installing…"; try { toast(await invoke("claude_install")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Install Claude Code") : null,
         c.installed && !(c.logged_in && c.uses_subscription) ? el("button", { class: "btn primary", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Waiting for browser…"; try { toast(await invoke("claude_sign_in")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Sign In to Claude") : null),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Login method"), el("span", { class: "note" }, c.auth_method ? (c.uses_subscription ? "Claude account login · uses your subscription, no API key" : c.auth_method) : "–")),
-      el("div", { class: "srow" }, el("div", { class: "grow label" }, "Claude Code"), el("span", { class: "note" }, c.version ? `${c.version} · ${c.bin}` : "–"))
+      el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Claude Code"),
+          el("div", { class: "hint" }, c.version ? `${c.version} · ${c.bin}` : "Not found. The Claude desktop app or website alone is not enough. Press Install, or paste where claude is.")),
+        el("div", { class: "inline" },
+          el("input", { type: "text", id: "claude-path", style: "width:220px", placeholder: "claude location (optional)", value: s.claude_path || "" }),
+          el("button", { class: "btn secondary", onclick: async () => { await save({ claude_path: $("claude-path").value.trim() }, "Saved. Checking Claude..."); await refreshStatus(); viewSettings(); } }, "Save"),
+          c.version ? null : el("button", { class: "btn primary", id: "claude-install", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Installing..."; try { toast(await invoke("claude_install")); } catch (e) { toast(String(e), true); } await refreshStatus(); viewSettings(); } }, "Install")))
     ),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "AI engine"),
@@ -836,6 +841,7 @@ async function viewSettings() {
           segmented([["off", "Off"], ["blender", "Blender"], ["mock", "Test"]], s.blender_mcp, async (v) => { await save({ blender_mcp: v }, v === "off" ? "Blender connection off." : v === "mock" ? "Using the test Blender." : "Connected to Blender."); viewSettings(); })),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "What you need (all free)"),
             el("div", { class: "hint" }, `Blender from blender.org, uv from astral.sh/uv${bm.uvx ? " (found)" : " (not found)"}, then press Get the Blender Add-on and in Blender choose Edit, Preferences, Add-ons, Install from Disk, pick that file, and click Connect in the add-on's panel. BrewixGames runs ${bm.package || "the server"} with telemetry off.`)),
+          bm.uvx ? null : el("button", { class: "btn primary", id: "uv-install", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Installing uv..."; try { toast(await invoke("uv_install")); } catch (e) { toast(String(e), true); } viewSettings(); } }, "Install uv"),
           el("button", { class: "btn secondary", id: "blender-addon", disabled: !bm.uvx, onclick: async (ev) => { ev.target.disabled = true; try { const p = await invoke("blender_addon_get"); toast(`Add-on saved to ${p}`); } catch (e) { toast(String(e), true); } ev.target.disabled = false; } }, "Get the Blender Add-on")))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
@@ -857,7 +863,7 @@ async function viewSettings() {
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Studio"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio folder"), el("div", { class: "hint" }, `In use: ${info.root}. Vault: ${info.vault}.`)),
-          el("div", { class: "inline", style: "width:430px" }, root, el("button", { class: "btn secondary", onclick: () => save({ studio_root: root.value.trim() }, "Studio folder saved. Restart to apply.") }, "Save"))),
+          el("div", { class: "inline", style: "width:430px" }, root, el("button", { class: "btn secondary", id: "studio-move", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Moving..."; try { toast(await invoke("studio_move", { dest: root.value.trim() })); viewSettings(); } catch (e) { toast(String(e), true); } ev.target.disabled = false; ev.target.textContent = "Move Here"; } }, "Move Here"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Import a game project"), el("div", { class: "hint" }, "Copies a Rojo project into projects/ so agents can work on it.")),
           el("div", { class: "inline", style: "width:430px" }, importPath, el("button", { class: "btn secondary", onclick: async () => { try { toast(await invoke("project_import", { path: importPath.value.trim() })); } catch (e) { toast(String(e), true); } } }, "Import"))))),
 

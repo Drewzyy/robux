@@ -66,6 +66,9 @@ pub struct Settings {
     /// uvx), or "mock" (built-in stand-in).
     #[serde(default = "default_studio_mcp")]
     pub blender_mcp: String,
+    /// Optional path to the claude program when it is not found on its own.
+    #[serde(default)]
+    pub claude_path: String,
 }
 fn default_studio_mcp() -> String {
     "off".into()
@@ -88,6 +91,7 @@ impl Default for Settings {
             studio_mcp: default_studio_mcp(),
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
+            claude_path: String::new(),
         }
     }
 }

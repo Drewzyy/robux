@@ -73,6 +73,14 @@ pub fn claude_bin() -> Result<PathBuf, String> {
         }
         return Err(format!("CLAUDE_BIN={} is not a file", p.display()));
     }
+    let custom = crate::settings::load().claude_path;
+    if !custom.trim().is_empty() {
+        let p = expand_home(custom.trim());
+        if p.is_file() {
+            return Ok(p);
+        }
+        return Err(format!("The Claude Code location in Settings ({}) is not a file.", p.display()));
+    }
     let mut candidates: Vec<PathBuf> = vec![];
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
@@ -88,12 +96,59 @@ pub fn claude_bin() -> Result<PathBuf, String> {
     }
     candidates.push(PathBuf::from("/opt/homebrew/bin/claude"));
     candidates.push(PathBuf::from("/usr/local/bin/claude"));
-    candidates
-        .into_iter()
-        .find(|c| c.is_file())
-        .ok_or_else(|| {
-            "Could not find the `claude` CLI. Install Claude Code or set CLAUDE_BIN.".to_string()
-        })
+    if let Some(a) = std::env::var_os("APPDATA") {
+        candidates.push(PathBuf::from(&a).join("npm").join("claude.cmd"));
+    }
+    if let Some(found) = candidates.into_iter().find(|c| c.is_file()) {
+        return Ok(found);
+    }
+    // The Claude desktop app keeps its own copy of Claude Code in its app
+    // data (one folder per version). Use the newest one found.
+    let mut roots: Vec<PathBuf> = vec![];
+    if let Some(h) = home() {
+        roots.push(h.join("Library/Application Support/Claude"));
+    }
+    for v in ["APPDATA", "LOCALAPPDATA"] {
+        if let Some(a) = std::env::var_os(v) {
+            roots.push(PathBuf::from(&a).join("Claude"));
+            roots.push(PathBuf::from(&a).join("AnthropicClaude"));
+        }
+    }
+    let mut found: Vec<(std::time::SystemTime, PathBuf)> = vec![];
+    for r in roots {
+        find_named(&r, 4, &mut found);
+    }
+    found.sort();
+    found.pop().map(|(_, p)| p).ok_or_else(|| {
+        "Could not find Claude Code. The Claude desktop app or website is not enough on its own: press Install Claude Code in Settings, or paste where claude is in Settings.".to_string()
+    })
+}
+
+/// Files named claude / claude.exe up to `depth` folders down, with their
+/// modified time.
+fn find_named(dir: &std::path::Path, depth: u32, out: &mut Vec<(std::time::SystemTime, PathBuf)>) {
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    for e in rd.flatten() {
+        let p = e.path();
+        let name = e.file_name().to_string_lossy().to_string();
+        if p.is_dir() {
+            if depth > 0 && !name.starts_with('.') && name != "Cache" && name != "node_modules" {
+                find_named(&p, depth - 1, out);
+            }
+        } else if name == "claude" || name == "claude.exe" {
+            if let Ok(t) = e.metadata().and_then(|m| m.modified()) {
+                out.push((t, p));
+            }
+        }
+    }
+}
+
+/// `~/x` and `~\x` to the home folder.
+pub fn expand_home(p: &str) -> PathBuf {
+    match (p.strip_prefix("~/").or_else(|| p.strip_prefix("~\\")), home()) {
+        (Some(rest), Some(h)) => h.join(rest),
+        _ => PathBuf::from(p),
+    }
 }
 
 /// The user's home folder (HOME on macOS/Linux, USERPROFILE on Windows).

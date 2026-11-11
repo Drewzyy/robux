@@ -44,6 +44,11 @@ async fn claude_install() -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn uv_install() -> Result<String, String> {
+    claude::install_uv()
+}
+
+#[tauri::command]
 fn spend() -> Result<budget::Spend, String> {
     Ok(budget::spend(&root()?, settings::load().monthly_budget_usd))
 }
@@ -358,6 +363,11 @@ fn project_open_in_studio(project: String) -> Result<String, String> {
     studio::open_in_studio(&root()?, &project)
 }
 
+#[tauri::command]
+fn studio_move(dest: String) -> Result<String, String> {
+    studio::move_studio(&root()?, &dest)
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -463,6 +473,8 @@ fn main() {
             blender_mcp_status,
             blender_addon_get,
             project_open_in_studio,
+            studio_move,
+            uv_install,
             ollama_pull,
             chat_reset,
             chat_send,

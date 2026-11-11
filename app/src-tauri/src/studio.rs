@@ -544,6 +544,51 @@ pub fn open_in_studio(root: &Path, project: &str) -> Result<String, String> {
     }
 }
 
+/// Use a different studio folder. If `dest` already holds a studio, switch to
+/// it. If it is new or empty, copy the current studio there first (the old
+/// copy is kept). Returns the folder now in use.
+pub fn move_studio(current: &Path, dest: &str) -> Result<String, String> {
+    let dest = crate::paths::expand_home(dest.trim());
+    if dest.as_os_str().is_empty() || !dest.is_absolute() {
+        return Err("Type a full folder path, for example ~/Documents/BrewixGames.".into());
+    }
+    let marker = dest.join("studio/agents.json");
+    let existed = marker.is_file();
+    if !existed {
+        if dest.starts_with(current) {
+            return Err("Choose a folder outside the current studio folder.".into());
+        }
+        if dest.is_dir() && fs::read_dir(&dest).map(|mut r| r.next().is_some()).unwrap_or(false) {
+            return Err(format!("{} is not empty. Choose a new or empty folder.", dest.display()));
+        }
+        fs::create_dir_all(&dest).map_err(|e| format!("could not create {}: {e}", dest.display()))?;
+        for entry in fs::read_dir(current).map_err(|e| e.to_string())?.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if [".git", ".cache", "target", "node_modules", "app"].contains(&name.as_str()) {
+                continue;
+            }
+            let p = entry.path();
+            if p.is_dir() {
+                let mut n = 0;
+                copy_dir_all(&p, &dest.join(&name), &mut n)?;
+            } else {
+                fs::copy(&p, dest.join(&name)).map_err(|e| e.to_string())?;
+            }
+        }
+        if !marker.is_file() {
+            return Err("the copy did not finish; the old folder is still in use".into());
+        }
+    }
+    let mut s = crate::settings::load();
+    s.studio_root = dest.display().to_string();
+    crate::settings::save(&s)?;
+    Ok(if existed {
+        format!("Switched to the studio in {}.", dest.display())
+    } else {
+        format!("Copied your studio to {} and switched to it. The old folder was kept; delete it when you are happy.", dest.display())
+    })
+}
+
 fn project_ok(root: &Path, project: &str) -> Result<PathBuf, String> {
     let ok = project.starts_with("projects/") && !project.contains("..") && project.len() > 9 && project[9..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if !ok || !root.join(project).is_dir() {
@@ -650,4 +695,35 @@ pub fn request_changes(root: &Path, id: &str, note: &str) -> Result<serde_json::
         return Ok(serde_json::json!({"mode": "agent", "agent": s("agent"), "project": "", "prompt": s("prompt") + &ask}));
     }
     Err(format!("could not find run {run_id} to redo"))
+}
+
+#[cfg(test)]
+mod move_tests {
+    use super::*;
+
+    #[test]
+    fn studio_moves_and_switches() {
+        let base = std::env::temp_dir().join(format!("brewix-move-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let cur = base.join("old");
+        fs::create_dir_all(cur.join("studio")).unwrap();
+        fs::write(cur.join("studio/agents.json"), "{}").unwrap();
+        fs::create_dir_all(cur.join("projects/g/src")).unwrap();
+        fs::write(cur.join("projects/g/src/a.luau"), "x").unwrap();
+        fs::create_dir_all(cur.join(".cache")).unwrap();
+        std::env::set_var("ROBUX_CONFIG_DIR", base.join("cfg"));
+        let dest = base.join("new");
+        let got = move_studio(&cur, dest.to_str().unwrap()).unwrap();
+        assert!(got.contains("Copied your studio to"), "{got}");
+        assert!(dest.join("studio/agents.json").is_file());
+        assert!(dest.join("projects/g/src/a.luau").is_file());
+        assert!(!dest.join(".cache").exists());
+        assert!(cur.join("studio/agents.json").is_file(), "old copy kept");
+        assert_eq!(crate::settings::load().studio_root, dest.display().to_string());
+        // a non-empty folder that is not a studio is refused
+        fs::create_dir_all(base.join("busy")).unwrap();
+        fs::write(base.join("busy/x.txt"), "x").unwrap();
+        assert!(move_studio(&cur, base.join("busy").to_str().unwrap()).is_err());
+        let _ = fs::remove_dir_all(&base);
+    }
 }

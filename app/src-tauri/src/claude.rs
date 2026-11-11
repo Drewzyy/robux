@@ -68,16 +68,41 @@ pub fn install() -> Result<String, String> {
     if crate::paths::claude_bin().is_ok() {
         return Ok("Claude Code is already installed.".into());
     }
-    let out = Command::new("/bin/bash")
-        .args(["-c", "curl -fsSL https://claude.ai/install.sh | bash"])
-        .stdin(Stdio::null())
-        .output()
-        .map_err(|e| format!("could not start the installer: {e}"))?;
+    let out = official_installer("curl -fsSL https://claude.ai/install.sh | bash", "irm https://claude.ai/install.ps1 | iex")?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
         return Err(format!("installer failed: {}", err.lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
     }
     crate::paths::claude_bin().map(|p| format!("Installed Claude Code at {}. Now press Sign In to Claude.", p.display()))
+}
+
+/// Run an official one-line installer: bash on macOS and Linux, PowerShell
+/// on Windows.
+pub fn official_installer(unix: &str, windows: &str) -> Result<std::process::Output, String> {
+    let mut c = if cfg!(windows) {
+        let mut c = Command::new("powershell");
+        c.args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", windows]);
+        c
+    } else {
+        let mut c = Command::new("/bin/bash");
+        c.args(["-c", unix]);
+        c
+    };
+    c.stdin(Stdio::null()).output().map_err(|e| format!("could not start the installer: {e}"))
+}
+
+/// Install uv (free, from astral.sh) with its official installer, so the
+/// Blender connection can run.
+pub fn install_uv() -> Result<String, String> {
+    if let Some(p) = crate::blender_mcp::uvx() {
+        return Ok(format!("uv is already installed ({}).", p.display()));
+    }
+    let out = official_installer("curl -LsSf https://astral.sh/uv/install.sh | sh", "irm https://astral.sh/uv/install.ps1 | iex")?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("uv installer failed: {}", err.lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
+    }
+    crate::blender_mcp::uvx().map(|p| format!("Installed uv at {}.", p.display())).ok_or("uv installed, but BrewixGames cannot see it yet. Restart BrewixGames.".into())
 }
 
 /// Sign in with Andrew's Claude account. Runs `claude auth login` in the
