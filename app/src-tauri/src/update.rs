@@ -248,10 +248,7 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         // in passive mode (progress bar, no questions), then reopen the app.
         // The vault refresh happens on that next launch (sync_release).
         on_line("Installing. BrewixGames will close and reopen by itself.");
-        crate::paths::command("powershell")
-            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", &handoff_script(&zip, &running)])
-            .spawn()
-            .map_err(|e| format!("could not start the installer: {e}"))?;
+        handoff(&zip, &running, &[])?;
         std::process::exit(0);
     }
     on_line("Unpacking...");
@@ -274,16 +271,57 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
 /// PowerShell that waits for the installer (passive: progress bar only),
 /// then reopens the app. Sent as -EncodedCommand (base64 of UTF-16LE) so no
 /// quoting layer can mangle the paths; a cmd.exe /C line did exactly that.
-fn handoff_script(setup: &Path, app: &Path) -> String {
+fn handoff_script(setup: &Path, app: &Path, args: &[&str]) -> String {
     use base64::Engine;
-    let q = |p: &Path| p.display().to_string().replace('\'', "''");
+    let q = |s: &str| s.replace('\'', "''");
+    let relaunch = if args.is_empty() {
+        format!("Start-Process -FilePath '{}'", q(&app.display().to_string()))
+    } else {
+        let list = args.iter().map(|a| format!("'{}'", q(a))).collect::<Vec<_>>().join(",");
+        format!("Start-Process -FilePath '{}' -ArgumentList {list}", q(&app.display().to_string()))
+    };
     let script = format!(
-        "Start-Sleep -Seconds 1; Start-Process -FilePath '{}' -ArgumentList '/P' -Wait; Start-Process -FilePath '{}'",
-        q(setup),
-        q(app)
+        "Start-Sleep -Seconds 1; Start-Process -FilePath '{}' -ArgumentList '/P' -Wait; {relaunch}",
+        q(&setup.display().to_string())
     );
     let utf16: Vec<u8> = script.encode_utf16().flat_map(|u| u.to_le_bytes()).collect();
     base64::engine::general_purpose::STANDARD.encode(utf16)
+}
+
+/// Start the handoff: PowerShell runs the installer, waits, then reopens the
+/// app (with `args`, used by the release build's self-test).
+pub fn handoff(setup: &Path, app: &Path, args: &[&str]) -> Result<(), String> {
+    crate::paths::command("powershell")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", &handoff_script(setup, app, args)])
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("could not start the installer: {e}"))
+}
+
+/// Used by the release build's Windows update test (see release.yml).
+pub fn selftest_cli(args: &[&str]) -> Option<i32> {
+    match args {
+        ["selftest-handoff", setup, marker] => {
+            let exe = std::env::current_exe().ok()?;
+            Some(match handoff(Path::new(setup), &exe, &["selftest-ping", marker]) {
+                Ok(()) => 0,
+                Err(e) => {
+                    eprintln!("{e}");
+                    1
+                }
+            })
+        }
+        ["selftest-ping", marker] => {
+            let m = match mode() {
+                Mode::Bundle(_) => "installed",
+                Mode::Release => "release-build",
+                Mode::Debug => "debug-build",
+            };
+            let _ = std::fs::write(marker, format!("{} {m}", release_tag().unwrap_or("dev")));
+            Some(0)
+        }
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -293,7 +331,7 @@ mod handoff_tests {
     #[test]
     fn handoff_survives_spaces_and_quotes() {
         use base64::Engine;
-        let enc = handoff_script(Path::new("C:\\Users\\Al O'Neil\\Temp\\setup.exe"), Path::new("C:\\Users\\Al O'Neil\\AppData\\Local\\BrewixGames\\brewixgames.exe"));
+        let enc = handoff_script(Path::new("C:\\Users\\Al O'Neil\\Temp\\setup.exe"), Path::new("C:\\Users\\Al O'Neil\\AppData\\Local\\BrewixGames\\brewixgames.exe"), &[]);
         let bytes = base64::engine::general_purpose::STANDARD.decode(enc).unwrap();
         let units: Vec<u16> = bytes.chunks(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
         let text = String::from_utf16(&units).unwrap();

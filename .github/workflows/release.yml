@@ -103,8 +103,41 @@ jobs:
           name: windows
           path: out/*
 
+  test-windows-update:
+    # Installs the new build, then runs the same install-and-reopen handoff
+    # the Update button uses, and checks the reopened app is the installed
+    # new version. Nothing is published unless this passes.
+    needs: [build-windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: out
+      - name: Install, update through the app's handoff, and check it reopened
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path out\BrewixGames-windows-setup.exe).Path
+          Start-Process -FilePath $setup -ArgumentList '/S' -Wait
+          $exe = Get-ChildItem "$env:LOCALAPPDATA" -Recurse -Depth 3 -Filter 'brewixgames.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) { throw "installed brewixgames.exe not found under LOCALAPPDATA" }
+          Write-Host "Installed at $($exe.FullName)"
+          if (-not (Test-Path (Join-Path $exe.DirectoryName 'studio-template.tar.gz'))) { throw "studio-template.tar.gz is not next to the installed exe" }
+          if (-not (Test-Path (Join-Path $exe.DirectoryName 'tools\rojo.exe'))) { throw "bundled tools missing next to the installed exe" }
+          $marker = Join-Path $env:RUNNER_TEMP 'reopened.txt'
+          $before = (Get-Item $exe.FullName).LastWriteTimeUtc
+          Start-Process -FilePath $exe.FullName -ArgumentList 'selftest-handoff',$setup,$marker
+          $deadline = (Get-Date).AddMinutes(4)
+          while (-not (Test-Path $marker) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 3 }
+          if (-not (Test-Path $marker)) { throw "the app did not reopen after the installer finished" }
+          $got = Get-Content $marker -Raw
+          Write-Host "Reopened app reports: $got"
+          if ($got -notmatch [regex]::Escape($env:STUDIO_RELEASE)) { throw "reopened app is not $env:STUDIO_RELEASE" }
+          if ($got -notmatch 'installed') { throw "reopened app does not see itself as installed, so Update would not work" }
+          Write-Host "Installer ran (exe rewritten: $before -> $((Get-Item $exe.FullName).LastWriteTimeUtc))"
+
   publish:
-    needs: [build-mac, build-windows]
+    needs: [build-mac, build-windows, test-windows-update]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4

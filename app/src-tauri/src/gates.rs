@@ -551,6 +551,7 @@ pub fn cli(args: &[String]) -> Option<i32> {
             Some(crate::studio_mcp::guard_hook(&s))
         }
         ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
+        ["selftest-handoff", ..] | ["selftest-ping", ..] => crate::update::selftest_cli(&a),
         ["blender-guard"] => {
             let mut s = String::new();
             let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
