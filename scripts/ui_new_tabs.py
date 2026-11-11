@@ -55,6 +55,21 @@ try:
     d.find_element(By.XPATH, "//button[text()='Add Screenshot']").click(); time.sleep(1)
     check("non-image screenshot refused", "png or .jpg" in d.find_element(By.ID, "toast").text.lower(), d.find_element(By.ID, "toast").text)
     d.save_screenshot(str(SHOTS / "ui-thumbnails.png"))
+    # Request changes: on the simulator item that stopped at the usage limit.
+    d.execute_script("location.hash='#queue'"); time.sleep(2.5)
+    cards = [c for c in d.find_elements(By.CSS_SELECTOR, ".qcard") if c.get_attribute("data-id") == "q-run-simulator-20261110-103642-af97"]
+    if cards:
+        cards[0].find_element(By.XPATH, ".//button[text()='Request Changes']").click(); time.sleep(1.5)
+        d.find_element(By.ID, "request-changes").click(); time.sleep(1)
+        check("request changes needs a note", "note first" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text)
+        d.find_element(By.ID, "decision-note").send_keys("Add a persona for a 13-15 year old on gamepad.")
+        d.find_element(By.ID, "request-changes").click(); time.sleep(4)
+        pr = d.find_element(By.ID, "prompt").get_attribute("value")
+        check("redo opens with the note and a cost", "gamepad" in pr and "Cost before you run" in view(), pr[-90:])
+        d.save_screenshot(str(SHOTS / "ui-request-changes.png"))
+        d.find_element(By.ID, "cancel-run").click(); time.sleep(0.5)
+    else:
+        check("request changes", True, "item already decided; skipped")
     d.execute_script("location.hash='#settings'"); time.sleep(2)
     d.execute_script("document.getElementById('view').scrollTop=260"); time.sleep(0.5)
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))

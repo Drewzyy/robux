@@ -208,6 +208,7 @@ async function thumbFor(item) {
 function statusPill(item) {
   if (item.status === "approved") return el("span", { class: "pill white" }, "Approved");
   if (item.status === "rejected") return el("span", { class: "pill" }, "Rejected");
+  if (item.status === "changes_requested") return el("span", { class: "pill" }, "Changes requested");
   return item.gate.passed ? el("span", { class: "pill red-soft" }, "Pending") : el("span", { class: "pill red" }, "Gate failed");
 }
 
@@ -218,6 +219,7 @@ async function queueCard(item) {
   const actions = item.status === "pending"
     ? el("div", { class: "qactions" },
         el("button", { class: "btn primary", disabled: !item.gate.passed, title: item.gate.passed ? "Record your approval. Nothing is published." : "A failed gate cannot be approved. Reject it and rerun.", onclick: () => decide(item, "approved") }, "Approve"),
+        el("button", { class: "btn secondary", onclick: () => itemSheet(item, true) }, "Request Changes"),
         el("button", { class: "btn secondary", onclick: () => decide(item, "rejected") }, "Reject"))
     : null;
   return el("div", { class: "card qcard", "data-id": item.id },
@@ -339,8 +341,22 @@ async function openText(path) {
   }
 }
 
-async function itemSheet(item) {
-  const note = el("input", { type: "text", placeholder: "Note (optional): why yes or no" });
+async function requestChanges(item, note) {
+  if (!note.trim()) { toast("Write what to change in the note first.", true); return; }
+  try {
+    const spec = await invoke("queue_request_changes", { id: item.id, note });
+    closeSheet();
+    state.composer = { ...state.composer, ...spec };
+    state.runsTab = "new";
+    location.hash = "#runs";
+    toast("Changes recorded. Check the cost, then approve the redo.");
+    setTimeout(() => { const b = $("estimate-btn"); if (b) b.click(); }, 400);
+  } catch (e) { toast(String(e), true); }
+}
+
+async function itemSheet(item, focusNote = false) {
+  const note = el("input", { type: "text", id: "decision-note", placeholder: focusNote ? "What should change? Be specific." : "Note: why yes or no, or what to change" });
+  if (focusNote) setTimeout(() => note.focus(), 50);
   sheet(item.title,
     el("div", { class: "meta" }, statusPill(item), el("span", {}, item.created_by), el("span", {}, "·"), el("span", {}, item.created_at)),
     markdown(item.summary || ""),
@@ -353,6 +369,7 @@ async function itemSheet(item) {
     item.status === "pending"
       ? el("div", { class: "inline", style: "margin-top:16px" }, note,
           el("button", { class: "btn primary", disabled: !item.gate.passed, onclick: () => decide(item, "approved", note.value) }, "Approve"),
+          el("button", { class: "btn secondary", id: "request-changes", disabled: !item.run_id, onclick: () => requestChanges(item, note.value) }, "Request Changes"),
           el("button", { class: "btn secondary", onclick: () => decide(item, "rejected", note.value) }, "Reject"))
       : item.decision ? el("p", { class: "note" }, `${cap(item.decision.verdict)} by ${item.decision.by} at ${item.decision.at}${item.decision.note ? ` · "${item.decision.note}"` : ""}`) : null
   );

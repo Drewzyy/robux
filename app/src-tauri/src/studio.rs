@@ -606,3 +606,28 @@ pub fn add_screenshot(root: &Path, project: &str, src: &str) -> Result<String, S
     fs::write(dir.join(&safe), bytes).map_err(|e| e.to_string())?;
     Ok(format!("Added {safe}"))
 }
+
+/// Record "request changes" on a queue item and return what to run again:
+/// the same agent or pipeline, with the original instruction plus Andrew's
+/// note. Nothing starts here; the Runs page shows the cost for approval.
+pub fn request_changes(root: &Path, id: &str, note: &str) -> Result<serde_json::Value, String> {
+    let item = crate::queue::get(root, id)?;
+    let run_id = item.run_id.clone().ok_or("this item has no run to redo")?;
+    let item = crate::queue::decide(root, id, "changes_requested", note)?;
+    let ask = format!(
+        "\n\nAndrew reviewed the last attempt (queue item {}, run {run_id}) and asked for these changes:\n{}\nRead that run's output first, keep what worked, and fix exactly this.",
+        item.id,
+        note.trim()
+    );
+    let dir = root.join("runs").join(&run_id);
+    let read = |f: &str| fs::read_to_string(dir.join(f)).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok());
+    if let Some(p) = read("pipeline.json") {
+        let s = |k: &str| p.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+        return Ok(serde_json::json!({"mode": "pipeline", "pipeline": s("pipeline"), "project": s("project"), "prompt": s("input") + &ask}));
+    }
+    if let Some(r) = read("request.json") {
+        let s = |k: &str| r.get(k).and_then(|v| v.as_str()).unwrap_or("").to_string();
+        return Ok(serde_json::json!({"mode": "agent", "agent": s("agent"), "project": "", "prompt": s("prompt") + &ask}));
+    }
+    Err(format!("could not find run {run_id} to redo"))
+}

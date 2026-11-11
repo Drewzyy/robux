@@ -49,7 +49,7 @@ pub struct QueueItem {
     #[serde(default)]
     pub artifacts: Vec<String>,
     pub gate: Gate,
-    /// pending | approved | rejected
+    /// pending | approved | rejected | changes_requested
     pub status: String,
     #[serde(default)]
     pub decision: Option<Decision>,
@@ -117,8 +117,11 @@ fn write_item(p: &Path, item: &QueueItem) -> Result<(), String> {
 /// Record Andrew's decision. Approval is refused when the item's verification
 /// gate did not pass, so a failed gate can never be approved by accident.
 pub fn decide(root: &Path, id: &str, verdict: &str, note: &str) -> Result<QueueItem, String> {
-    if verdict != "approved" && verdict != "rejected" {
-        return Err(format!("verdict must be approved or rejected, got {verdict:?}"));
+    if !["approved", "rejected", "changes_requested"].contains(&verdict) {
+        return Err(format!("verdict must be approved, rejected, or changes_requested, got {verdict:?}"));
+    }
+    if verdict == "changes_requested" && note.trim().is_empty() {
+        return Err("say what to change in the note first".into());
     }
     let p = item_path(root, id)?;
     let mut item = get(root, id)?;

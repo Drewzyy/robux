@@ -83,6 +83,11 @@ fn queue_decide(id: String, verdict: String, note: String) -> Result<queue::Queu
     queue::decide(&root()?, &id, &verdict, &note)
 }
 
+#[tauri::command]
+fn queue_request_changes(id: String, note: String) -> Result<Value, String> {
+    studio::request_changes(&root()?, &id, &note)
+}
+
 /// Text of a file in runs/ or projects/ (folders list their entries).
 #[tauri::command]
 fn artifact_text(path: String) -> Result<String, String> {
@@ -381,6 +386,7 @@ fn main() {
             notify_test,
             queue_list,
             queue_decide,
+            queue_request_changes,
             artifact_text,
             artifact_image,
             export_png,
