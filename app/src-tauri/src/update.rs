@@ -46,7 +46,10 @@ pub fn build_commit() -> String {
 /// Where downloaded copies of the app get updates from (public; holds only
 /// the built app, never the code).
 pub const RELEASES_REPO: &str = "Drewzyy/robux";
+#[cfg(not(windows))]
 pub const RELEASE_ASSET: &str = "BrewixGames-macos.zip";
+#[cfg(windows)]
+pub const RELEASE_ASSET: &str = "BrewixGames-windows-setup.exe";
 
 /// The release tag this app was built as (set by the release build).
 pub fn release_tag() -> Option<&'static str> {
@@ -121,7 +124,8 @@ pub fn check(root: &Path) -> Result<Status, String> {
 pub enum Mode {
     Debug,
     Release,
-    /// macOS .app bundle; the path is the bundle that is running.
+    /// Installed app: on macOS the .app bundle that is running, on Windows
+    /// the installed brewixgames.exe.
     Bundle(PathBuf),
 }
 
@@ -130,6 +134,9 @@ pub fn mode() -> Mode {
     let s = exe.display().to_string();
     if let Some(i) = s.find(".app/Contents/MacOS") {
         return Mode::Bundle(PathBuf::from(&s[..i + 4]));
+    }
+    if cfg!(windows) && !s.contains("\\target\\") && exe.with_file_name("studio-template.tar.gz").is_file() {
+        return Mode::Bundle(exe);
     }
     if s.contains("/target/release/") {
         Mode::Release
@@ -220,6 +227,9 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         return Err("This copy is not an installed app; update it from GitHub instead.".into());
     };
     let (tag, url) = latest_release()?;
+    if release_tag() == Some(tag.as_str()) {
+        return Err(format!("You already have the newest version ({tag})."));
+    }
     on_line(&format!("Downloading BrewixGames {tag}..."));
     let tmp = std::env::temp_dir().join(format!("brewix-update-{tag}"));
     let _ = std::fs::remove_dir_all(&tmp);
@@ -232,6 +242,16 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         .map_err(|e| format!("download failed: {e}"))?;
     let mut f = std::fs::File::create(&zip).map_err(|e| e.to_string())?;
     std::io::copy(&mut resp.into_reader(), &mut f).map_err(|e| e.to_string())?;
+    drop(f);
+    if cfg!(windows) {
+        // The installer replaces the running app, so hand over to it: run it
+        // in passive mode (progress bar, no questions), then reopen the app.
+        // The vault refresh happens on that next launch (sync_release).
+        on_line("Installing. BrewixGames will close and reopen by itself.");
+        let script = format!("start \"\" /wait \"{}\" /P & start \"\" \"{}\"", zip.display(), running.display());
+        Command::new("cmd").args(["/C", &script]).spawn().map_err(|e| format!("could not start the installer: {e}"))?;
+        std::process::exit(0);
+    }
     on_line("Unpacking...");
     let mut x = Command::new("ditto");
     x.args(["-x", "-k"]).arg(&zip).arg(&tmp);
@@ -244,10 +264,7 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
     let mut d = Command::new("ditto");
     d.arg(&new_app).arg(&running);
     stream(d, on_line)?;
-    let template = running.join("Contents/Resources/studio-template.tar.gz");
-    if template.is_file() {
-        on_line(&crate::studio::refresh_from_template(root, &template)?);
-    }
+    let _ = root; // the vault refresh runs on the next launch (studio::sync_release)
     let _ = std::fs::remove_dir_all(&tmp);
     Ok(running.join("Contents/MacOS/brewixgames"))
 }

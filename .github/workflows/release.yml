@@ -1,13 +1,13 @@
 name: release
 
-# Builds BrewixGames for Mac on GitHub's Mac machines and publishes it on this
-# repo's Releases page. Runs on every push to the work branch, or on demand
-# from the Actions tab (Run workflow).
+# Builds BrewixGames for Mac and Windows on GitHub's free machines and
+# publishes both on this repo's Releases page. Runs on every push to the work
+# branch, or on demand from the Actions tab (Run workflow).
 
 on:
   push:
     branches: ["claude/beautiful-carson-h75brk"]
-    paths: ["app/**", "vault/**", "studio/**", "scripts/make_template.sh", ".github/workflows/release.yml"]
+    paths: ["app/**", "vault/**", "studio/**", "scripts/make_template.sh", "windows/**", ".github/workflows/release.yml"]
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,9 @@ permissions:
 concurrency:
   group: release
   cancel-in-progress: false
+
+env:
+  STUDIO_RELEASE: v0.1.${{ github.run_number }}
 
 jobs:
   build-mac:
@@ -40,8 +43,6 @@ jobs:
         run: sh src/scripts/make_template.sh
       - name: Build BrewixGames.app and .dmg
         working-directory: src/app
-        env:
-          STUDIO_RELEASE: v0.1.${{ github.run_number }}
         run: |
           npm install
           npm run build -- --config src-tauri/tauri.release.json
@@ -55,13 +56,71 @@ jobs:
           mkdir out
           ditto -c -k --keepParent "$APP" out/BrewixGames-macos.zip
           cp src/app/src-tauri/target/release/bundle/dmg/*.dmg out/BrewixGames.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: out/*
+
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - name: Roblox tools to bundle (Rojo, Selene, StyLua, Lune)
+        run: |
+          cargo binstall -y --locked rojo@7.7.1 selene@0.31.0 stylua@2.6.0 lune@0.11.1
+          mkdir -p src/app/src-tauri/tools
+          for t in rojo selene stylua lune; do cp "$HOME/.cargo/bin/$t.exe" src/app/src-tauri/tools/; done
+      - name: Studio template (vault, agents, config)
+        run: sh src/scripts/make_template.sh
+      - name: Build the Windows installer
+        working-directory: src/app
+        run: |
+          npm install
+          npm run build -- --config src-tauri/tauri.windows.json
+      - name: Check and package
+        run: |
+          SETUP=$(ls src/app/src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          test -f "$SETUP"
+          test -f src/app/src-tauri/target/release/brewixgames.exe
+          mkdir out
+          cp "$SETUP" out/BrewixGames-windows-setup.exe
+          cp src/windows/*.bat out/
+          (cd src/windows && 7z a ../../out/BrewixGames-windows-scripts.zip *.bat README.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*
+
+  publish:
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v0.1.${{ github.run_number }}" out/BrewixGames.dmg out/BrewixGames-macos.zip \
+          ls -la out
+          gh release create "$STUDIO_RELEASE" out/* \
             -R "$GITHUB_REPOSITORY" \
-            --title "BrewixGames v0.1.${{ github.run_number }}" \
-            --notes "Download BrewixGames.dmg, open it, and drag BrewixGames to Applications.
+            --title "BrewixGames $STUDIO_RELEASE" \
+            --notes "Mac: download BrewixGames.dmg, open it, and drag BrewixGames to Applications.
+
+          Windows: download INSTALL_WINDOWS.bat and double-click it (or run BrewixGames-windows-setup.exe yourself). After that, RUN_WINDOWS.bat opens the app and UPDATE_WINDOWS.bat gets the newest version.
 
           source: ${{ github.sha }}"

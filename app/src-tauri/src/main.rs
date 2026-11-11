@@ -363,6 +363,12 @@ fn main() {
     if let Err(e) = studio::ensure_studio() {
         eprintln!("could not set up the studio folder: {e}");
     }
+    // First launch after an update: refresh the vault and agents (backed up first).
+    if let Ok(r) = paths::studio_root() {
+        if let Some(m) = studio::sync_release(&r) {
+            eprintln!("{m}");
+        }
+    }
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             studio_info,

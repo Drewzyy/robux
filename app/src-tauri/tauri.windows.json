@@ -1,0 +1,17 @@
+{
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "studio-template.tar.gz": "studio-template.tar.gz",
+      "tools/": "tools/"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

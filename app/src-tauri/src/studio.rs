@@ -426,6 +426,21 @@ pub fn bundled_template() -> Option<PathBuf> {
     [dir.join("../Resources/studio-template.tar.gz"), dir.join("studio-template.tar.gz")].into_iter().find(|t| t.is_file())
 }
 
+/// After an update, the first launch of the new build refreshes the vault and
+/// agents from the template it carries (the old copy is backed up). The tag
+/// of the build that last did this is kept in studio/.release.
+pub fn sync_release(root: &Path) -> Option<String> {
+    let tag = crate::update::release_tag()?;
+    let stamp = root.join("studio/.release");
+    if fs::read_to_string(&stamp).map(|t| t.trim() == tag).unwrap_or(false) {
+        return None;
+    }
+    let t = bundled_template()?;
+    let msg = refresh_from_template(root, &t).ok()?;
+    let _ = fs::write(&stamp, tag);
+    Some(msg)
+}
+
 /// First launch of a downloaded app: unpack the studio into ~/BrewixGames.
 /// Does nothing when a studio folder already exists or this is a dev build.
 pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
@@ -439,6 +454,9 @@ pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
     untar(&t, &dest)?;
     for d in ["runs", "projects", "queue/items"] {
         fs::create_dir_all(dest.join(d)).map_err(|e| e.to_string())?;
+    }
+    if let Some(tag) = crate::update::release_tag() {
+        let _ = fs::write(dest.join("studio/.release"), tag);
     }
     Ok(Some(dest))
 }
