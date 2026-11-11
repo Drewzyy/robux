@@ -16,3 +16,6 @@ Load only the note your task needs. Do not read every note in this section.
 | [[09-Animation-VFX/vfx-sfx-library]] | Checkpoint light and sound, coin spin and chime, finish fanfare: juice on every action, with caps. | draft |
 | [[09-Animation-VFX/animation-basics]] | Animation Editor, Animator and AnimationTrack, priorities, load once, tween-based juice. | draft |
 | [[09-Animation-VFX/vfx-guide]] | ParticleEmitter, Beam, Trail, Highlight, lights; client-side spawning; cleanup. | draft |
+| [[09-Animation-VFX/character-movement-animations]] | Keep defaults first, Animate script IDs, speed matching, priorities, free tools. | draft |
+| [[09-Animation-VFX/combat-animation]] | Anticipation/active/recovery, short player wind-ups, hitstop values, hit feedback stack, markers. | draft |
+| [[09-Animation-VFX/building-and-world-animation]] | Place/remove/collect animations, ghost preview, cheap living-world effects table. | draft |

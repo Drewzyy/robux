@@ -54,3 +54,4 @@ verify: scripts/check_vault.py checks every path in this file exists and that th
 - [[00-Start-Here/how-to-use-this-vault]]: progressive disclosure rules and the note format, for humans and agents.
 - [[00-Start-Here/glossary]]: shared words.
 - [[00-Start-Here/policy-change-log]]: dated policy changes and what they changed in the vault.
+| [[00-Start-Here/recommended-tools]] | Free tool per job, costs, cautions about plugins. | draft |

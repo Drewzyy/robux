@@ -19,6 +19,8 @@ Task: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to the hard rules below. Do not search other sections.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `08-UI-UX/accessibility`, `11-Audio/audio-settings-menu`.
+
 ## Hard rules (from 13-Luau-Engineering)
 - Server owns all state that matters. Validate every remote argument on the server: type, range, permission, plausibility. Reject NaN and math.huge.
 - Data saves through ProfileStore (session locked), with autosave, leave-save, and `game:BindToClose`. A failed load never plays on a default profile.

@@ -17,6 +17,8 @@ Task: $ARGUMENTS
 
 Use `brewix search <words> --agent crowd` to find a specific note fast. If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `03-Game-Psychology/play-with-friends`.
+
 ## Steps
 1. Read the design. Decide what players do together and what one player alone does.
 2. Write server-authoritative code: state on the server, remotes validated for type, range, rate, and permission.

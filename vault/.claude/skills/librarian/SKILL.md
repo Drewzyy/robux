@@ -17,6 +17,8 @@ Task: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `11-Audio/satisfying-sfx`, `11-Audio/audio-settings-menu`, `08-UI-UX/ui-sound-pairing`.
+
 ## Inputs
 Input: the asset list from the design or build. Inserting Creator Store assets needs Andrew's open Studio session through the Studio MCP server; if it is not connected, write the shortlist and stop.
 

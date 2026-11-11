@@ -18,6 +18,8 @@ Task: $ARGUMENTS
 
 Use `brewix search <words> --agent director` to find a specific note fast. If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `03-Game-Psychology/lessons-from-classic-games`, `08-UI-UX/color-palettes`.
+
 ## Steps
 1. State the game's identity in one sentence: who it is for, the one hook, the feeling.
 2. Review design, UI, lighting, and thumbnails against that sentence. Name what fits and what does not, with file paths.

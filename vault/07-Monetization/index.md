@@ -23,3 +23,6 @@ Load only the note your task needs. Do not read every note in this section.
 | [[07-Monetization/do-not-sell-list]] | Never sell a win, never gate the finish line, never make the free path punishing. Hard rules. | draft |
 | [[07-Monetization/roblox-plus-and-subscriptions]] | Roblox Plus creator incentive and experience subscriptions. Later, not game 1. | draft |
 | [[07-Monetization/creator-store-and-ugc]] | Creator Store and UGC revenue splits. Later, not game 1. | draft |
+| [[07-Monetization/currency-satisfaction]] | One or two currencies, count-up feel, visible targets, sinks, honest pack pricing. | draft |
+| [[07-Monetization/microtransaction-playbook]] | Offer table with why each works, first purchase, spend depth, and the fairness line. | draft |
+| [[07-Monetization/server-boosts]] | Why social boosts work, shape, announce, extend not stack, server-only state. | draft |

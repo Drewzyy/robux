@@ -16,3 +16,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[11-Audio/audio-pipeline]] | sounds.json request sheet per game; generated in ForgeGUI by Andrew; Builder wires only real IDs. | draft |
 | [[11-Audio/forgegui]] | ForgeGUI, the chosen sound-effects tool: what is confirmed (nothing about audio yet) and the hand-off. | unverified |
 | [[11-Audio/audio-design-rules]] | Which actions need sound, SoundGroups and mixing, free and licensed audio only. | draft |
+| [[11-Audio/audio-settings-menu]] | SoundGroup tree, sliders, saving, defaults, personalisation extras. | draft |
+| [[11-Audio/satisfying-sfx]] | Layering, pitch variation, rising combos, timing, ducking for reveals. | draft |

@@ -17,6 +17,8 @@ Task: $ARGUMENTS
 
 Use `brewix search <words> --agent modeler` to find a specific note fast.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `10-Art-Environment/realism-when-needed`.
+
 ## Steps
 1. List the models the design needs that Studio parts cannot do well (props, characters, signature objects). Prefer Studio parts when they are good enough; say which you skipped and why.
 2. If Blender is connected (mcp__Blender__ tools): check `get_addon_status`, then build each model with `execute_blender_code` (bpy): low poly, real-world scale in metres, origin at the base, applied transforms, simple materials. Check it with `look`. For realistic props, search and import from Poly Haven only (`source: "polyhaven"`, all CC0).

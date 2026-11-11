@@ -17,6 +17,8 @@ Task: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `08-UI-UX/color-palettes`, `08-UI-UX/fonts-and-text`, `08-UI-UX/ui-animation`, `08-UI-UX/ui-sound-pairing`, `08-UI-UX/accessibility`.
+
 ## Inputs
 Input: the design doc or the monetization spec, and the project in `projects/<game>/`.
 

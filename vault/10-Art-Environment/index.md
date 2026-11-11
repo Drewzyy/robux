@@ -23,3 +23,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[10-Art-Environment/free-tool-table]] | Every free tool the studio uses and what it costs (nothing). | draft |
 | [[10-Art-Environment/asset-sources-and-licenses]] | Creator Store, built-in generators, Blender, paid marketplaces: license check before publishing. | draft |
 | [[10-Art-Environment/no-toolbox-rule]] | No Toolbox free models: hidden malicious scripts. | draft |
+| [[10-Art-Environment/lighting-presets]] | Rojo lighting module, bloom and colour correction cautions, mood presets table. | draft |
+| [[10-Art-Environment/realism-when-needed]] | Stylised by default, PBR via SurfaceAppearance, tint and reuse, trim sheets, mobile tests. | draft |

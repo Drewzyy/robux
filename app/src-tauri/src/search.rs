@@ -52,16 +52,28 @@ fn fingerprint(files: &[PathBuf]) -> String {
     format!("{:x}", h.finish())
 }
 
-/// Title from front matter `title:` or the first `# ` heading; body without
-/// the front matter.
-fn split_note(text: &str) -> (String, String) {
+struct Parsed {
+    title: String,
+    keywords: String,
+    description: String,
+    body: String,
+}
+
+/// Title, keywords, description (from front matter), and body.
+fn parse_note(text: &str) -> Parsed {
     let mut title = String::new();
+    let mut keywords = String::new();
+    let mut description = String::new();
     let mut body = text;
     if let Some(rest) = text.strip_prefix("---") {
         if let Some(end) = rest.find("\n---") {
             for l in rest[..end].lines() {
                 if let Some(t) = l.strip_prefix("title:") {
                     title = t.trim().trim_matches('"').to_string();
+                } else if let Some(t) = l.strip_prefix("keywords:") {
+                    keywords = t.trim().to_string();
+                } else if let Some(t) = l.strip_prefix("description:") {
+                    description = t.trim().to_string();
                 }
             }
             body = &rest[end + 4..];
@@ -70,7 +82,7 @@ fn split_note(text: &str) -> (String, String) {
     if title.is_empty() {
         title = body.lines().find_map(|l| l.strip_prefix("# ")).unwrap_or("").trim().to_string();
     }
-    (title, body.to_string())
+    Parsed { title, keywords, description, body: body.to_string() }
 }
 
 pub fn index_path(root: &Path) -> PathBuf {
@@ -84,23 +96,27 @@ pub fn open(root: &Path) -> Result<Connection, String> {
     let mut db = Connection::open(&p).map_err(|e| format!("open search index: {e}"))?;
     db.execute_batch(
         "CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
-         CREATE VIRTUAL TABLE IF NOT EXISTS notes USING fts5(path UNINDEXED, section UNINDEXED, title, body, tokenize='porter unicode61');",
+         DROP TABLE IF EXISTS notes;
+         CREATE VIRTUAL TABLE IF NOT EXISTS notes2 USING fts5(path UNINDEXED, section UNINDEXED, title, keywords, description, body, tokenize='porter unicode61');",
     )
     .map_err(|e| e.to_string())?;
     let files = notes(root);
     let fp = fingerprint(&files);
-    let have: Option<String> = db.query_row("SELECT v FROM meta WHERE k='fp'", [], |r| r.get(0)).ok();
+    let have: Option<String> = db.query_row("SELECT v FROM meta WHERE k='fp2'", [], |r| r.get(0)).ok();
     if have.as_deref() != Some(fp.as_str()) {
         let tx = db.transaction().map_err(|e| e.to_string())?;
-        tx.execute("DELETE FROM notes", []).map_err(|e| e.to_string())?;
+        tx.execute("DELETE FROM notes2", []).map_err(|e| e.to_string())?;
         for f in &files {
             let rel = f.strip_prefix(root).unwrap_or(f).to_string_lossy().replace('\\', "/");
             let section = rel.split('/').nth(1).unwrap_or("").to_string();
-            let (title, body) = split_note(&fs::read_to_string(f).unwrap_or_default());
-            tx.execute("INSERT INTO notes(path, section, title, body) VALUES (?1, ?2, ?3, ?4)", params![rel, section, title, body])
+            let n = parse_note(&fs::read_to_string(f).unwrap_or_default());
+            tx.execute(
+                "INSERT INTO notes2(path, section, title, keywords, description, body) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![rel, section, n.title, n.keywords, n.description, n.body],
+            )
                 .map_err(|e| e.to_string())?;
         }
-        tx.execute("INSERT OR REPLACE INTO meta(k, v) VALUES ('fp', ?1)", params![fp]).map_err(|e| e.to_string())?;
+        tx.execute("INSERT OR REPLACE INTO meta(k, v) VALUES ('fp2', ?1)", params![fp]).map_err(|e| e.to_string())?;
         tx.commit().map_err(|e| e.to_string())?;
     }
     Ok(db)
@@ -131,19 +147,21 @@ pub fn search(root: &Path, q: &str, sections: &[String], limit: usize) -> Result
         let Some(fq) = fts_query(q, any) else { return Ok(vec![]) };
         let mut st = db
             .prepare(
-                "SELECT path, section, title, snippet(notes, 3, char(1), char(2), ' ... ', 14), bm25(notes, 0, 0, 5.0, 1.0) AS s
-                 FROM notes WHERE notes MATCH ?1 ORDER BY s LIMIT 200",
+                "SELECT path, section, title, snippet(notes2, 5, char(1), char(2), ' ... ', 14), bm25(notes2, 0, 0, 6.0, 4.0, 2.0, 1.0) AS s
+                 FROM notes2 WHERE notes2 MATCH ?1 ORDER BY s LIMIT 200",
             )
             .map_err(|e| e.to_string())?;
-        let hits: Vec<Hit> = st
+        let mut hits: Vec<Hit> = st
             .query_map(params![fq], |r| {
                 Ok(Hit { path: r.get(0)?, section: r.get(1)?, title: r.get(2)?, snippet: r.get::<_, String>(3)?.replace('\n', " ").replace("[[", "").replace("]]", ""), score: -r.get::<_, f64>(4)? })
             })
             .map_err(|e| e.to_string())?
             .filter_map(Result::ok)
             .filter(|h| sections.is_empty() || sections.iter().any(|s| s == &h.section))
-            .take(limit)
             .collect();
+        // Section indexes are for navigation: list real notes first.
+        hits.sort_by_key(|h| h.path.ends_with("/index.md"));
+        hits.truncate(limit);
         if !hits.is_empty() || any {
             return Ok(hits);
         }
@@ -177,6 +195,10 @@ mod tests {
         // a new note is picked up without a manual rebuild
         fs::write(root.join("vault/07-Monetization/robux.md"), "# Robux pricing\nDevEx rates.").unwrap();
         assert_eq!(search(&root, "devex", &[], 5).unwrap()[0].path, "vault/07-Monetization/robux.md");
+        // keywords outrank a passing mention in another note's body
+        fs::write(root.join("vault/07-Monetization/boosts.md"), "---\nkeywords: server boost, luck\ndescription: whole-server boosts\n---\n# Boosts\nShape and timer.").unwrap();
+        fs::write(root.join("vault/13-Luau-Engineering/misc.md"), "# Misc\nA server boost is mentioned once here among many other words about code and tests.").unwrap();
+        assert_eq!(search(&root, "server boost", &[], 5).unwrap()[0].path, "vault/07-Monetization/boosts.md");
         // junk input never reaches FTS5 as syntax
         assert!(search(&root, "\" OR ( NEAR *", &[], 5).is_ok());
         let _ = fs::remove_dir_all(&root);

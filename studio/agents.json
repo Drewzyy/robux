@@ -115,7 +115,8 @@
         "10-Art-Environment",
         "03-Game-Psychology",
         "11-Audio",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "08-UI-UX"
       ],
       "output": "build.md",
       "role": "Luau Engineering Agent"
@@ -141,7 +142,8 @@
         "13-Luau-Engineering",
         "03-Game-Psychology",
         "14-QA-Optimization",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "09-Animation-VFX"
       ],
       "output": "lighting.md",
       "role": "World and Environment Artist"
@@ -167,7 +169,8 @@
         "01-Roblox-Fundamentals",
         "03-Game-Psychology",
         "11-Audio",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "08-UI-UX"
       ],
       "output": "assets.md",
       "role": "Audio Designer"
@@ -400,7 +403,8 @@
         "13-Luau-Engineering",
         "14-QA-Optimization",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "08-UI-UX"
       ],
       "output": "motion.md",
       "role": "Animation and VFX Specialist"

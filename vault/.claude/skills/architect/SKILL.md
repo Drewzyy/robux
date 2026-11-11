@@ -18,6 +18,8 @@ Task from Andrew or Lead: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and design from this skill's rules below. Do not search other sections for a substitute.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `03-Game-Psychology/streaks-and-daily-rewards`, `03-Game-Psychology/play-with-friends`, `03-Game-Psychology/lessons-from-classic-games`.
+
 ## Steps
 1. Restate the pitch in one sentence. Name the genre and the one core verb.
 2. Fill the design doc sections below. Every number (seconds, prices, stage counts) is a starting value to tune, and must say so.
