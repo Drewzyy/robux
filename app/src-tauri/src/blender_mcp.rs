@@ -100,8 +100,8 @@ pub fn guard(tool: &str, input: &serde_json::Value) -> Result<(), String> {
     if short == "execute_blender_code" {
         let code = input.get("code").and_then(|s| s.as_str()).unwrap_or_else(|| input.as_str().unwrap_or(""));
         let code = if code.is_empty() { input.to_string() } else { code.to_string() };
-        for (pat, what) in DENY_CODE {
-            if regex::Regex::new(pat).unwrap().is_match(&code) {
+        for (re, what) in deny_compiled_deny_code() {
+            if re.is_match(&code) {
                 return block(&format!("Blender code from an agent may not touch {what}"));
             }
         }
@@ -144,6 +144,8 @@ pub fn mock_server() -> i32 {
     let log = std::env::var("BREWIX_MOCK_BLENDER_LOG").ok();
     let obj = regex::Regex::new(r#"\.name\s*=\s*["']([^"']+)["']"#).unwrap();
     let export = regex::Regex::new(r#"export_scene\.(fbx|obj|gltf)\([^)]*filepath\s*=\s*r?["']([^"']+)["']"#).unwrap();
+    let dir_lit = regex::Regex::new(r#"["'](/[^"']*?assets/models)/?["']"#).unwrap();
+    let file_lit = regex::Regex::new(r#"["']/?([A-Za-z0-9_.-]+\.(fbx|obj))["']"#).unwrap();
     let mut out = std::io::stdout();
     for line in std::io::stdin().lock().lines().map_while(Result::ok) {
         let Ok(msg) = serde_json::from_str::<serde_json::Value>(&line) else { continue };
@@ -173,8 +175,6 @@ pub fn mock_server() -> i32 {
                         // literal in the code. Test mode cannot run Python, so
                         // print() output is not available.
                         if code.contains("export_scene.") && !export.is_match(code) {
-                            let dir_lit = regex::Regex::new(r#"["'](/[^"']*?assets/models)/?["']"#).unwrap();
-                            let file_lit = regex::Regex::new(r#"["']/?([A-Za-z0-9_.-]+\.(fbx|obj))["']"#).unwrap();
                             if let Some(d) = dir_lit.captures(code) {
                                 for f in file_lit.captures_iter(code) {
                                     let p = format!("{}/{}", &d[1], &f[1]);
@@ -246,4 +246,10 @@ mod tests {
         }
         assert_eq!(e["args"][0], "mcp-for-blender==2.2.4");
     }
+}
+
+/// DENY_CODE, compiled once.
+fn deny_compiled_deny_code() -> &'static [(regex::Regex, &'static str)] {
+    static C: std::sync::OnceLock<Vec<(regex::Regex, &'static str)>> = std::sync::OnceLock::new();
+    C.get_or_init(|| DENY_CODE.iter().map(|(p, w)| (regex::Regex::new(p).unwrap(), *w)).collect())
 }

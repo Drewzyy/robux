@@ -105,8 +105,8 @@ pub fn guard(tool: &str, tool_input: &serde_json::Value) -> Result<(), String> {
     let mut all = vec![];
     strings(tool_input, &mut all);
     let text = all.join("\n");
-    for (pat, what) in DENY {
-        if regex::Regex::new(pat).unwrap().is_match(&text) {
+    for (re, what) in deny_compiled_deny() {
+        if re.is_match(&text) {
             return Err(format!(
                 "Blocked by BrewixGames: Studio code from an agent may not touch {what}. Nothing is published, uploaded, sold, or sent online without Andrew. Do this without it, or list it under Open questions."
             ));
@@ -235,4 +235,10 @@ mod tests {
         assert_eq!(guard_hook(r#"{"tool_name":"mcp__Roblox_Studio__run_code","tool_input":{"command":"game:Publish()"}}"#), 2);
         assert_eq!(guard_hook(r#"{"tool_name":"mcp__Roblox_Studio__run_code","tool_input":{"command":"print('hi')"}}"#), 0);
     }
+}
+
+/// DENY, compiled once.
+fn deny_compiled_deny() -> &'static [(regex::Regex, &'static str)] {
+    static C: std::sync::OnceLock<Vec<(regex::Regex, &'static str)>> = std::sync::OnceLock::new();
+    C.get_or_init(|| DENY.iter().map(|(p, w)| (regex::Regex::new(p).unwrap(), *w)).collect())
 }

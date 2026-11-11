@@ -467,14 +467,12 @@ pub fn thumb_score(path: &Path) -> serde_json::Value {
         !h.starts_with("http") && !h.starts_with("data:") && path.parent().map(|d| d.join(h).is_file()).unwrap_or(false)
     });
     let outlined = words == 0 || svg.contains("stroke=");
-    let checks = vec![
-        ("1920x1080", svg.contains(r#"width="1920""#) && svg.contains(r#"height="1080""#)),
+    let checks = [("1920x1080", svg.contains(r#"width="1920""#) && svg.contains(r#"height="1080""#)),
         ("0 to 3 words", words <= 3),
         ("3 colours or fewer", (1..=3).contains(&cols)),
         ("text has a heavy outline", outlined),
         ("text fits inside the frame", svg_text_overflow(&svg).is_empty()),
-        ("uses a real game capture", capture),
-    ];
+        ("uses a real game capture", capture)];
     let pass = checks.iter().filter(|(_, ok)| *ok).count();
     let grade = match pass {
         6 => "A+",

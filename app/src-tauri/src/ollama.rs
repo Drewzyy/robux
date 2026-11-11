@@ -55,7 +55,14 @@ pub fn recommend(memory_gb: Option<f64>) -> Pick {
     c[i].clone()
 }
 
+/// Total memory in GB, measured once per app run (the Windows check starts
+/// PowerShell, which is slow).
 pub fn memory_gb() -> Option<f64> {
+    static MEM: std::sync::OnceLock<Option<f64>> = std::sync::OnceLock::new();
+    *MEM.get_or_init(measure_memory_gb)
+}
+
+fn measure_memory_gb() -> Option<f64> {
     let bytes: f64 = if cfg!(target_os = "linux") {
         let t = std::fs::read_to_string("/proc/meminfo").ok()?;
         let kb: f64 = t.lines().find(|l| l.starts_with("MemTotal:"))?.split_whitespace().nth(1)?.parse().ok()?;
@@ -82,7 +89,7 @@ fn parse_version(v: &str) -> Option<(u32, u32)> {
 
 fn get(path: &str) -> Result<serde_json::Value, String> {
     ureq::get(&format!("{BASE}{path}"))
-        .timeout(std::time::Duration::from_secs(3))
+        .timeout(std::time::Duration::from_millis(1500))
         .call()
         .map_err(|e| e.to_string())?
         .into_json()

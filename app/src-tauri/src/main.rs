@@ -14,7 +14,7 @@ fn root() -> Result<PathBuf, String> {
 // ---------- app info, Claude, spend ----------
 
 #[tauri::command]
-fn studio_info() -> Value {
+async fn studio_info() -> Value {
     let root = root();
     let pricing = root.as_ref().ok().and_then(|r| cost::load_pricing(r).ok());
     json!({
@@ -49,19 +49,19 @@ async fn uv_install() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn spend() -> Result<budget::Spend, String> {
+async fn spend() -> Result<budget::Spend, String> {
     Ok(budget::spend(&root()?, settings::load().monthly_budget_usd))
 }
 
 // ---------- settings and notifications ----------
 
 #[tauri::command]
-fn settings_get() -> settings::Settings {
+async fn settings_get() -> settings::Settings {
     settings::load()
 }
 
 #[tauri::command]
-fn settings_save(value: settings::Settings) -> Result<settings::Settings, String> {
+async fn settings_save(value: settings::Settings) -> Result<settings::Settings, String> {
     settings::save(&value)?;
     Ok(settings::load())
 }
@@ -79,23 +79,23 @@ async fn notify_test() -> Result<String, String> {
 // ---------- review queue ----------
 
 #[tauri::command]
-fn queue_list() -> Result<Vec<queue::QueueItem>, String> {
+async fn queue_list() -> Result<Vec<queue::QueueItem>, String> {
     queue::list(&root()?)
 }
 
 #[tauri::command]
-fn queue_decide(id: String, verdict: String, note: String) -> Result<queue::QueueItem, String> {
+async fn queue_decide(id: String, verdict: String, note: String) -> Result<queue::QueueItem, String> {
     queue::decide(&root()?, &id, &verdict, &note)
 }
 
 #[tauri::command]
-fn queue_request_changes(id: String, note: String) -> Result<Value, String> {
+async fn queue_request_changes(id: String, note: String) -> Result<Value, String> {
     studio::request_changes(&root()?, &id, &note)
 }
 
 /// Text of a file in runs/ or projects/ (folders list their entries).
 #[tauri::command]
-fn artifact_text(path: String) -> Result<String, String> {
+async fn artifact_text(path: String) -> Result<String, String> {
     let r = root()?;
     let full = r.join(&path);
     if full.is_dir() && (path.starts_with("projects/") || path.starts_with("runs/")) && !path.contains("..") {
@@ -113,7 +113,7 @@ fn artifact_text(path: String) -> Result<String, String> {
 
 /// An image artifact as a data URL for previews (svg, png, jpg).
 #[tauri::command]
-fn artifact_image(path: String) -> Result<String, String> {
+async fn artifact_image(path: String) -> Result<String, String> {
     let mime = if path.ends_with(".svg") {
         "image/svg+xml"
     } else if path.ends_with(".png") {
@@ -132,7 +132,7 @@ fn artifact_image(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn export_png(svg_path: String, png_base64: String) -> Result<String, String> {
+async fn export_png(svg_path: String, png_base64: String) -> Result<String, String> {
     let png = base64::engine::general_purpose::STANDARD
         .decode(png_base64.trim_start_matches("data:image/png;base64,"))
         .map_err(|e| e.to_string())?;
@@ -142,43 +142,43 @@ fn export_png(svg_path: String, png_base64: String) -> Result<String, String> {
 // ---------- agents, vault, runs ----------
 
 #[tauri::command]
-fn agents_status() -> Result<Vec<studio::AgentStatus>, String> {
+async fn agents_status() -> Result<Vec<studio::AgentStatus>, String> {
     studio::agent_statuses(&root()?)
 }
 
 #[tauri::command]
-fn agents_list() -> Result<Value, String> {
+async fn agents_list() -> Result<Value, String> {
     let cfg = cost::load_agents(&root()?)?;
     serde_json::to_value(cfg.agents).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn vault_tree() -> Result<Vec<studio::VaultSection>, String> {
+async fn vault_tree() -> Result<Vec<studio::VaultSection>, String> {
     studio::vault(&root()?)
 }
 
 #[tauri::command]
-fn vault_search(q: String) -> Result<Vec<studio_core::search::Hit>, String> {
+async fn vault_search(q: String) -> Result<Vec<studio_core::search::Hit>, String> {
     studio_core::search::search(&root()?, &q, &[], 25)
 }
 
 #[tauri::command]
-fn vault_note(path: String) -> Result<String, String> {
+async fn vault_note(path: String) -> Result<String, String> {
     studio::vault_note(&root()?, &path)
 }
 
 #[tauri::command]
-fn runs_overview() -> Result<Vec<studio::RunSummary>, String> {
+async fn runs_overview() -> Result<Vec<studio::RunSummary>, String> {
     studio::run_list(&root()?)
 }
 
 #[tauri::command]
-fn run_detail(id: String) -> Result<studio::RunDetail, String> {
+async fn run_detail(id: String) -> Result<studio::RunDetail, String> {
     studio::run_detail(&root()?, &id)
 }
 
 #[tauri::command]
-fn projects_list() -> Result<Vec<String>, String> {
+async fn projects_list() -> Result<Vec<String>, String> {
     let mut out = vec![];
     if let Ok(entries) = std::fs::read_dir(root()?.join("projects")) {
         for e in entries.flatten() {
@@ -192,34 +192,34 @@ fn projects_list() -> Result<Vec<String>, String> {
 }
 
 #[tauri::command]
-fn sounds_get(project: String) -> Result<Value, String> {
+async fn sounds_get(project: String) -> Result<Value, String> {
     studio::sounds_get(&root()?, &project)
 }
 
 #[tauri::command]
-fn sounds_set_asset(project: String, id: String, asset_id: String, license: String) -> Result<Value, String> {
+async fn sounds_set_asset(project: String, id: String, asset_id: String, license: String) -> Result<Value, String> {
     studio::sounds_set_asset(&root()?, &project, &id, &asset_id, &license)
 }
 
 #[tauri::command]
-fn project_import(path: String) -> Result<String, String> {
+async fn project_import(path: String) -> Result<String, String> {
     studio::import_project(&root()?, &path)
 }
 
 // ---------- starting runs (always estimate first, then approve) ----------
 
 #[tauri::command]
-fn run_prepare(agent: String, prompt: String) -> Result<runs::RunRequest, String> {
+async fn run_prepare(agent: String, prompt: String) -> Result<runs::RunRequest, String> {
     runs::prepare(&root()?, &agent, &prompt)
 }
 
 #[tauri::command]
-fn run_cancel(run_id: String) -> Result<runs::RunRequest, String> {
+async fn run_cancel(run_id: String) -> Result<runs::RunRequest, String> {
     runs::cancel(&root()?, &run_id)
 }
 
 #[tauri::command]
-fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
+async fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
     let r = root()?;
     let bin = paths::claude_bin()?;
     runs::approve(&r, &run_id, confirmed_cap_usd)?;
@@ -244,24 +244,24 @@ fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd: f64)
 }
 
 #[tauri::command]
-fn pipelines_list() -> Result<Value, String> {
+async fn pipelines_list() -> Result<Value, String> {
     let cfg = pipeline::load_config(&root()?)?;
     serde_json::to_value(cfg.pipelines).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn pipeline_prepare(name: String, input: String, project: Option<String>) -> Result<pipeline::PipelineRun, String> {
+async fn pipeline_prepare(name: String, input: String, project: Option<String>) -> Result<pipeline::PipelineRun, String> {
     let project = project.filter(|p| !p.is_empty());
     pipeline::prepare(&root()?, &name, &input, project.as_deref())
 }
 
 #[tauri::command]
-fn pipeline_cancel(pipeline_id: String) -> Result<pipeline::PipelineRun, String> {
+async fn pipeline_cancel(pipeline_id: String) -> Result<pipeline::PipelineRun, String> {
     pipeline::cancel(&root()?, &pipeline_id)
 }
 
 #[tauri::command]
-fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
+async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap_usd: f64) -> Result<(), String> {
     let r = root()?;
     let bin = paths::claude_bin()?;
     pipeline::approve(&r, &pipeline_id, confirmed_cap_usd)?;
@@ -291,19 +291,19 @@ fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirmed_cap
 // ---------- Ask Claude (chat) ----------
 
 #[tauri::command]
-fn chat_get() -> Result<Value, String> {
+async fn chat_get() -> Result<Value, String> {
     let r = root()?;
     Ok(json!({ "chat": chat::load(&r), "cap_usd": chat::cap(&r)?, "engine": settings::load().engine }))
 }
 
 #[tauri::command]
-fn chat_reset() -> Result<(), String> {
+async fn chat_reset() -> Result<(), String> {
     chat::reset(&root()?)
 }
 
 /// Send one message. Pressing Send approves this message at the cap shown.
 #[tauri::command]
-fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
+async fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
     let r = root()?;
     let bin = paths::claude_bin()?;
     let run_id = chat::begin(&r, &text)?;
@@ -322,14 +322,14 @@ fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
 // ---------- free local models (Ollama) ----------
 
 #[tauri::command]
-fn ollama_status() -> ollama::Status {
+async fn ollama_status() -> ollama::Status {
     ollama::status()
 }
 
 /// Download one model from the supported list. Andrew presses Download for
 /// a named model with its size shown; nothing downloads otherwise.
 #[tauri::command]
-fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
+async fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
     std::thread::spawn(move || {
         let app2 = app.clone();
         let res = ollama::pull(&model, &mut |l| {
@@ -343,45 +343,45 @@ fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
 // ---------- Roblox Studio connection ----------
 
 #[tauri::command]
-fn studio_mcp_status() -> Value {
+async fn studio_mcp_status() -> Value {
     let found = studio_core::studio_mcp::default_path();
     json!({ "found": found.as_ref().map(|p| p.display().to_string()), "agents": studio_core::studio_mcp::AGENTS })
 }
 
 #[tauri::command]
-fn blender_mcp_status() -> Value {
+async fn blender_mcp_status() -> Value {
     json!({ "uvx": studio_core::blender_mcp::uvx().map(|p| p.display().to_string()), "package": studio_core::blender_mcp::PACKAGE })
 }
 
 #[tauri::command]
-fn blender_addon_get() -> Result<String, String> {
+async fn blender_addon_get() -> Result<String, String> {
     studio_core::blender_mcp::fetch_addon(&root()?).map(|p| p.display().to_string())
 }
 
 #[tauri::command]
-fn project_open_in_studio(project: String) -> Result<String, String> {
+async fn project_open_in_studio(project: String) -> Result<String, String> {
     studio::open_in_studio(&root()?, &project)
 }
 
 #[tauri::command]
-fn studio_move(dest: String) -> Result<String, String> {
+async fn studio_move(dest: String) -> Result<String, String> {
     studio::move_studio(&root()?, &dest)
 }
 
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
-fn simulations(project: String) -> Result<Vec<Value>, String> {
+async fn simulations(project: String) -> Result<Vec<Value>, String> {
     studio::simulations(&root()?, &project)
 }
 
 #[tauri::command]
-fn thumbnails(project: String) -> Result<Value, String> {
+async fn thumbnails(project: String) -> Result<Value, String> {
     studio::thumbnails(&root()?, &project)
 }
 
 #[tauri::command]
-fn screenshot_add(project: String, path: String) -> Result<String, String> {
+async fn screenshot_add(project: String, path: String) -> Result<String, String> {
     studio::add_screenshot(&root()?, &project, &path)
 }
 
@@ -395,7 +395,7 @@ async fn update_check() -> Result<update::Status, String> {
 /// Download (git pull), rebuild, then restart the app automatically.
 /// Progress arrives as `update-line` events.
 #[tauri::command]
-fn update_apply(app: AppHandle) -> Result<(), String> {
+async fn update_apply(app: AppHandle) -> Result<(), String> {
     let r = root()?;
     std::thread::spawn(move || {
         let app2 = app.clone();
