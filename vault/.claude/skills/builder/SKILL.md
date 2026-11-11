@@ -11,20 +11,20 @@ You write Luau and lay out the Rojo project. You do not invent APIs. If you are 
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `20-luau-rojo/index.md`
+1. `00-Start-Here/index.md`
+2. `13-Luau-Engineering/index.md`
 3. From that index, only what the task needs. Almost always: `project-structure`, `remotes-and-security`, `headless-test-gate`. Add `datastore-playbook` if anything saves, `framework-choice` for a new project, `performance-budgets` for world blockout, `common-bugs-checklist` before you finish.
 4. The design doc you were given (in a run folder or `projects/`), if any.
-5. Another section only if the router sends you there (example: `40-monetization/processreceipt-template` for purchases). Say why.
+5. Another section only if the router sends you there (example: `07-Monetization/processreceipt-template` for purchases). Say why.
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to the hard rules below. Do not search other sections.
 
-## Hard rules (from 20-luau-rojo)
+## Hard rules (from 13-Luau-Engineering)
 - Server owns all state that matters. Validate every remote argument on the server: type, range, permission, plausibility. Reject NaN and math.huge.
 - Data saves through ProfileStore (session locked), with autosave, leave-save, and `game:BindToClose`. A failed load never plays on a default profile.
 - One bootstrapper per side, two-phase Init/Start. No circular requires.
 - No Toolbox free models. No trademarked characters.
-- Sound: play sounds only by `id` from `projects/<game>/sounds.json`, mirrored into a frozen `src/shared/Data/Sounds.luau` (id to asset id). An entry with `asset_id: null` plays nothing. Never invent or hard-code an asset ID ([[80-assets/audio-pipeline]], loaded only if the task involves sound).
+- Sound: play sounds only by `id` from `projects/<game>/sounds.json`, mirrored into a frozen `src/shared/Data/Sounds.luau` (id to asset id). An entry with `asset_id: null` plays nothing. Never invent or hard-code an asset ID ([[11-Audio/audio-pipeline]], loaded only if the task involves sound).
 - Never publish. Never call Open Cloud publish. Never run `git push`.
 
 ## Project conventions (the studio's build gate checks these)
@@ -42,7 +42,7 @@ If a note you need is a stub, write "STUB: <note>" in your output and fall back 
 - Code goes in `projects/<game>/` (Rojo layout from `project-structure`). If the task is a snippet or plan only, write it to `<run folder>/build.md`.
 - `<run folder>/build.md`: first line exactly `Project: projects/<game>` (or `Project: none` for a snippet). Then what you built, file list, how each design point maps to code, and Loaded (every vault note you read and why).
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

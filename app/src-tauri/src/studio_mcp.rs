@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 /// The MCP server name; tools appear to agents as mcp__Roblox_Studio__<tool>.
 pub const SERVER: &str = "Roblox_Studio";
 /// Agents that may use Studio when the connection is on.
-pub const AGENTS: &[&str] = &["builder", "scenic", "frame", "playtest", "assistant"];
+pub const AGENTS: &[&str] = &["builder", "scenic", "frame", "playtest", "motion", "crowd", "tuner", "assistant"];
 pub const TOOLS: &[&str] = &["run_code", "insert_model", "get_console_output", "start_stop_play", "run_script_in_play_mode", "get_studio_mode"];
 
 /// Where Roblox's installer puts the server.

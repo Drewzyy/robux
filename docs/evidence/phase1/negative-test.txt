@@ -1,6 +1,6 @@
 run run-architect-20261109-104602-cccf  agent architect  status done  cost 0.15664820000000002
-allowed sections: ['00-router', '20-luau-rojo']
-  Read   section      00-router/index.md  [ok]
-  Read   section      10-game-design/index.md  [VIOLATION: section 10-game-design not allowed]
-sections loaded, in order: ['00-router', '10-game-design']
+allowed sections: ['00-Start-Here', '13-Luau-Engineering']
+  Read   section      00-Start-Here/index.md  [ok]
+  Read   section      02-Game-Design/index.md  [VIOLATION: section 02-Game-Design not allowed]
+sections loaded, in order: ['00-Start-Here', '02-Game-Design']
 FAIL: 1 violation(s)

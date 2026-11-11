@@ -9,7 +9,7 @@ approved; running
       ok   claude run finished without error: exit 0, turns 19
       ok   wrote design.md: present
       ok   agent's own gate passed: 6 checks
-      ok   loaded only allowed vault sections: sections: 00-router, 10-game-design
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 02-Game-Design
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   core loop section: 
@@ -21,7 +21,7 @@ approved; running
       ok   claude run finished without error: exit 0, turns 82
       ok   wrote build.md: present
       FAIL agent's own gate passed: failed: common-bugs-checklist review
-      ok   loaded only allowed vault sections: sections: 00-router, 20-luau-rojo
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 13-Luau-Engineering
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   declares its project folder: projects/dawn-watch
@@ -45,7 +45,7 @@ all specs passed
       ok   claude run finished without error: exit 0, turns 28
       ok   wrote playtest-report.md: present
       ok   agent's own gate passed: 5 checks
-      ok   loaded only allowed vault sections: sections: 00-router, 90-templates-checklists, 10-game-design, 30-ui-ux
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 17-Development-Templates, 02-Game-Design, 08-UI-UX
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   states how it tested: 

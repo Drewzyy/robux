@@ -1,5 +1,5 @@
 from common import note
-S = "40-monetization"
+S = "07-Monetization"
 R = "Research report (Nov 9 2026) C4 and D1"
 
 note(f"{S}/money-math", "Robux to dollars: 70/30 split, DevEx $0.0038 standard and about $0.0054 US 18+, 30,000 minimum, Creator Rewards. Worked examples with the arithmetic shown.", "reference", "draft",
@@ -12,7 +12,7 @@ Re-check every number here in Creator Dashboard before the first cashout.
 ## The funnel
 1. A player spends Robux in the game.
 2. Marketplace fee 30%: the creator keeps **70%** as earned Robux.
-3. Earned Robux cash out through **DevEx** (or Roblox Wallet for eligible US creators, see [[40-monetization/roblox-wallet]]).
+3. Earned Robux cash out through **DevEx** (or Roblox Wallet for eligible US creators, see [[07-Monetization/roblox-wallet]]).
 
 ## DevEx
 - Standard rate **$0.0038 per earned Robux** since Sep 5, 2025 (was $0.0035).
@@ -71,8 +71,8 @@ note(f"{S}/product-catalog-template", "Catalog template: gamepass vs developer p
 
 ## Which type
 - **Gamepass**: one-time, permanent (VIP, 2x coins forever, speed coil, trail, extra inventory, area access). Free to create in Creator Dashboard or the Open Cloud Game Passes API.
-- **Developer product**: repeatable consumables (skip stage, coin pack, temporary boost, revive). **Needs `ProcessReceipt`** ([[40-monetization/processreceipt-template]]) or purchases fail and players are charged for nothing.
-- **Subscription**: recurring monthly benefit; not for game 1 ([[40-monetization/roblox-plus-and-subscriptions]]).
+- **Developer product**: repeatable consumables (skip stage, coin pack, temporary boost, revive). **Needs `ProcessReceipt`** ([[07-Monetization/processreceipt-template]]) or purchases fail and players are charged for nothing.
+- **Subscription**: recurring monthly benefit; not for game 1 ([[07-Monetization/roblox-plus-and-subscriptions]]).
 - **Private server**: recurring; around 100 R$/month when added later (god plan, not in repo).
 
 ## Rules
@@ -124,7 +124,7 @@ note(f"{S}/processreceipt-template", "Idempotent ProcessReceipt in Luau: NotProc
 - Return `PurchaseGranted` only after the grant is recorded. Otherwise Roblox keeps retrying (good) or, if the callback errors, the purchase loops.
 - Player not in this server, or data not loaded: return `NotProcessedYet`; Roblox retries when they rejoin.
 - Idempotent: record each `PurchaseId`; a replayed receipt returns `PurchaseGranted` without granting twice.
-- The grant and the record must be saved with the player's session-locked data ([[20-luau-rojo/datastore-playbook]]). How to force a save is ProfileStore-specific: read its docs (UNVERIFIED here).
+- The grant and the record must be saved with the player's session-locked data ([[13-Luau-Engineering/datastore-playbook]]). How to force a save is ProfileStore-specific: read its docs (UNVERIFIED here).
 
 ## Pure decision logic (testable in Lune)
 `src/shared/ReceiptLogic.luau`

@@ -70,9 +70,9 @@ Not verified
 ## Phase 1: vault skeleton and router
 
 What was built
-- `vault/00-router/index.md`: the router (52 lines). Rules, a task-to-section
+- `vault/00-Start-Here/index.md`: the router (52 lines). Rules, a task-to-section
   table, and each agent's home section. Pointers only.
-- `vault/00-router/`: how-to-use-this-vault (real content), glossary,
+- `vault/00-Start-Here/`: how-to-use-this-vault (real content), glossary,
   policy-change-log, sources (stubs).
 - One `index.md` per section 10 to 90, each a stub table naming the notes the
   section will hold (82 planned notes, from research report Part C).
@@ -97,11 +97,11 @@ What was built
 
 How it was verified
 1. Architect, asked for a design (beach lemonade tycoon): loaded
-   `00-router/index.md` then `10-game-design/index.md`, nothing else.
+   `00-Start-Here/index.md` then `02-Game-Design/index.md`, nothing else.
    check_loads PASS. Cost $0.157 (estimate $0.25, cap $0.63).
 2. Builder, asked for code (coin counter that saves): loaded
-   `00-router/index.md` then `20-luau-rojo/index.md`, plus a listing of
-   `20-luau-rojo/` and its own run folder. check_loads PASS. Cost $0.121
+   `00-Start-Here/index.md` then `13-Luau-Engineering/index.md`, plus a listing of
+   `13-Luau-Engineering/` and its own run folder. check_loads PASS. Cost $0.121
    (estimate $0.80, cap $2.02).
 3. Negative test: Architect's log checked against a code-only allow list
    FAILS, so the checker does catch a wrong section.
@@ -167,14 +167,14 @@ How it was verified
    three ideas." Estimate $1.54, cap $3.87, actual $1.52.
    - Pulse used web search, wrote 3 ranked original pitches (top: "Dawn
      Watch", co-op survive-the-night), every number marked UNVERIFIED
-     (secondhand search summaries). Loaded 00-router, 70-competitors,
-     10-game-design.
+     (secondhand search summaries). Loaded 00-Start-Here, 16-Market-Research,
+     02-Game-Design.
    - Lead wrote the plan (Architect then Builder, ends in the review queue).
-     Loaded 00-router, 90-templates-checklists.
-   - Architect wrote the Dawn Watch design doc. Loaded 00-router,
-     10-game-design.
+     Loaded 00-Start-Here, 17-Development-Templates.
+   - Architect wrote the Dawn Watch design doc. Loaded 00-Start-Here,
+     02-Game-Design.
    - Builder built `projects/dawn-watch` (17 Luau files, 8 Lune specs).
-     Loaded 00-router, 20-luau-rojo. Studio gate: rojo build PASS, Selene PASS
+     Loaded 00-Start-Here, 13-Luau-Engineering. Studio gate: rojo build PASS, Selene PASS
      (offline std), Lune 8/8 PASS, StyLua FAIL.
    - One queue item landed: `q-pipe-pitch-to-build-20261109-105542-ca9c`,
      status pending, gate failed (41 checks, 5 failed), 5 artifacts linked.
@@ -227,12 +227,12 @@ What was built
   research flagged them or where I could not confirm them.
 - Status: 18 verified (checked against a primary source or by running code),
   77 draft (from the research, mostly secondary sources), 1 unverified
-  (`80-assets/lighting-and-mood`: the research has no lighting content, so the
+  (`10-Art-Environment/lighting-and-mood`: the research has no lighting content, so the
   note holds goals only instead of guessed values).
 - The corrections the brief asked for are in: Roblox Wallet as the cashout
-  route (`40-monetization/roblox-wallet`), honest benchmarks with a D1 of 15%
-  labeled as about p90 (`50-retention-analytics/benchmarks`), QPTR retired and
-  28-day window (`50-retention-analytics/discovery-signals`), cross-game pass
+  route (`07-Monetization/roblox-wallet`), honest benchmarks with a D1 of 15%
+  labeled as about p90 (`06-Retention/benchmarks`), QPTR retired and
+  28-day window (`06-Retention/discovery-signals`), cross-game pass
   sales off May 30 2026, ProfileStore over ProfileService, the flow claim
   flagged as contested (Cutting et al. 2023).
 - Section indexes now show each note's real status; `check_vault.py --full`
@@ -279,7 +279,7 @@ Honest limits
 ## UI redesign and extras (Andrew's UI brief + thumbnails brief)
 
 Inputs: `agent-tool/ui-design-prompt.md` (Apple-style, dark only, red
-`#FF3B30`), the thumbnails brief (now `vault/80-assets/thumbnail-mrbeast-logic`),
+`#FF3B30`), the thumbnails brief (now `vault/10-Art-Environment/thumbnail-mrbeast-logic`),
 plus: auto-updater, Discord webhook, Claude without an API key, find free ways
 around anything blocked. `agent-tool/claude-code-build-prompt.md` added (the
 UI brief reads it). No conflict between the two prompts on what the app does.
@@ -366,7 +366,7 @@ acceptance; it de-risks it.
 
 Result: pipe-improve-build-20261109-114826-63b1, estimate $1.46, cap $3.66, actual $1.89. Landed in the review
 queue as one pending item.
-- Architect: gate PASS (all checks). Read 00-router and 10-game-design only.
+- Architect: gate PASS (all checks). Read 00-Start-Here and 02-Game-Design only.
 - Builder: changed the existing project; studio build gate PASS (rojo build,
   Selene, StyLua, 9/9 Lune specs including a new FirstRun spec). Its own gate
   failed one item honestly ("common-bugs-checklist review: NOT RUN").
@@ -396,12 +396,12 @@ What I could and could not confirm
   be read. Every third-party listing found describes ForgeGUI as a visual
   asset tool (UI, HUD, icons, thumbnails, 3D, push to Studio by plugin).
   None mentions audio. So "ForgeGUI makes sound effects" is UNVERIFIED, and
-  so are its price and license terms. Recorded in `vault/80-assets/forgegui`.
+  so are its price and license terms. Recorded in `vault/11-Audio/forgegui`.
 
 What was built (works with ForgeGUI or any sound tool)
 - `projects/<game>/sounds.json`: the sound request sheet (id, event, prompt,
   length, loop, volume, first_60_seconds, asset_id, license). Shape in
-  `vault/80-assets/audio-pipeline`.
+  `vault/11-Audio/audio-pipeline`.
 - Librarian writes the sheet with paste-ready prompts and never invents IDs;
   Builder wires sounds only by id and only with a real asset ID; Playtest
   lists first-60-seconds sounds still missing an ID.

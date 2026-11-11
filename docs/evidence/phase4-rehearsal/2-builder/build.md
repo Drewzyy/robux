@@ -58,9 +58,9 @@ Changed: `Config`, `Economy`, `Tutorial` (shared); `NightService`, `LampService`
 4. Is a 4-word aim hint worth raising the 3-word cap?
 
 ## Loaded
-- `00-router/index.md`: required first read.
-- `20-luau-rojo/index.md`: required section index.
-- `20-luau-rojo/remotes-and-security.md`: confirmed server-owned state and that no new remote is added.
-- `20-luau-rojo/headless-test-gate.md`: how to write Lune-testable pure logic and run the gate.
+- `00-Start-Here/index.md`: required first read.
+- `13-Luau-Engineering/index.md`: required section index.
+- `13-Luau-Engineering/remotes-and-security.md`: confirmed server-owned state and that no new remote is added.
+- `13-Luau-Engineering/headless-test-gate.md`: how to write Lune-testable pure logic and run the gate.
 - Design doc (architect run) and the project source files listed above.
 - Not loaded: `project-structure` (layout unchanged, only added files in existing folders), `datastore-playbook` (nothing saves), `common-bugs-checklist` (not read; I reviewed manually instead, so that check is not claimed).

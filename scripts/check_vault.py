@@ -18,11 +18,7 @@ import sys
 from pathlib import Path
 
 VAULT = Path(__file__).resolve().parent.parent / "vault"
-SECTIONS = [
-    "10-game-design", "20-luau-rojo", "30-ui-ux", "40-monetization",
-    "50-retention-analytics", "60-policy", "70-competitors", "80-assets",
-    "90-templates-checklists",
-]
+SECTIONS = sorted(p.name for p in VAULT.iterdir() if p.is_dir() and re.match(r"(0[1-9]|1[0-9])-", p.name))
 REQUIRED = ["description", "type", "status", "last_checked", "verify"]
 LINK = re.compile(r"\[\[([^\]|#]+)(?:[|#][^\]]*)?\]\]")
 
@@ -49,9 +45,9 @@ def resolves(link: str) -> bool:
 def main() -> int:
     full = "--full" in sys.argv
     errs, warns = [], []
-    router = VAULT / "00-router/index.md"
+    router = VAULT / "00-Start-Here/index.md"
     if not router.is_file():
-        errs.append("missing 00-router/index.md")
+        errs.append("missing 00-Start-Here/index.md")
     else:
         n = len(router.read_text().splitlines())
         if n >= 80:

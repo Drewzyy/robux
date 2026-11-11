@@ -52,6 +52,9 @@ pub struct AgentProfile {
     /// The output file the agent's skill must write in its run folder.
     #[serde(default)]
     pub output: Option<String>,
+    /// The agent's role title on the team (e.g. "Executive Producer").
+    #[serde(default)]
+    pub role: String,
 }
 fn default_base() -> u64 {
     8000
@@ -211,6 +214,7 @@ mod tests {
             description: String::new(),
             allowed_sections: vec![],
             output: None,
+            role: String::new(),
         };
         let e = estimate("tester", &profile, "What is the probe phrase?", &pricing).unwrap();
         assert!(e.low_usd <= 0.0009911 && 0.0009911 <= e.high_usd, "{e:?}");

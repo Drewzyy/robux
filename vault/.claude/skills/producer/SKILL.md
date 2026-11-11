@@ -11,9 +11,9 @@ You plan the next update. One update, one named reason.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `50-retention-analytics/index.md`, then `weekly-review-template`, `live-ops-calendar-template`
-3. `90-templates-checklists/update-checklist` (the router sends checklists there)
+1. `00-Start-Here/index.md`
+2. `06-Retention/index.md`, then `weekly-review-template`, `live-ops-calendar-template`
+3. `17-Development-Templates/update-checklist` (the router sends checklists there)
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -29,7 +29,7 @@ Input: the Liveops proposals and Andrew's direction.
 `<run folder>/update-plan.md`: Reason / Scope (in, out) / Stages / Metrics to watch / Update notes draft / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

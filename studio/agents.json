@@ -28,11 +28,14 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "70-competitors",
-        "10-game-design"
+        "00-Start-Here",
+        "16-Market-Research",
+        "02-Game-Design",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "pitch.md"
+      "output": "pitch.md",
+      "role": "Market Research Analyst"
     },
     "lead": {
       "description": "Manager. Turns your instruction into a team plan and reports status.",
@@ -49,10 +52,13 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "90-templates-checklists"
+        "00-Start-Here",
+        "17-Development-Templates",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "plan.md"
+      "output": "plan.md",
+      "role": "Executive Producer"
     },
     "architect": {
       "description": "Turns a pitch into a one-page game design doc.",
@@ -69,12 +75,15 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "10-game-design",
-        "40-monetization",
-        "60-policy"
+        "00-Start-Here",
+        "02-Game-Design",
+        "07-Monetization",
+        "01-Roblox-Fundamentals",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "design.md"
+      "output": "design.md",
+      "role": "Game Designer"
     },
     "builder": {
       "description": "Writes Luau as a Rojo project and runs the headless build gate.",
@@ -100,12 +109,16 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "20-luau-rojo",
-        "40-monetization",
-        "80-assets"
+        "00-Start-Here",
+        "13-Luau-Engineering",
+        "07-Monetization",
+        "10-Art-Environment",
+        "03-Game-Psychology",
+        "11-Audio",
+        "19-Project-Memory"
       ],
-      "output": "build.md"
+      "output": "build.md",
+      "role": "Luau Engineering Agent"
     },
     "scenic": {
       "description": "Lighting, atmosphere, and mood as a Rojo config module.",
@@ -123,11 +136,15 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "80-assets",
-        "20-luau-rojo"
+        "00-Start-Here",
+        "10-Art-Environment",
+        "13-Luau-Engineering",
+        "03-Game-Psychology",
+        "14-QA-Optimization",
+        "19-Project-Memory"
       ],
-      "output": "lighting.md"
+      "output": "lighting.md",
+      "role": "World and Environment Artist"
     },
     "librarian": {
       "description": "Sources models and effects with licenses checked, and writes the sounds.json request sheet for ForgeGUI. No Toolbox.",
@@ -145,11 +162,15 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "80-assets",
-        "60-policy"
+        "00-Start-Here",
+        "10-Art-Environment",
+        "01-Roblox-Fundamentals",
+        "03-Game-Psychology",
+        "11-Audio",
+        "19-Project-Memory"
       ],
-      "output": "assets.md"
+      "output": "assets.md",
+      "role": "Audio Designer"
     },
     "frame": {
       "description": "Builds HUD, shop, and menus, phone first.",
@@ -167,11 +188,14 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "30-ui-ux",
-        "40-monetization"
+        "00-Start-Here",
+        "08-UI-UX",
+        "07-Monetization",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "ui.md"
+      "output": "ui.md",
+      "role": "UX/UI Designer"
     },
     "playtest": {
       "description": "Plays or inspects every build and reports specific problems.",
@@ -193,12 +217,16 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "90-templates-checklists",
-        "10-game-design",
-        "30-ui-ux"
+        "00-Start-Here",
+        "17-Development-Templates",
+        "02-Game-Design",
+        "08-UI-UX",
+        "03-Game-Psychology",
+        "04-Onboarding",
+        "19-Project-Memory"
       ],
-      "output": "playtest-report.md"
+      "output": "playtest-report.md",
+      "role": "QA and Exploit Testing Agent"
     },
     "splash": {
       "description": "Icon and 10-20 thumbnail comps (MrBeast logic, the game's own visuals), ranked.",
@@ -217,13 +245,16 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "80-assets",
-        "30-ui-ux",
-        "60-policy",
-        "50-retention-analytics"
+        "00-Start-Here",
+        "10-Art-Environment",
+        "08-UI-UX",
+        "01-Roblox-Fundamentals",
+        "06-Retention",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "splash.md"
+      "output": "splash.md",
+      "role": "Thumbnails and Promo (support)"
     },
     "merchant": {
       "description": "Launch shop: products and prices, do-not-sell list enforced.",
@@ -240,11 +271,14 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "40-monetization",
-        "60-policy"
+        "00-Start-Here",
+        "07-Monetization",
+        "01-Roblox-Fundamentals",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "shop.md"
+      "output": "shop.md",
+      "role": "Monetization and Economy Specialist"
     },
     "liveops": {
       "description": "Reads analytics exports and proposes events in Roblox's priority order.",
@@ -261,10 +295,13 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "50-retention-analytics"
+        "00-Start-Here",
+        "06-Retention",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "liveops.md"
+      "output": "liveops.md",
+      "role": "LiveOps Analyst (support)"
     },
     "producer": {
       "description": "Plans the next update: one reason, one scope, staged for the team.",
@@ -281,11 +318,14 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "50-retention-analytics",
-        "90-templates-checklists"
+        "00-Start-Here",
+        "06-Retention",
+        "17-Development-Templates",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "update-plan.md"
+      "output": "update-plan.md",
+      "role": "Update Planner (support)"
     },
     "assistant": {
       "description": "Ask Claude: answers questions and fixes things in your game projects.",
@@ -307,7 +347,8 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [],
-      "output": null
+      "output": null,
+      "role": "Ask Claude helper"
     },
     "simulator": {
       "description": "Predicts how players of different ages experience a game: time played, quit points, a rating, and fixes.",
@@ -325,12 +366,156 @@
         "Bash(brewix search:*)"
       ],
       "allowed_sections": [
-        "00-router",
-        "50-retention-analytics",
-        "10-game-design",
-        "30-ui-ux"
+        "00-Start-Here",
+        "06-Retention",
+        "02-Game-Design",
+        "08-UI-UX",
+        "03-Game-Psychology",
+        "19-Project-Memory"
       ],
-      "output": "simulation.md"
+      "output": "simulation.md",
+      "role": "Game Psychology and Retention Specialist"
+    },
+    "motion": {
+      "description": "Adds animation and visual feedback (tweens, particles, trails, camera kicks) that make every action feel good and stay cheap on phones.",
+      "model": "claude-sonnet-5-5",
+      "turns": 12,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Edit",
+        "Bash(stylua:*)",
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "09-Animation-VFX",
+        "13-Luau-Engineering",
+        "14-QA-Optimization",
+        "03-Game-Psychology",
+        "19-Project-Memory"
+      ],
+      "output": "motion.md",
+      "role": "Animation and VFX Specialist"
+    },
+    "crowd": {
+      "description": "Designs and builds multiplayer play, social features, and NPCs or bots, with the server owning every rule.",
+      "model": "claude-sonnet-5-5",
+      "turns": 14,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Edit",
+        "Bash(stylua:*)",
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "12-Multiplayer-NPCs",
+        "13-Luau-Engineering",
+        "02-Game-Design",
+        "03-Game-Psychology",
+        "19-Project-Memory"
+      ],
+      "output": "multiplayer.md",
+      "role": "NPC and Multiplayer Specialist"
+    },
+    "tuner": {
+      "description": "Finds what makes a game slow or heavy on phones and fixes it, measured against the studio's performance budgets.",
+      "model": "claude-sonnet-5-5",
+      "turns": 12,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Edit",
+        "Bash(stylua:*)",
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)",
+        "Bash(ls:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "14-QA-Optimization",
+        "13-Luau-Engineering",
+        "19-Project-Memory"
+      ],
+      "output": "performance.md",
+      "role": "Optimization Specialist"
+    },
+    "director": {
+      "description": "Guards the game's identity: one clear hook, a consistent look and feel, and cuts anything generic or off-theme.",
+      "model": "claude-sonnet-5-5",
+      "turns": 10,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Bash(brewix search:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "02-Game-Design",
+        "03-Game-Psychology",
+        "08-UI-UX",
+        "10-Art-Environment",
+        "16-Market-Research",
+        "19-Project-Memory"
+      ],
+      "output": "direction.md",
+      "role": "Creative Director"
+    },
+    "release": {
+      "description": "Prepares a release checklist and notes for Andrew to publish; never publishes, uploads, or changes live settings.",
+      "model": "claude-sonnet-5-5",
+      "turns": 10,
+      "context_tokens": 14000,
+      "output_tokens_per_turn": 1200,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)",
+        "Bash(ls:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "17-Development-Templates",
+        "01-Roblox-Fundamentals",
+        "07-Monetization",
+        "14-QA-Optimization",
+        "19-Project-Memory"
+      ],
+      "output": "release.md",
+      "role": "Release Manager"
     }
   }
 }

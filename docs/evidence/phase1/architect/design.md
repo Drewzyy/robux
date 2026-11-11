@@ -48,15 +48,15 @@ There is no separate lobby. The player spawns on sand at their stand with the se
 - Nothing is proposed for sale in this document. Monetization is for Merchant later.
 
 ## 10. Open questions and UNVERIFIED
-- STUB / missing vault notes: `10-game-design/index` is a stub (status: stub). The notes `game-design-doc-template`, `core-loop-template`, `first-60-seconds-checklist`, `genre-playbooks/tycoon` and `economy-worksheet` do not exist. I designed from the architect skill's rules.
+- STUB / missing vault notes: `02-Game-Design/index` is a stub (status: stub). The notes `game-design-doc-template`, `core-loop-template`, `first-60-seconds-checklist`, `genre-playbooks/tycoon` and `economy-worksheet` do not exist. I designed from the architect skill's rules.
 - UNVERIFIED: the player-psychology claims (9.8-minute median session, the Cutting et al. 2023 study, Roblox's priority order) come from the skill text. I could not confirm them in the vault because `player-psychology` was not loaded (it is only listed as planned).
 - UNVERIFIED: all timings, prices and counts are untuned guesses.
 - Q: Is the working title "Sunny Sips" acceptable? Andrew decides.
 - Q: Should the Beach Party bar be per server or per friend group? Decision needed before Builder starts.
-- Q: Is a daily-return flavor reward fine for ages? Check `60-policy` before any streak-type reward ships (not loaded here).
+- Q: Is a daily-return flavor reward fine for ages? Check `01-Roblox-Fundamentals` before any streak-type reward ships (not loaded here).
 
 ## 11. Loaded
-- `00-router/index.md`: required first read, routed the task to `10-game-design`.
-- `10-game-design/index.md`: the section index. It is a stub, and all listed notes are marked planned.
+- `00-Start-Here/index.md`: required first read, routed the task to `02-Game-Design`.
+- `02-Game-Design/index.md`: the section index. It is a stub, and all listed notes are marked planned.
 - Tried to read `game-design-doc-template`, `core-loop-template`, `first-60-seconds-checklist`, `genre-playbooks/tycoon` and `economy-worksheet`: all five were missing, so no content was used.
-- No other section was loaded. I proposed nothing for sale, so `40-monetization/do-not-sell-list` was not needed.
+- No other section was loaded. I proposed nothing for sale, so `07-Monetization/do-not-sell-list` was not needed.

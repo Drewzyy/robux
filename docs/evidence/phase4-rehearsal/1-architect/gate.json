@@ -2,7 +2,7 @@
 {"name": "all 11 sections present", "passed": true, "detail": "Sections 1-11 in the required order."},
 {"name": "first 60 seconds has all four time windows with a concrete action in each", "passed": true, "detail": "0-5, 5-10, 10-30, 30-60 each have a concrete action, plus a what-exists-now comparison and a joiner flow."},
 {"name": "every number is marked as a starting value", "passed": true, "detail": "Number rule at top states all numbers are starting values; sections 2 and 6 repeat it. Timings for the current build are marked UNVERIFIED (read from code, not run)."},
-{"name": "nothing on the do-not-sell list is proposed for sale", "passed": true, "detail": "Nothing is proposed for sale. 40-monetization/do-not-sell-list was not loaded because nothing is for sale (stated in sections 9 and 11)."},
+{"name": "nothing on the do-not-sell list is proposed for sale", "passed": true, "detail": "Nothing is proposed for sale. 07-Monetization/do-not-sell-list was not loaded because nothing is for sale (stated in sections 9 and 11)."},
 {"name": "no claim presented as fact without a vault source; others marked UNVERIFIED", "passed": true, "detail": "Checklist and core-loop claims come from the two loaded notes. The Cutting study and API/touch/audio claims are marked UNVERIFIED. Existing-build timings are marked UNVERIFIED. Nothing was run in Studio."},
 {"name": "not generic: names at least 3 mechanics specific to this pitch", "passed": true, "detail": "Starter oil, fast first light, pre-aimed first beam, welcome Mumble, first-light celebration, tutorial intensity cap, plus existing telegraphed lanes and the Harbor/Stormside/Crown lamps."}
 ]}

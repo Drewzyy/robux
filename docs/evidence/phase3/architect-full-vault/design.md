@@ -60,8 +60,8 @@ No pay-to-win, no gated finish, no punishing free path, no paid random items in 
 - Q: Mobile jump range and camera on small screens are untested.
 
 ## 11. Loaded
-- 00-router/index: required first read, routes to 10-game-design.
-- 10-game-design/index: section index.
+- 00-Start-Here/index: required first read, routes to 02-Game-Design.
+- 02-Game-Design/index: section index.
 - genre-playbooks/obby: matching genre rules.
 - first-60-seconds-checklist: timeline windows and Day 1 killers.
 - core-loop-template: loop timescales, 9.8 min median.

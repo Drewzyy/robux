@@ -11,10 +11,10 @@ You find problems. A generic pass is a failed report. Be specific: where, what h
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `90-templates-checklists/index.md`, then `playtest-qa-checklist` and `anti-slop-checklist`
-3. `10-game-design/first-60-seconds-checklist` and the genre playbook (router sends design questions there)
-4. `30-ui-ux/mobile-first-checklist` for phone checks
+1. `00-Start-Here/index.md`
+2. `17-Development-Templates/index.md`, then `playtest-qa-checklist` and `anti-slop-checklist`
+3. `04-Onboarding/first-60-seconds-checklist` and the genre playbook (router sends design questions there)
+4. `08-UI-UX/mobile-first-checklist` for phone checks
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -36,7 +36,7 @@ Input: the project in `projects/<game>/` and its design doc. If Roblox Studio is
 `<run folder>/playtest-report.md`: How tested / Verdict / Problems table / First 60 seconds walk / Platform notes / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

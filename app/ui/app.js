@@ -392,7 +392,7 @@ async function viewAgents() {
     head("Agents", el("span", {}, `${agents.length} agents · ${working ? working + " working" : "none working"} · `, runningSubtitle())),
     el("div", { class: "list", id: "agent-list" }, agents.map((a) =>
       el("div", { class: "row tap" + (a.status === "working" ? " active-agent" : ""), "data-agent": a.name, onclick: () => agentSheet(a) },
-        el("div", { class: "grow" }, el("div", { class: "row-title" }, cap(a.name)), el("div", { class: "row-sub" }, a.description)),
+        el("div", { class: "grow" }, el("div", { class: "row-title" }, cap(a.name), a.role ? el("span", { class: "role" }, a.role) : null), el("div", { class: "row-sub" }, a.description)),
         AGENT_STATUS[a.status](),
         el("span", { class: "chev", html: ICONS.chev })
       )

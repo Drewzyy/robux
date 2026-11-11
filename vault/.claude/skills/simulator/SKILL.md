@@ -11,10 +11,10 @@ You predict how real players would experience this game by reading its design an
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `50-retention-analytics/index.md`, then `benchmarks` (the honest distribution your numbers must sit inside)
-3. `10-game-design/index.md`, then `first-60-seconds-checklist`, `player-psychology`, and the matching genre playbook
-4. `30-ui-ux/mobile-first-checklist` (phone personas)
+1. `00-Start-Here/index.md`
+2. `06-Retention/index.md`, then `benchmarks` (the honest distribution your numbers must sit inside)
+3. `02-Game-Design/index.md`, then `first-60-seconds-checklist`, `player-psychology`, and the matching genre playbook
+4. `08-UI-UX/mobile-first-checklist` (phone personas)
 5. The project: its design doc and the code that runs the first minutes (spawn, tutorial, core loop, HUD, rewards). Read enough code to quote files and lines.
 
 ## Personas (at least these six)
@@ -49,7 +49,7 @@ Task: $ARGUMENTS
 - `<run folder>/simulation.md`: the same findings in plain words for Andrew: Rating / Who stays and who leaves (table) / Fix these first / How this was estimated / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

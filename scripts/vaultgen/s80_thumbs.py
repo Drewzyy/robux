@@ -1,5 +1,5 @@
 from common import note
-note("80-assets/thumbnail-mrbeast-logic",
+note("10-Art-Environment/thumbnail-mrbeast-logic",
  "MrBeast thumbnail logic for Roblox: one subject, one emotion, one prize or stake, 0-3 words; curiosity gap; Splash's workflow and 10-point gate.",
  "playbook", "draft",
  "Andrew's thumbnail brief (Nov 9 2026), written from 1of10, Thumix, ThumbnailAI, YouThumb, and aaaronmiller/create-viral-content viral-thumbnails reference",
@@ -7,7 +7,7 @@ note("80-assets/thumbnail-mrbeast-logic",
 r"""
 # Thumbnails: MrBeast logic for Roblox games
 
-**Used by:** Splash. **Also read:** [[50-retention-analytics/discovery-signals]] (play-through rate is the thumbnail's score), [[30-ui-ux/thumbnail-icon-spec]] (sizes, moderation), [[60-policy/ip-and-toolbox-rules]].
+**Used by:** Splash. **Also read:** [[06-Retention/discovery-signals]] (play-through rate is the thumbnail's score), [[08-UI-UX/thumbnail-icon-spec]] (sizes, moderation), [[01-Roblox-Fundamentals/ip-and-toolbox-rules]].
 
 ## The one rule
 A thumbnail's job is to stop the scroll. Not to explain the game. It creates a question the viewer can only answer by clicking.
@@ -36,10 +36,10 @@ UNVERIFIED (creator-marketing sources): MrBeast's thumbnails average 10-15% CTR 
 - **Text 0-3 words:** a number ("100 STAGES"), a prize ("FREE PET"), or one hook word. Never the game's title.
 - **The game's own visuals only.** Studio captures or art of the actual game. No stock images, no other games' art, no real people, no MrBeast likeness, no recognisable characters or logos.
 - **Curiosity gap for a game:** the avatar at the base of an impossibly tall tower; a locked door with light behind it; the prize just out of reach. The viewer should ask "can I do that?" or "what is behind that?"
-- **The promise must be real.** Whatever the thumbnail shows must happen in the first minutes of play (false advertising hurts first-play bounce, [[50-retention-analytics/discovery-signals]]).
+- **The promise must be real.** Whatever the thumbnail shows must happen in the first minutes of play (false advertising hurts first-play bounce, [[06-Retention/discovery-signals]]).
 
 ## Sizes (conflict noted)
-This brief says Roblox thumbnails are 1280x720. The vault's research ([[30-ui-ux/thumbnail-icon-spec]]) says upload **1920x1080** because smaller images are stretched. Studio rule: make thumbnails at **1920x1080** (same 16:9 framing, so 1280x720 exports cleanly), icon **512x512** as its own crop.
+This brief says Roblox thumbnails are 1280x720. The vault's research ([[08-UI-UX/thumbnail-icon-spec]]) says upload **1920x1080** because smaller images are stretched. Studio rule: make thumbnails at **1920x1080** (same 16:9 framing, so 1280x720 exports cleanly), icon **512x512** as its own crop.
 
 ## Splash's workflow
 1. **Research** (optional per run): look at MrBeast's 20 most-viewed videos' thumbnails from live sources; record subject, expression, colours, text, element count, story. Update this note's rules only through a reviewed change.

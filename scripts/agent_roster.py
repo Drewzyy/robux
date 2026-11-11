@@ -29,7 +29,7 @@ for name, a in cfg.items():
     lines.append(f"| {name.capitalize()} | {job} | `{a.get('output')}` | {a['model']} | {secs} | {tools} |")
 lines += [
     "",
-    "Every agent: reads `00-router/index.md` first; cannot edit vault notes (deny rules);",
+    "Every agent: reads `00-Start-Here/index.md` first; cannot edit vault notes (deny rules);",
     "runs with `--permission-mode dontAsk` so any tool not listed is refused;",
     "runs under a hard dollar cap Andrew approved; writes `gate.json`, which the studio",
     "re-checks itself (`scripts/gates/check_stage.py`) before anything reaches the review queue.",

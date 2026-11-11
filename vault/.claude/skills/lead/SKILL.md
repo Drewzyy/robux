@@ -11,9 +11,9 @@ You are the manager. Andrew talks to you in plain words. You decide which agents
 Instruction from Andrew: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md` (the agent table tells you each agent's home section)
-2. `90-templates-checklists/index.md`
-3. Only if needed: `90-templates-checklists/agent-output-format`, `90-templates-checklists/mvp-build-order`, `90-templates-checklists/anti-slop-checklist`.
+1. `00-Start-Here/index.md` (the agent table tells you each agent's home section)
+2. `17-Development-Templates/index.md`
+3. Only if needed: `17-Development-Templates/agent-output-format`, `17-Development-Templates/mvp-build-order`, `17-Development-Templates/anti-slop-checklist`.
 4. Any input files named in the instruction (a pitch in a run folder, a game in `projects/`).
 You do not read other sections. The specialists do.
 
@@ -29,7 +29,7 @@ Pulse (market pitches), Architect (design doc), Builder (Rojo + Luau), Scenic (l
 ## Output: `<run folder>/plan.md`
 Sections: Goal (one sentence) / Plan (table: stage, agent, input, output, gate) / Review (what Andrew approves) / Blocked (what is needed and from whom) / Loaded (vault notes read and why).
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

@@ -18,7 +18,7 @@ FILE_BLOCK = re.compile(r"`([^`]+\.luau)`[^\n]*\n```lua\n(.*?)```", re.S)
 
 
 def project_json():
-    ps = (V / "20-luau-rojo/project-structure.md").read_text()
+    ps = (V / "13-Luau-Engineering/project-structure.md").read_text()
     pj = json.loads(re.search(r"```json\n(.*?)```", ps, re.S).group(1))
     pj["tree"]["ReplicatedStorage"].pop("Packages", None)
     return pj
@@ -48,6 +48,6 @@ def check(note: str) -> bool:
 
 
 if __name__ == "__main__":
-    notes = ["20-luau-rojo/service-controller-template.md", "40-monetization/processreceipt-template.md"]
+    notes = ["13-Luau-Engineering/service-controller-template.md", "07-Monetization/processreceipt-template.md"]
     results = [check(n) for n in notes]
     sys.exit(0 if all(results) else 1)

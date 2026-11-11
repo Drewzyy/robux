@@ -1,6 +1,6 @@
 run run-builder-20261109-104738-6f9d  agent builder  status done  cost 0.12101390000000002
-allowed sections: ['00-router', '20-luau-rojo']
-  Read   section      00-router/index.md  [ok]
-  Read   section      20-luau-rojo/index.md  [ok]
-sections loaded, in order: ['00-router', '20-luau-rojo']
+allowed sections: ['00-Start-Here', '13-Luau-Engineering']
+  Read   section      00-Start-Here/index.md  [ok]
+  Read   section      13-Luau-Engineering/index.md  [ok]
+sections loaded, in order: ['00-Start-Here', '13-Luau-Engineering']
 PASS: only allowed sections were loaded

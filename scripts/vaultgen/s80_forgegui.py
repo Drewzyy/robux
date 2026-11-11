@@ -1,5 +1,5 @@
 from common import note
-note("80-assets/forgegui",
+note("11-Audio/forgegui",
  "ForgeGUI: Andrew's chosen tool for sound effects (2026-11-09). What is confirmed, what is not, and how the studio hands it work through sounds.json.",
  "reference", "unverified",
  "Andrew's instruction 2026-11-09; web search results (creati.ai, topai.tools, moge.ai, forgegui.com blog listing); forgegui.com itself could not be reached from the build sandbox",
@@ -19,22 +19,22 @@ Nothing about audio. Third-party listings and ForgeGUI's own blog title describe
 - Whether it has an API. Agents have no access to it either way: Andrew runs it.
 
 ## How the studio uses it (works with any sound tool)
-1. Librarian writes the sound request sheet into `projects/<game>/sounds.json` ([[80-assets/audio-pipeline]]): every sound the game needs, the event that plays it, a ready-to-paste prompt, length, loop, volume.
+1. Librarian writes the sound request sheet into `projects/<game>/sounds.json` ([[11-Audio/audio-pipeline]]): every sound the game needs, the event that plays it, a ready-to-paste prompt, length, loop, volume.
 2. Andrew generates each sound in ForgeGUI, uploads it to Roblox (Creator Hub or Studio; audio is moderated), and pastes the `rbxassetid://` into that entry, with the license line.
 3. Builder wires only entries that have a real asset ID. An entry without one plays nothing: silence beats a bad loop.
 4. Playtest checks that every core action in the first 60 seconds has a sound with an ID.
 
-If ForgeGUI turns out not to make audio, change `source` in the sheet to the tool used instead; nothing else changes. Never Toolbox audio ([[80-assets/no-toolbox-rule]]).
+If ForgeGUI turns out not to make audio, change `source` in the sheet to the tool used instead; nothing else changes. Never Toolbox audio ([[10-Art-Environment/no-toolbox-rule]]).
 
 ## Also worth trying
-Every listing says ForgeGUI makes thumbnails and icons. Splash's comps ([[80-assets/thumbnail-mrbeast-logic]]) could be finished in ForgeGUI from the ranked layouts, using real game captures. UNVERIFIED until Andrew tries it.
+Every listing says ForgeGUI makes thumbnails and icons. Splash's comps ([[10-Art-Environment/thumbnail-mrbeast-logic]]) could be finished in ForgeGUI from the ranked layouts, using real game captures. UNVERIFIED until Andrew tries it.
 """)
 
-note("80-assets/audio-pipeline",
+note("11-Audio/audio-pipeline",
  "Audio: sounds.json request sheet per game, generated in ForgeGUI by Andrew, uploaded and moderated, wired by Builder only with real IDs; license recorded; silence beats a bad loop.",
  "playbook", "draft",
  "Research report (Nov 9 2026) C8 audio; Andrew's ForgeGUI decision (2026-11-09)",
- "The sounds.json shape is checked by scripts/gates/check_stage.py (librarian). Whether ForgeGUI makes audio is UNVERIFIED (see 80-assets/forgegui). Each license line is checked when the sound is chosen.",
+ "The sounds.json shape is checked by scripts/gates/check_stage.py (librarian). Whether ForgeGUI makes audio is UNVERIFIED (see 11-Audio/forgegui). Each license line is checked when the sound is chosen.",
 r"""
 # Audio pipeline
 
@@ -44,10 +44,10 @@ r"""
 - Uploads are moderated by Roblox.
 - Silence is better than a bad loop.
 - Fit the mood; loud or jarring sounds break it.
-- Every core action gets a short sound ([[80-assets/vfx-sfx-library]]).
+- Every core action gets a short sound ([[09-Animation-VFX/vfx-sfx-library]]).
 
 ## Source
-Sound effects come from **ForgeGUI** (Andrew's decision, 2026-11-09). Whether ForgeGUI makes audio is UNVERIFIED; see [[80-assets/forgegui]].
+Sound effects come from **ForgeGUI** (Andrew's decision, 2026-11-09). Whether ForgeGUI makes audio is UNVERIFIED; see [[11-Audio/forgegui]].
 
 ## The request sheet: `projects/<game>/sounds.json`
 ```json

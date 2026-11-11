@@ -6,7 +6,7 @@ Task: the player does the core verb within 10 s of spawning and gets the first r
 
 **What I read:** the vault notes in section 11, plus the existing project docs and code: `docs/design.md`, `Config`, `NightPlan`, `Economy`, `Tutorial`, `NightService`, `LampService`, `CreatureService`, `WorldService`, `HudController`, `AimController`. Nothing was run in Studio, so every timing I give for "what exists now" is **UNVERIFIED**. It comes from reading the code.
 
-**Vault status:** the notes this task needs now exist (status `draft`, with `verify:` lines). The old project doc says they were stubs. That is out of date. `10-game-design/index` itself is not a stub.
+**Vault status:** the notes this task needs now exist (status `draft`, with `verify:` lines). The old project doc says they were stubs. That is out of date. `02-Game-Design/index` itself is not a stub.
 
 ---
 
@@ -106,15 +106,15 @@ What the player sees from spawn (changed parts only):
 - No paid random items in game 1. No random reward in the first minute.
 - No cutscene, logo, unskippable intro, long tutorial, or text wall. No shop in the first 30 s. No "like the game" ask before the first reward.
 - No change to the 9-minute night, the station and creature set, or the Board.
-- **Nothing here is for sale.** I did not load `40-monetization/do-not-sell-list` because nothing is proposed for sale.
+- **Nothing here is for sale.** I did not load `07-Monetization/do-not-sell-list` because nothing is proposed for sale.
 
 ## 10. Open questions and UNVERIFIED claims
 **Open questions for Andrew / Lead:**
-1. Audio: the giggle/chime for the first pop and the lamp-light sound need asset IDs from Andrew's approved assets. I invented none. Until then the celebration is visual only. (`80-assets` not loaded; Scenic or Librarian to supply.)
+1. Audio: the giggle/chime for the first pop and the lamp-light sound need asset IDs from Andrew's approved assets. I invented none. Until then the celebration is visual only. (`10-Art-Environment` not loaded; Scenic or Librarian to supply.)
 2. Joiners who arrive during the 8 s Dawn result wait up to 8 s. Shorten the Dawn result for them, or accept the exception?
 3. Should "first run" be saved per player once saving exists (ProfileStore, Builder to decide), so highlights fade permanently after mastery?
 4. Is it fine for the first beam to be pre-aimed, so the first reward does not depend on aiming? It is a deliberate choice: the aiming input on touch and gamepad is untested.
-5. Instrumentation: log the 4 timestamps (T0, first oil poured, first pop, 3rd pop) per player so Playtest and Producer can read the funnel. Event names are not decided (`50-retention-analytics` not loaded because this design does not need it; Producer to define).
+5. Instrumentation: log the 4 timestamps (T0, first oil poured, first pop, 3rd pop) per player so Playtest and Producer can read the funnel. Event names are not decided (`06-Retention` not loaded because this design does not need it; Producer to define).
 
 **UNVERIFIED:**
 - All timings under "What exists now". They are read from code, not run. The stopwatch playtest is the check (5 fresh runs, median verb under 10 s, median reward under 30 s, per device type).
@@ -135,9 +135,9 @@ What the player sees from spawn (changed parts only):
 - Update `Tutorial.spec` and `Economy.spec` for the changed rules.
 
 ## 11. Loaded
-- `00-router/index.md`: required first read; routed design to `10-game-design`.
-- `10-game-design/index.md`: required section index; showed which notes exist.
-- `10-game-design/first-60-seconds-checklist.md`: the four time windows, teach-by-doing rules, "kills Day 1" list, and the note that seconds targets are community guidance.
-- `10-game-design/core-loop-template.md`: loop cadence, fixed-schedule check, and the 9.8 minute median.
+- `00-Start-Here/index.md`: required first read; routed design to `02-Game-Design`.
+- `02-Game-Design/index.md`: required section index; showed which notes exist.
+- `04-Onboarding/first-60-seconds-checklist.md`: the four time windows, teach-by-doing rules, "kills Day 1" list, and the note that seconds targets are community guidance.
+- `02-Game-Design/core-loop-template.md`: loop cadence, fixed-schedule check, and the 9.8 minute median.
 - Project files (not vault): `projects/dawn-watch/docs/design.md` and the source files listed above, to describe the change against what exists.
-- Not loaded, on purpose: `game-design-doc-template`, `difficulty-curve-worksheet`, `economy-worksheet`, `player-psychology` (a change doc, not a new game; numbers kept to the existing curve), `40-monetization` (nothing for sale), `50-retention-analytics`, `60-policy`, `80-assets`.
+- Not loaded, on purpose: `game-design-doc-template`, `difficulty-curve-worksheet`, `economy-worksheet`, `player-psychology` (a change doc, not a new game; numbers kept to the existing curve), `07-Monetization` (nothing for sale), `06-Retention`, `01-Roblox-Fundamentals`, `10-Art-Environment`.

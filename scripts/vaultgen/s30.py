@@ -1,5 +1,5 @@
 from common import note
-S = "30-ui-ux"
+S = "08-UI-UX"
 R = "Research report (Nov 9 2026) C3"
 
 note(f"{S}/design-system", "One font, one palette, a spacing grid, one button template cloned everywhere, and 4.5:1 contrast on text and key elements.", "reference", "draft",
@@ -12,7 +12,7 @@ note(f"{S}/design-system", "One font, one palette, a spacing grid, one button te
 - **Grid**: build on a grid, not by eye. `UIAspectRatioConstraint` plus `UIGridLayout`, a base cell (example 80x80), every size a multiple of it.
 - **Contrast** at least 4.5:1 on text and key elements.
 - **One button template** (Frame + TextLabel + UIStroke + UICorner + a small LocalScript), cloned everywhere. Same press feedback on every button.
-- **Readable at phone size** first; see [[30-ui-ux/mobile-first-checklist]].
+- **Readable at phone size** first; see [[08-UI-UX/mobile-first-checklist]].
 - Before building any non-trivial screen, write a short markdown design brief (screens, what each shows, where on a phone) and get it approved. Verify the built result with a phone playtest.
 """)
 
@@ -37,7 +37,7 @@ note(f"{S}/hud-template", "What the HUD must show during the loop (objective, cu
 """)
 
 note(f"{S}/onboarding-flow", "Onboarding UI order: spawn facing the objective, prompt one action, instant feedback and reward, show the next short goal, reveal social later.", "template", "draft",
- R + "; create.roblox.com/docs/production/game-design/onboarding (as distilled in the report)", "Verify by stopwatch playtest against 10-game-design/first-60-seconds-checklist.", r"""
+ R + "; create.roblox.com/docs/production/game-design/onboarding (as distilled in the report)", "Verify by stopwatch playtest against 04-Onboarding/first-60-seconds-checklist.", r"""
 # Onboarding flow
 
 1. Spawn facing the first interactable or objective.
@@ -48,7 +48,7 @@ note(f"{S}/onboarding-flow", "Onboarding UI order: spawn facing the objective, p
 
 Avoid: long tutorials, text walls, unskippable cutscenes, menus on the first screen. Put the player into the core action within 10 to 30 seconds. Fade prompts after the player shows mastery.
 
-Timing detail lives in [[10-game-design/first-60-seconds-checklist]].
+Timing detail lives in [[04-Onboarding/first-60-seconds-checklist]].
 """)
 
 note(f"{S}/shop-ui", "Shop UI: one main HUD, one overlay panel per feature, 3-tap rule, prices in Robux up front, no pop-ups on join, on death, or in the first 5 minutes.", "reference", "draft",
@@ -61,7 +61,7 @@ note(f"{S}/shop-ui", "Shop UI: one main HUD, one overlay panel per feature, 3-ta
 - Show value before the prompt: let players use a limited version first.
 - **Never** pop the shop on join, on death, on stage completion, or in the first 5 minutes. Death is never a sales pitch.
 - Shop never covers the core action.
-- Every product follows [[40-monetization/do-not-sell-list]]; random items follow [[40-monetization/paid-random-items-checklist]].
+- Every product follows [[07-Monetization/do-not-sell-list]]; random items follow [[07-Monetization/paid-random-items-checklist]].
 """)
 
 note(f"{S}/mobile-first-checklist", "Mobile first: Scale not Offset, constraints, CoreUISafeInsets and the 58 px top bar, thumb zones, Activated not mouse events, real-device test.", "checklist", "draft",
@@ -115,6 +115,6 @@ Formats: .png, .jpg, .gif, .tga, .bmp. Avoid .webp (community reports of silent 
 - No platform logos, catalog items, trademarks, or recognisable characters. Every image is moderated.
 - UNVERIFIED (one analytics guide): a custom thumbnail is required to be eligible for Home recommendations. Check Creator Docs before treating as a rule.
 
-Capture workflow: [[80-assets/thumbnail-pipeline]].
+Capture workflow: [[10-Art-Environment/thumbnail-pipeline]].
 """)
 print("30 done")

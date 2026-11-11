@@ -1,9 +1,9 @@
 from common import note
-S = "10-game-design"
+S = "02-Game-Design"
 R = "Research report (Nov 9 2026) Part B and C1"
 
 note(f"{S}/genre-playbooks/obby", "Obby playbook: readable stages, checkpoints as mercy, skill vs progression obby, first stage trivially easy, first success within 30 seconds.", "playbook", "draft",
- R + "; rocode.app/guides/roblox-game-genres; Tower of Hell teardown (70-competitors)",
+ R + "; rocode.app/guides/roblox-game-genres; Tower of Hell teardown (16-Market-Research)",
  "Design rules are community and practitioner guidance, not Roblox rules. Check against Creator Analytics after launch: first-play bounce under 60s and D1 vs similar-game benchmarks.", r"""
 # Obby playbook
 
@@ -23,12 +23,12 @@ A middle model (checkpoints plus timed races, best times, leaderboards) is what 
 ## Rules
 - Stage 1 is trivially easy. First success within 30 seconds of spawn.
 - Every stage has a readable solution before the player jumps: telegraph hazards, readable silhouettes, contrast against the background.
-- Sawtooth difficulty (see [[10-game-design/difficulty-curve-worksheet]]): each block of 5 to 10 stages introduces one new hazard, dips easy, practices, peaks, then resets with the next mechanic.
+- Sawtooth difficulty (see [[05-Progression/difficulty-curve-worksheet]]): each block of 5 to 10 stages introduces one new hazard, dips easy, practices, peaks, then resets with the next mechanic.
 - One new idea at a time. Never a new mechanic and a new difficulty jump together.
 - Death to retry under 2 seconds, one input, no screens in between. Checkpoints are the mercy system: failure costs seconds, not progress.
 - Hidden mercy after 3 to 5 deaths at one spot (extra checkpoint, slower hazard), never announced. UNVERIFIED for Roblox specifically; it is a general design pattern (Crash Bandicoot).
 - Progression rewards on fixed schedules (coins per stage). Variable only for bonus surprises (secret coins, rare drop).
-- Checkpoints are never sold. Skip Stage as a developer product is a judgment call; see [[40-monetization/do-not-sell-list]].
+- Checkpoints are never sold. Skip Stage as a developer product is a judgment call; see [[07-Monetization/do-not-sell-list]].
 
 ## Motivation coverage
 Achievers: stages, leaderboards, collections. Explorers: secret coins, hidden paths, new tower themes. Socializers: co-play, parties, visiting. Killers: timed races and leaderboards; keep PvP optional and friendly for kids.
@@ -49,10 +49,10 @@ note(f"{S}/genre-playbooks/simulator", "Simulator playbook: click, upgrade, rebi
 - Build order: core loop on a baseplate first, then progression, then saving, then UI, then monetization.
 - Rebirth resets base progress for a permanent multiplier. Show the multiplier before the player commits.
 - Do not build trading in game 1. Trading needs a working economy, moderation, and scam protection.
-- Model the curve in [[10-game-design/economy-worksheet]] before coding: time to next upgrade must stay short early and grow slowly.
+- Model the curve in [[02-Game-Design/economy-worksheet]] before coding: time to next upgrade must stay short early and grow slowly.
 
 ## Reward schedules
-Fixed ratio: currency per action. Fixed: upgrade ladder. Variable: rare drops, eggs (free only in game 1; paid random items need [[40-monetization/paid-random-items-checklist]]).
+Fixed ratio: currency per action. Fixed: upgrade ladder. Variable: rare drops, eggs (free only in game 1; paid random items need [[07-Monetization/paid-random-items-checklist]]).
 """)
 
 note(f"{S}/genre-playbooks/tycoon", "Tycoon playbook: droppers and buttons, pacing prices so each purchase feels close, rebirth for permanent multipliers.", "playbook", "draft",
@@ -69,13 +69,13 @@ Collect cash, buy buttons, unlock areas, (in combat tycoons) arm up and fight, r
 ## Rules
 - The next button is always visible with its price. The player should almost always be within reach of a purchase in the first session.
 - Rebirth: after buying every button, reset base progress for permanent multipliers, rebirth tokens, or advanced tiers. Delaying a reset too long gives diminishing returns, so show the player when rebirthing pays off.
-- All prices in one ModuleScript; model them in [[10-game-design/economy-worksheet]].
-- First purchase inside 30 seconds of spawn (see [[10-game-design/first-60-seconds-checklist]]).
+- All prices in one ModuleScript; model them in [[02-Game-Design/economy-worksheet]].
+- First purchase inside 30 seconds of spawn (see [[04-Onboarding/first-60-seconds-checklist]]).
 - Social: visiting friends' bases is the cheapest social hook.
 """)
 
 note(f"{S}/genre-playbooks/rng", "RNG playbook: roll, collect, index boosts; free rolls fine everywhere; paid rolls need the Paid Random Items rules and region gating.", "playbook", "draft",
- R + "; rocode.app/guides/roblox-game-genres; Paid Random Items reporting (see 40-monetization)",
+ R + "; rocode.app/guides/roblox-game-genres; Paid Random Items reporting (see 07-Monetization)",
  "Odds rules are Roblox policy as reported in 2026 secondary sources. Re-read the Paid Random Items policy in Creator Hub before building any paid roll.", r"""
 # RNG playbook
 
@@ -84,10 +84,10 @@ note(f"{S}/genre-playbooks/rng", "RNG playbook: roll, collect, index boosts; fre
 
 ## Rules
 - Free rolls are allowed everywhere.
-- Paid rolls are Paid Random Items: numeric odds for every outcome shown before purchase, summing to 100%; every outcome has value; region gating with PolicyService; fail closed. Full list: [[40-monetization/paid-random-items-checklist]]. Luck boosts, pity systems, rerolls, and keys bought with Robux all count as paid random items.
-- Not in game 1 (studio rule, see [[40-monetization/do-not-sell-list]]).
+- Paid rolls are Paid Random Items: numeric odds for every outcome shown before purchase, summing to 100%; every outcome has value; region gating with PolicyService; fail closed. Full list: [[07-Monetization/paid-random-items-checklist]]. Luck boosts, pity systems, rerolls, and keys bought with Robux all count as paid random items.
+- Not in game 1 (studio rule, see [[07-Monetization/do-not-sell-list]]).
 - Example structure (Tycoon RNG, from RoCode): odds displayed like 1/94.5B, an index that unlocks permanent boosts as you collect, rebirth unlocking new tiers of rarer machines.
-- Progress must not depend only on luck. Pair the variable reward with a fixed track (index completion, levels) so competence is visible. See [[10-game-design/reward-schedules]].
+- Progress must not depend only on luck. Pair the variable reward with a fixed track (index completion, levels) so competence is visible. See [[03-Game-Psychology/reward-schedules]].
 - Audience is mostly minors. Do not build the core retention loop on paid RNG.
 """)
 
@@ -109,7 +109,7 @@ note(f"{S}/genre-playbooks/tower-defense", "Tower defense playbook: loadout, wav
 New towers or maps every 2 to 3 weeks (Tower Defense Simulator practice).
 
 ## Monetization in this genre
-Sold on power and progression, not only cosmetics: extra loadout slots, an exclusive tower, double XP, VIP with a daily gem drip. Check every one against [[40-monetization/do-not-sell-list]]; never sell the win.
+Sold on power and progression, not only cosmetics: extra loadout slots, an exclusive tower, double XP, VIP with a daily gem drip. Check every one against [[07-Monetization/do-not-sell-list]]; never sell the win.
 
 ## Difficulty
 Sawtooth by wave block. A wave that kills most new players is a quit point; log wave reached on loss (funnel event).
@@ -140,10 +140,10 @@ note(f"{S}/genre-playbooks/farming", "Farming (Grow a Garden style): plant, wait
 ## Economy failure modes
 - Rare seeds in stock too often kills the waiting.
 - Harvests that sell for too much let players finish the seed list in a weekend.
-Model both in [[10-game-design/economy-worksheet]].
+Model both in [[02-Game-Design/economy-worksheet]].
 
 ## Notes
-Exclusive items claimable only while online and pets from loot boxes exist in Grow a Garden; for game 1 the studio does not sell paid random items ([[40-monetization/do-not-sell-list]]).
+Exclusive items claimable only while online and pets from loot boxes exist in Grow a Garden; for game 1 the studio does not sell paid random items ([[07-Monetization/do-not-sell-list]]).
 """)
 
 note(f"{S}/genre-playbooks/roleplay-sandbox", "Roleplay sandbox (Brookhaven style): no goals, props for social play, retention from friends and constant updates. Hardest to copy with code alone.", "playbook", "draft",
@@ -155,7 +155,7 @@ No goals at all. A social sandbox: houses, vehicles, and public spaces are props
 - Longevity comes from social play plus constant updates that add new secrets and scenes.
 - This is the strongest retention model on Roblox and the hardest to copy with code alone: the players make the content.
 - Not a fit for game 1 of a solo studio. Useful lesson for every genre: friends make the same game different every session.
-- If roleplay chat or private spaces are central, check the maturity rules in [[60-policy/content-maturity-guide]] (social hangouts and private spaces push toward Restricted).
+- If roleplay chat or private spaces are central, check the maturity rules in [[01-Roblox-Fundamentals/content-maturity-guide]] (social hangouts and private spaces push toward Restricted).
 """)
 
 note(f"{S}/core-loop-template", "One-page core loop: the verb every 5 seconds, the reward every 30 seconds, the goal every session, the goal every week.", "template", "draft",
@@ -177,7 +177,7 @@ Fill one per game. If a line is blank, the game is not designed yet.
 - The 5-second verb is fun on its own with clear feedback (Koster: fun is learning patterns).
 - The 30-second reward is fixed-schedule; surprises are extra, never the only path.
 - The session goal ends on a peak (level up, rare drop, celebration) and shows the next goal (peak-end rule, Zeigarnik effect).
-- At least one social reason to return ([[10-game-design/player-psychology]]).
+- At least one social reason to return ([[03-Game-Psychology/player-psychology]]).
 """)
 
 note(f"{S}/game-design-doc-template", "One-page game design doc the Architect fills for every pitch: 11 sections from pitch to what we will not do.", "template", "draft",
@@ -185,14 +185,14 @@ note(f"{S}/game-design-doc-template", "One-page game design doc the Architect fi
 # Game design doc template (one page)
 
 1. **Pitch and genre.** One sentence. Name the genre and the one core verb.
-2. **Core loop.** From [[10-game-design/core-loop-template]].
-3. **First 60 seconds**, second by second: 0-5 spawn and orient, 5-10 first core verb, 10-30 first reward, 30-60 open loop. See [[10-game-design/first-60-seconds-checklist]].
+2. **Core loop.** From [[02-Game-Design/core-loop-template]].
+3. **First 60 seconds**, second by second: 0-5 spawn and orient, 5-10 first core verb, 10-30 first reward, 30-60 open loop. See [[04-Onboarding/first-60-seconds-checklist]].
 4. **Mechanics.** For each: what the player does, what it teaches, what can go wrong.
-5. **Progression.** Fixed schedules for progression, variable only for surprise ([[10-game-design/reward-schedules]]).
-6. **Difficulty or economy curve.** Sawtooth; retry under 2 seconds ([[10-game-design/difficulty-curve-worksheet]] or [[10-game-design/economy-worksheet]]).
+5. **Progression.** Fixed schedules for progression, variable only for surprise ([[03-Game-Psychology/reward-schedules]]).
+6. **Difficulty or economy curve.** Sawtooth; retry under 2 seconds ([[05-Progression/difficulty-curve-worksheet]] or [[02-Game-Design/economy-worksheet]]).
 7. **Social hooks**, cheapest first: join friends, invite, shared goals, friend leaderboard.
 8. **Lobby and layout.** What the player sees from spawn.
-9. **What we will not do.** Pay-to-win, gated finish, punishing free path, paid random items in game 1 ([[40-monetization/do-not-sell-list]]).
+9. **What we will not do.** Pay-to-win, gated finish, punishing free path, paid random items in game 1 ([[07-Monetization/do-not-sell-list]]).
 10. **Open questions and UNVERIFIED claims.**
 11. **Loaded.** Every vault note read, and why.
 
@@ -215,9 +215,9 @@ note(f"{S}/progression-systems", "Currencies, multipliers, rebirth/prestige, col
 | Best times / leaderboards | mastery and rivalry | obby, racing | friends leaderboards beat global ones |
 
 ## Rules
-- Fixed schedules carry progression; variable schedules are for surprise ([[10-game-design/reward-schedules]]).
+- Fixed schedules carry progression; variable schedules are for surprise ([[03-Game-Psychology/reward-schedules]]).
 - Endowed progress: start bars partly filled, never at zero (goal gradient effect).
-- Low D7 usually means a weak progression system; low D30 means missing end-game goals ([[50-retention-analytics/decision-tree]]).
+- Low D7 usually means a weak progression system; low D30 means missing end-game goals ([[06-Retention/decision-tree]]).
 """)
 
 note(f"{S}/difficulty-curve-worksheet", "Stage-by-stage difficulty worksheet: sawtooth ramp, one new idea per block, quit-rate column, retune rule, retry under 2 seconds.", "template", "draft",
@@ -243,7 +243,7 @@ Introduce a mechanic, dip easy while the player is a novice again, practice, pea
 - Raise difficulty on mastery events, never on a clock.
 
 ## Retune rule
-If a stage's quit rate is far above its neighbours, first make the solution more readable, then add a checkpoint or rest beat before it, and only then lower difficulty. Change one thing at a time and wait 72 hours before judging ([[50-retention-analytics/analytics-reading-guide]]).
+If a stage's quit rate is far above its neighbours, first make the solution more readable, then add a checkpoint or rest beat before it, and only then lower difficulty. Change one thing at a time and wait 72 hours before judging ([[06-Retention/analytics-reading-guide]]).
 """)
 
 note(f"{S}/economy-worksheet", "Economy worksheet: sources, sinks, prices in one ModuleScript, time-to-next-goal column, and the failure modes that break games.", "template", "draft",
@@ -255,7 +255,7 @@ note(f"{S}/economy-worksheet", "Economy worksheet: sources, sinks, prices in one
 |---|---|---|---|---|---|
 | | | | | | |
 
-A missing sink is the classic hidden inflation bug. Log both with AnalyticsService economy events, with balance after each transaction ([[50-retention-analytics/event-taxonomy]]).
+A missing sink is the classic hidden inflation bug. Log both with AnalyticsService economy events, with balance after each transaction ([[06-Retention/event-taxonomy]]).
 
 ## Price ladder
 | Item | Price | Income per minute at that point | Time to afford (min) | Feels close? |
@@ -304,12 +304,12 @@ note(f"{S}/first-60-seconds-checklist", "FTUE checklist: 0-5s orient, 5-10s core
 Zeigarnik (unfinished tasks pull players back), goal gradient (effort speeds up near a goal; start bars partly full), peak-end (put the best effect in minute one, end sessions on a celebration).
 
 ## Caution
-Forced tutorials can hurt retention. Teach functional literacy fast; leave strategy to discovery. Instrument the first minute as a funnel and A/B test changes ([[50-retention-analytics/event-taxonomy]]).
+Forced tutorials can hurt retention. Teach functional literacy fast; leave strategy to discovery. Instrument the first minute as a funnel and A/B test changes ([[06-Retention/event-taxonomy]]).
 """)
 
 note(f"{S}/reward-schedules", "Fixed ratio, variable ratio, fixed interval, variable interval: where each belongs in a Roblox game, and the ethics line for a young audience.", "reference", "draft",
  R + " (B2); Skinner 1938; Ferster and Skinner 1957; Yu-kai Chou on operant conditioning",
- "Theory from operant conditioning literature as summarized in the report. Roblox paid-random rules re-checked in 40-monetization before use.", r"""
+ "Theory from operant conditioning literature as summarized in the report. Roblox paid-random rules re-checked in 07-Monetization before use.", r"""
 # Reward schedules
 
 | Schedule | Rule | Behaviour it produces | Use for |
@@ -326,7 +326,7 @@ note(f"{S}/reward-schedules", "Fixed ratio, variable ratio, fixed interval, vari
 - Reward timing matters more than reward size.
 
 ## Ethics line (kids and teens)
-Variable ratio is also the most compulsive schedule. Free random rewards are fine. Paid random items follow [[40-monetization/paid-random-items-checklist]] and are not in game 1. Do not build paid RNG as the core retention loop for minors.
+Variable ratio is also the most compulsive schedule. Free random rewards are fine. Paid random items follow [[07-Monetization/paid-random-items-checklist]] and are not in game 1. Do not build paid RNG as the core retention loop for minors.
 """)
 
 note(f"{S}/player-psychology", "Flow (contested), SDT, Bartle, Quantic Foundry, Octalysis, Hook, Fogg, sessions, difficulty, and social design, condensed with sources and caveats.", "reference", "draft",
@@ -345,7 +345,7 @@ Clear goals, immediate feedback, challenge matched to skill; the flow channel si
 Autonomy (meaningful choice), competence (growth, feedback), relatedness (others matter). Ryan, Rigby, Przybylski 2006 (DOI 10.1007/s11031-006-9051-8): autonomy and competence in play predicted enjoyment; relatedness predicted future play in multiplayer. Too much extrinsic reward risks the overjustification effect.
 
 ## Bartle (1996)
-Achievers, Explorers, Socializers, Killers. A coverage check, not a measurement ([[10-game-design/motivation-coverage-checklist]]).
+Achievers, Explorers, Socializers, Killers. A coverage check, not a measurement ([[03-Game-Psychology/motivation-coverage-checklist]]).
 
 ## Quantic Foundry (Yee and Ducheneaut)
 12 motivations in 6 clusters: Action (Destruction, Excitement), Social (Competition, Community), Mastery (Challenge, Strategy), Achievement (Completion, Power), Immersion (Fantasy, Story), Creativity (Design, Discovery). Continuous scores. Claims that profiles predict churn and spend are Quantic Foundry's own: UNVERIFIED.
@@ -383,7 +383,7 @@ note(f"{S}/motivation-coverage-checklist", "Does the game give Achievers, Explor
 ## Rules
 - A blank row is a gap, not a failure; decide on purpose.
 - For a young audience, serve Killers with races and leaderboards, not forced PvP.
-- Quantic Foundry's 12 motivations are a finer check when a row is ambiguous ([[10-game-design/player-psychology]]).
+- Quantic Foundry's 12 motivations are a finer check when a row is ambiguous ([[03-Game-Psychology/player-psychology]]).
 
 ## Sky Tower Obby reading (from the report, B9)
 Achievers: stages, leaderboards, collections. Explorers: secret coins, hidden paths, new tower themes. Socializers: co-play, parties, visiting. Killers: timed races and leaderboards, PvP optional.

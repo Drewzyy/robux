@@ -1,5 +1,5 @@
 from common import note
-S = "70-competitors"
+S = "16-Market-Research"
 R = "Research report (Nov 9 2026) C7"
 SNAP = "Tracker numbers are a Nov 2026 snapshot as quoted in the report and move hourly: UNVERIFIED until re-read on Rolimons or RoVitals with a date."
 
@@ -53,7 +53,7 @@ td("teardown-grow-a-garden", "Grow a Garden", "Grow a Garden: plant-wait-harvest
 9. **Performance:** not recorded.
 10. **Copy:** offline progress from saved timestamps, clock-based scarcity, weekly events, layered schedules. **Avoid:** assuming a simple loop needs no economy tuning; the economy and the clock separate keepers from copies.
 
-Mechanics detail: [[10-game-design/genre-playbooks/farming]].
+Mechanics detail: [[02-Game-Design/genre-playbooks/farming]].
 """, "geeiq.com grow-a-garden; rocode.app grow-a-garden guide; pvpbank.com 2026 hot games")
 
 td("teardown-blox-fruits", "Blox Fruits", "Blox Fruits: action RPG with long progression arcs, rare fruit chase, PvP and trading. Players commit when rewards feel earned and visible.", r"""
@@ -90,7 +90,7 @@ td("teardown-pet-simulator-99", "Pet Simulator 99", "Pet Simulator 99: hatch, up
 1. **Identity:** BIG Games Pets. 250K-500K DAU range.
 2. **Core loop:** hatch eggs, upgrade pets, collect diamonds.
 3. **Progression:** fusion, rebirth, huge numbers, collection completion.
-4. **Monetization:** not recorded in detail: UNVERIFIED. Eggs are random; any paid egg falls under [[40-monetization/paid-random-items-checklist]].
+4. **Monetization:** not recorded in detail: UNVERIFIED. Eggs are random; any paid egg falls under [[07-Monetization/paid-random-items-checklist]].
 5. **First 60 s:** not recorded.
 6. **Retention:** collection, event pets as long holds.
 7. **Social:** trading rare pets as assets.
@@ -144,7 +144,7 @@ note(f"{S}/copy-vs-avoid", "Mechanics worth stealing and mechanics to avoid, nam
 | Pattern | Why |
 |---|---|
 | Weekly reskins of the same loop | retention ranking buries it |
-| Pay-to-win | breaks the free path; see [[40-monetization/do-not-sell-list]] |
+| Pay-to-win | breaks the free path; see [[07-Monetization/do-not-sell-list]] |
 | Trading in game 1 | needs an economy, moderation, scam protection |
 | No checkpoints by default | a deliberate bet for skill obbies only |
 | Paid RNG as the core loop | policy risk and wrong for a young audience |

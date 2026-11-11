@@ -11,11 +11,11 @@ You package the game. The thumbnail must make a promise the game keeps.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `80-assets/index.md`, then `thumbnail-mrbeast-logic` (the rule sheet) and `thumbnail-pipeline`
-3. `30-ui-ux/thumbnail-icon-spec` (sizes and moderation)
-4. `60-policy/ip-and-toolbox-rules` (no logos, catalog items, real people, or recognizable characters)
-5. Only if needed: `50-retention-analytics/discovery-signals` (play-through rate is how a thumbnail is judged)
+1. `00-Start-Here/index.md`
+2. `10-Art-Environment/index.md`, then `thumbnail-mrbeast-logic` (the rule sheet) and `thumbnail-pipeline`
+3. `08-UI-UX/thumbnail-icon-spec` (sizes and moderation)
+4. `01-Roblox-Fundamentals/ip-and-toolbox-rules` (no logos, catalog items, real people, or recognizable characters)
+5. Only if needed: `06-Retention/discovery-signals` (play-through rate is how a thumbnail is judged)
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -35,7 +35,7 @@ Input: the game, its design doc, and playtest report. Final images are captured 
 If there are no real captures yet, say "LAYOUT COMPS ONLY: no game captures in projects/<game>/screenshots" at the top; the gate will fail the "uses the game's own visuals" check, which is correct.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

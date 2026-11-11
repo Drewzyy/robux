@@ -3,8 +3,8 @@ Run: pipe-pitch-to-build-20261109-105542-ca9c--1-pulse. Date: 2026-11-09.
 
 ## READ FIRST: data quality
 - **No live data was pulled.** I ran 2 WebSearch queries on 2026-11-09 and read only the search summaries. I did not open Rolimons, RoVitals, BLOXG or the Roblox charts pages. Every number below comes from those summaries, was not checked at its source, and is **UNVERIFIED**.
-- **Vault gaps.** `70-competitors/index` and `10-game-design/index` are both `status: stub`. I tried to read `teardown-template`, `tracker-watchlist` and `copy-vs-avoid`. None of the three exists. I did not search other sections. **STUB: 70-competitors/index. STUB/MISSING: teardown-template, tracker-watchlist, copy-vs-avoid. STUB: 10-game-design/index** (no genre playbook was readable). I fell back to the Pulse skill rules. No competitor teardown matched, so I loaded none.
-- The 60-policy section was not loaded, because the skill does not call for it. Policy scores below are my own judgment, not vault-backed. Andrew or Lead should run the pre-launch policy check.
+- **Vault gaps.** `16-Market-Research/index` and `02-Game-Design/index` are both `status: stub`. I tried to read `teardown-template`, `tracker-watchlist` and `copy-vs-avoid`. None of the three exists. I did not search other sections. **STUB: 16-Market-Research/index. STUB/MISSING: teardown-template, tracker-watchlist, copy-vs-avoid. STUB: 02-Game-Design/index** (no genre playbook was readable). I fell back to the Pulse skill rules. No competitor teardown matched, so I loaded none.
+- The 01-Roblox-Fundamentals section was not loaded, because the skill does not call for it. Policy scores below are my own judgment, not vault-backed. Andrew or Lead should run the pre-launch policy check.
 
 ## Data sources (all UNVERIFIED, secondhand via search summary, retrieved 2026-11-09)
 | # | Claim | Source as reported | Source date |
@@ -72,16 +72,16 @@ Candidates 5 to 8 are rejected for policy or scope. The top 3 below merge candid
 ## Risks (overall)
 - All demand numbers are UNVERIFIED and contradictory. Re-check on RoWatcher or Rolimons before Architect commits.
 - The steal/hatch/run genre is crowded (S2). Pitch 2 is exposed to that.
-- Policy: I did not load 60-policy. Pitch 2 has the most risk (theft framing, hatching). No pitch uses gambling or paid random items. Pre-launch policy check is still needed.
+- Policy: I did not load 01-Roblox-Fundamentals. Pitch 2 has the most risk (theft framing, hatching). No pitch uses gambling or paid random items. Pre-launch policy check is still needed.
 - Vault stubs mean no teardown or genre-playbook check was possible for any pitch.
 
 ## Open questions for Andrew
 1. Can someone run the live-chart check (Rolimons, RoVitals, BLOXG) so numbers can be verified?
-2. Should the missing 70-competitors notes be written? Pulse could not use them.
+2. Should the missing 16-Market-Research notes be written? Pulse could not use them.
 3. Is a 4-player co-op acceptable, or is it solo-friendly only?
 
 ## Loaded
-- `00-router/index.md`: required first read, routing.
-- `70-competitors/index.md`: required section index. It is a stub.
-- `10-game-design/index.md`: to check pitches against genre playbooks. It is a stub, so no playbook was readable.
-- Not found: `70-competitors/teardown-template`, `tracker-watchlist`, `copy-vs-avoid`.
+- `00-Start-Here/index.md`: required first read, routing.
+- `16-Market-Research/index.md`: required section index. It is a stub.
+- `02-Game-Design/index.md`: to check pitches against genre playbooks. It is a stub, so no playbook was readable.
+- Not found: `16-Market-Research/teardown-template`, `tracker-watchlist`, `copy-vs-avoid`.

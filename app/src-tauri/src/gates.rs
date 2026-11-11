@@ -337,6 +337,30 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
         "liveops" => r.push(c("numbers come with dates", has(&text, r"\d{4}-\d{2}-\d{2}") || text.to_uppercase().contains("BLOCKED"), "")),
         "producer" => r.push(c("one named reason", heading(&text, "reason"), "")),
         "simulator" => r.extend(simulation_checks(out_path)),
+        "motion" => {
+            r.push(c("action, trigger, effect table", has(&text, r"^\|.*action.*\|.*trigger.*\|"), ""));
+            r.push(c("effects are cleaned up", has(&text, r"debris|:destroy|destroy\("), ""));
+        }
+        "crowd" => {
+            r.push(c("server authority section", heading(&text, "server authority"), ""));
+            r.push(c("works with one player", has(&text, r"one player|solo|single player|1 player"), ""));
+        }
+        "tuner" => {
+            r.push(c("budget section", heading(&text, "budget"), ""));
+            r.push(c("findings cite file:line or none found", has(&text, r"\.luau:\d+") || has(&text, "no issue found"), ""));
+            r.push(c("says measured or estimated", has(&text, r"measured|estimated"), ""));
+        }
+        "director" => {
+            r.push(c("identity section", heading(&text, "identity"), ""));
+            r.push(c("cut list section", heading(&text, "cut"), ""));
+            r.push(c("verdict section", heading(&text, "verdict"), ""));
+        }
+        "release" => {
+            r.push(c("checklist section", heading(&text, "checklist"), ""));
+            r.push(c("blockers section", heading(&text, "blocker"), ""));
+            r.push(c("says nothing was published", has(&text, r"nothing (was|has been) published|not published|andrew publishes"), ""));
+            r.push(c("no paid promotion", !has(&text, r"\b(paid ads?|sponsor(ed)? ads?|ad credits?|buy ads?)\b") || has(&text, r"no (paid )?ads"), ""));
+        }
         _ => {}
     }
     r

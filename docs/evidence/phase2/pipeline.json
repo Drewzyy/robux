@@ -30,7 +30,7 @@
           {
             "name": "loaded only allowed vault sections",
             "passed": true,
-            "detail": "sections: 00-router, 70-competitors, 10-game-design"
+            "detail": "sections: 00-Start-Here, 16-Market-Research, 02-Game-Design"
           },
           {
             "name": "has a Loaded section listing vault notes read",
@@ -87,7 +87,7 @@
           {
             "name": "loaded only allowed vault sections",
             "passed": true,
-            "detail": "sections: 00-router, 90-templates-checklists"
+            "detail": "sections: 00-Start-Here, 17-Development-Templates"
           },
           {
             "name": "has a Loaded section listing vault notes read",
@@ -144,7 +144,7 @@
           {
             "name": "loaded only allowed vault sections",
             "passed": true,
-            "detail": "sections: 00-router, 10-game-design"
+            "detail": "sections: 00-Start-Here, 02-Game-Design"
           },
           {
             "name": "has a Loaded section listing vault notes read",
@@ -206,7 +206,7 @@
           {
             "name": "loaded only allowed vault sections",
             "passed": true,
-            "detail": "sections: 00-router, 20-luau-rojo"
+            "detail": "sections: 00-Start-Here, 13-Luau-Engineering"
           },
           {
             "name": "has a Loaded section listing vault notes read",

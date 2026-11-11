@@ -1,5 +1,5 @@
 from common import note
-S = "20-luau-rojo"
+S = "13-Luau-Engineering"
 R = "Research report (Nov 9 2026) C2"
 
 note(f"{S}/project-structure", "Canonical Rojo layout: default.project.json mapping, file naming (.server.luau, .client.luau), one bootstrapper per side, frozen shared data.", "reference", "verified",
@@ -48,7 +48,7 @@ Drop the `Packages` line if the project has no Wally packages (Rojo fails on a m
 - `shared/Data` is content (items, prices, shops); `shared/Configs` is tuning knobs. Freeze both with `table.freeze`. Server validation and client display read the same source.
 
 ## Studio files every project carries
-`selene.toml` (`std = "roblox"`), `stylua.toml`, `tests/run.luau`. See [[20-luau-rojo/headless-test-gate]].
+`selene.toml` (`std = "roblox"`), `stylua.toml`, `tests/run.luau`. See [[13-Luau-Engineering/headless-test-gate]].
 """)
 
 note(f"{S}/framework-choice", "Knit vs Flamework vs a custom bootstrapper, with the decision rule. Pick one and never mix two DI frameworks.", "reference", "draft",
@@ -64,7 +64,7 @@ note(f"{S}/framework-choice", "Knit vs Flamework vs a custom bootstrapper, with 
 | Lifecycle | `KnitInit` then `KnitStart` | decorators | `Init` then `Start` |
 
 ## Decision rule
-- Game 1, solo, Luau: **custom bootstrapper** (fewest moving parts, nothing to install, every line readable by agents). See [[20-luau-rojo/service-controller-template]].
+- Game 1, solo, Luau: **custom bootstrapper** (fewest moving parts, nothing to install, every line readable by agents). See [[13-Luau-Engineering/service-controller-template]].
 - Fast Luau team that wants auto networking: Knit.
 - Large typed codebase: Flamework with roblox-ts.
 - Pick one. Never mix two DI frameworks.
@@ -178,7 +178,7 @@ assert(not Validate.isFiniteNumber("3"), "string rejected")
 print("all tests passed")
 ```
 
-The real game sends what was collected (a coin part), not an amount; the server decides the amount. This template shows the validation shape only. See [[20-luau-rojo/remotes-and-security]].
+The real game sends what was collected (a coin part), not an amount; the server decides the amount. This template shows the validation shape only. See [[13-Luau-Engineering/remotes-and-security]].
 """)
 
 note(f"{S}/remotes-and-security", "Never trust the client: validation order, NaN and math.huge, rate limits, server-owned state, RemoteFunction hazards, what replicates.", "reference", "draft",
@@ -244,34 +244,34 @@ Enable "Studio Access to API Services" or DataStores fail silently in Studio. Da
 """)
 
 note(f"{S}/common-bugs-checklist", "Pre-commit review list: the bugs that lose data, get exploited, or break on mobile. Builder runs this before finishing.", "checklist", "draft",
- R + " (C2 consolidated)", "Checklist distilled from the other 20-luau-rojo notes; each item points to the note that justifies it.", r"""
+ R + " (C2 consolidated)", "Checklist distilled from the other 13-Luau-Engineering notes; each item points to the note that justifies it.", r"""
 # Common bugs checklist
 
-Data ([[20-luau-rojo/datastore-playbook]])
+Data ([[13-Luau-Engineering/datastore-playbook]])
 - [ ] Saves on autosave, leave, and `BindToClose`, in parallel at shutdown.
 - [ ] Failed load kicks or refuses to save; never plays on a default profile.
 - [ ] `UpdateAsync` for read-modify-write; every call in `pcall` with retry.
 - [ ] No Instances or CFrames in saved data.
 
-Remotes ([[20-luau-rojo/remotes-and-security]])
+Remotes ([[13-Luau-Engineering/remotes-and-security]])
 - [ ] Every handler checks type, range (NaN, inf, negatives), permission, plausibility.
 - [ ] Every remote is rate limited per player.
 - [ ] No `InvokeClient` for anything needed.
 - [ ] Client never sends amounts, damage, or prices.
 
-Structure ([[20-luau-rojo/project-structure]])
+Structure ([[13-Luau-Engineering/project-structure]])
 - [ ] One bootstrapper per side, Init then Start.
 - [ ] No circular requires; no cross-boundary requires.
 - [ ] Shared data frozen; no secrets in ReplicatedStorage.
 
-Performance ([[20-luau-rojo/performance-budgets]])
+Performance ([[14-QA-Optimization/performance-budgets]])
 - [ ] Static parts anchored.
 - [ ] No heavy work every Heartbeat.
 
 Monetization
-- [ ] Every developer product handled in `ProcessReceipt`, idempotent ([[40-monetization/processreceipt-template]]).
+- [ ] Every developer product handled in `ProcessReceipt`, idempotent ([[07-Monetization/processreceipt-template]]).
 
-Gate ([[20-luau-rojo/headless-test-gate]])
+Gate ([[13-Luau-Engineering/headless-test-gate]])
 - [ ] `python3 ../scripts/gates/build_gate.py projects/<game>` passes.
 """)
 

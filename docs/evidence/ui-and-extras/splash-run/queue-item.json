@@ -41,7 +41,7 @@
       {
         "name": "loaded only allowed vault sections",
         "passed": true,
-        "detail": "sections: 00-router, 80-assets, 30-ui-ux, 60-policy"
+        "detail": "sections: 00-Start-Here, 10-Art-Environment, 08-UI-UX, 01-Roblox-Fundamentals"
       },
       {
         "name": "has a Loaded section listing vault notes read",

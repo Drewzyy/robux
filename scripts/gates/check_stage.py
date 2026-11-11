@@ -202,6 +202,25 @@ def check(agent, text, project, out_path=None):
         r.extend(splash_checks(text, Path(out_path)))
     elif agent == "liveops":
         r.append(c("numbers come with dates", has(text, r"\d{4}-\d{2}-\d{2}") or "BLOCKED" in text.upper()))
+    elif agent == "motion":
+        r.append(c("action, trigger, effect table", has(text, r"^\|.*action.*\|.*trigger.*\|")))
+        r.append(c("effects are cleaned up", has(text, r"debris|:destroy|destroy\(")))
+    elif agent == "crowd":
+        r.append(c("server authority section", heading(text, "server authority")))
+        r.append(c("works with one player", has(text, r"one player|solo|single player|1 player")))
+    elif agent == "tuner":
+        r.append(c("budget section", heading(text, "budget")))
+        r.append(c("findings cite file:line or none found", has(text, r"\.luau:\d+") or has(text, "no issue found")))
+        r.append(c("says measured or estimated", has(text, r"measured|estimated")))
+    elif agent == "director":
+        r.append(c("identity section", heading(text, "identity")))
+        r.append(c("cut list section", heading(text, "cut")))
+        r.append(c("verdict section", heading(text, "verdict")))
+    elif agent == "release":
+        r.append(c("checklist section", heading(text, "checklist")))
+        r.append(c("blockers section", heading(text, "blocker")))
+        r.append(c("says nothing was published", has(text, r"nothing (was|has been) published|not published|andrew publishes")))
+        r.append(c("no paid promotion", not has(text, r"\b(paid ads?|sponsor(ed)? ads?|ad credits?|buy ads?)\b") or has(text, r"no (paid )?ads")))
     elif agent == "simulator":
         r.extend(simulation_checks(Path(out_path)))
     elif agent == "producer":

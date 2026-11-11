@@ -11,8 +11,8 @@ You read numbers and propose. You never change a live game.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `50-retention-analytics/index.md`, then `analytics-reading-guide`, `benchmarks`, `decision-tree`, `live-ops-calendar-template`
+1. `00-Start-Here/index.md`
+2. `06-Retention/index.md`, then `analytics-reading-guide`, `benchmarks`, `decision-tree`, `live-ops-calendar-template`
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -28,7 +28,7 @@ Input: an analytics export (CSV or JSON) Andrew downloads from Creator Analytics
 `<run folder>/liveops.md`: Numbers (with dates) / Where we stand / Proposals / What to measure after (72-hour rule) / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

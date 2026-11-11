@@ -11,9 +11,9 @@ You build interfaces. Phone first.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `30-ui-ux/index.md`, then `design-system`, `hud-template`, `mobile-first-checklist`, plus `shop-ui` or `onboarding-flow` as needed
-3. `40-monetization/do-not-sell-list` when the screen sells anything
+1. `00-Start-Here/index.md`
+2. `08-UI-UX/index.md`, then `design-system`, `hud-template`, `mobile-first-checklist`, plus `shop-ui` or `onboarding-flow` as needed
+3. `07-Monetization/do-not-sell-list` when the screen sells anything
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -29,7 +29,7 @@ Input: the design doc or the monetization spec, and the project in `projects/<ga
 `<run folder>/ui.md` (brief, screens, checklist results, Loaded) and the UI modules in the project.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

@@ -1,20 +1,20 @@
 from common import note
-S = "90-templates-checklists"
+S = "17-Development-Templates"
 R = "Research report (Nov 9 2026) C9"
 
 note(f"{S}/launch-checklist", "Launch checklist: policy re-check, maturity, thumbnail, icon, description, products, ProcessReceipt test, playtest pass, Andrew's approval of the exact build, publish to Saved.", "checklist", "draft",
  R, "Checklist; each line points to the note that defines it. Andrew ticks the final two lines himself.", r"""
 # Launch checklist
 
-- [ ] [[60-policy/pre-launch-policy-checklist]] done today.
+- [ ] [[01-Roblox-Fundamentals/pre-launch-policy-checklist]] done today.
 - [ ] Content Maturity questionnaire accurate.
-- [ ] Thumbnail(s) and icon per [[30-ui-ux/thumbnail-icon-spec]]; they show what the first 10 seconds deliver.
+- [ ] Thumbnail(s) and icon per [[08-UI-UX/thumbnail-icon-spec]]; they show what the first 10 seconds deliver.
 - [ ] Title and description accurate; no keyword stuffing, no giveaways as the lead.
-- [ ] Products created in Creator Dashboard by Andrew, matching the approved catalog ([[40-monetization/product-catalog-template]]).
+- [ ] Products created in Creator Dashboard by Andrew, matching the approved catalog ([[07-Monetization/product-catalog-template]]).
 - [ ] Every developer product tested through ProcessReceipt in Studio.
-- [ ] [[90-templates-checklists/playtest-qa-checklist]] passed on PC, phone, and gamepad.
-- [ ] Build gate passes ([[20-luau-rojo/headless-test-gate]]).
-- [ ] Analytics funnels and economy events in place ([[50-retention-analytics/event-taxonomy]]).
+- [ ] [[14-QA-Optimization/playtest-qa-checklist]] passed on PC, phone, and gamepad.
+- [ ] Build gate passes ([[13-Luau-Engineering/headless-test-gate]]).
+- [ ] Analytics funnels and economy events in place ([[06-Retention/event-taxonomy]]).
 - [ ] Andrew approved this exact build in the review queue.
 - [ ] Publish script run by Andrew, defaulting to **Saved, never live**. Going live is a separate, explicit decision.
 """)
@@ -24,7 +24,7 @@ note(f"{S}/update-checklist", "Update checklist: one named reason, the metric it
 # Update checklist
 
 - [ ] One named reason for this update, and the one metric it should move.
-- [ ] Snapshot of current metrics with the date ([[50-retention-analytics/weekly-review-template]]).
+- [ ] Snapshot of current metrics with the date ([[15-LiveOps/weekly-review-template]]).
 - [ ] Scope fits one update; out-of-scope list written.
 - [ ] Build gate passes; Playtest report has no blockers or majors.
 - [ ] Content Maturity answers still true (resubmit if not).
@@ -34,7 +34,7 @@ note(f"{S}/update-checklist", "Update checklist: one named reason, the metric it
 """)
 
 note(f"{S}/playtest-qa-checklist", "Playtest QA: how it was tested, spawn, first 60 seconds, every stage readable, checkpoints, coins, shop, no early pop-ups, PC, phone, gamepad, performance.", "checklist", "draft",
- R + " (C9); 10-game-design and 30-ui-ux checklists", "Checklist used by the Playtest agent; its report is checked by scripts/gates/check_stage.py (method stated, verdict, severities).", r"""
+ R + " (C9); 02-Game-Design and 08-UI-UX checklists", "Checklist used by the Playtest agent; its report is checked by scripts/gates/check_stage.py (method stated, verdict, severities).", r"""
 # Playtest QA checklist
 
 ## State the method first
@@ -84,7 +84,7 @@ Applies to every agent output and every game. If an output fails, it does not sh
 - [ ] A new mechanic or twist, not a reskin of a top game.
 - [ ] Original names, art, and thumbnails; no look-alike characters.
 - [ ] The thumbnail's promise is kept in the first 10 seconds.
-- [ ] Juice on every action ([[80-assets/vfx-sfx-library]]).
+- [ ] Juice on every action ([[09-Animation-VFX/vfx-sfx-library]]).
 - [ ] Hand-tuned numbers: difficulty and economy were playtested, not left at first guesses.
 - [ ] **Would a player recommend this to a friend?** If the honest answer is no, it does not ship.
 
@@ -98,7 +98,7 @@ note(f"{S}/game-idea-template", "Fill-in idea template Andrew or Pulse fills; Le
 
 - **Working title:**
 - **One sentence:** what the player does and why it is fun.
-- **Genre:** (link the playbook in 10-game-design/genre-playbooks)
+- **Genre:** (link the playbook in 02-Game-Design/genre-playbooks)
 - **Core verb:**
 - **The twist** (what is new compared with the top game in this genre):
 - **Comps** (games it is like, with dates and numbers):
@@ -159,18 +159,18 @@ note(f"{S}/mvp-build-order", "Build order for a new game (core loop first, monet
 
 ## A new game
 1. Core loop on a baseplate (the 5-second verb is fun).
-2. First 60 seconds ([[10-game-design/first-60-seconds-checklist]]).
+2. First 60 seconds ([[04-Onboarding/first-60-seconds-checklist]]).
 3. Progression.
-4. Saving ([[20-luau-rojo/datastore-playbook]]).
-5. UI ([[30-ui-ux/hud-template]]).
-6. Analytics events ([[50-retention-analytics/event-taxonomy]]).
-7. Monetization last ([[40-monetization/do-not-sell-list]]).
+4. Saving ([[13-Luau-Engineering/datastore-playbook]]).
+5. UI ([[08-UI-UX/hud-template]]).
+6. Analytics events ([[06-Retention/event-taxonomy]]).
+7. Monetization last ([[07-Monetization/do-not-sell-list]]).
 8. Playtest, then the review queue.
 
 ## The vault (minimum viable order, per the research)
 1. Router, glossary, policy change log.
-2. 20-luau-rojo. 3. 60-policy. 4. 40-monetization. 5. 10-game-design. 6. 30-ui-ux. 7. 50-retention-analytics. 8. 70-competitors. 9. 80-assets. 10. 90-templates-checklists.
+2. 13-Luau-Engineering. 3. 01-Roblox-Fundamentals. 4. 07-Monetization. 5. 02-Game-Design. 6. 08-UI-UX. 7. 06-Retention. 8. 16-Market-Research. 9. 10-Art-Environment. 10. 17-Development-Templates.
 
-New notes go in only after a successful, verified run ([[00-router/how-to-use-this-vault]]).
+New notes go in only after a successful, verified run ([[00-Start-Here/how-to-use-this-vault]]).
 """)
 print("90 done")

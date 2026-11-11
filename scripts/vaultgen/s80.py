@@ -1,5 +1,5 @@
 from common import note
-S = "80-assets"
+S = "10-Art-Environment"
 R = "Research report (Nov 9 2026) C8"
 
 note(f"{S}/pipeline-overview", "Asset pipelines at a glance: Blender to Studio, Studio capture to thumbnail, audio to SoundService, VFX and SFX, and where each lands in the Rojo project.", "reference", "draft",
@@ -8,12 +8,12 @@ note(f"{S}/pipeline-overview", "Asset pipelines at a glance: Blender to Studio, 
 
 | Asset | Path | Note |
 |---|---|---|
-| 3D models | primitives in Studio, or Blender (optionally driven through Blender MCP) to FBX/OBJ, import to Studio | [[80-assets/3d-model-checklist]] |
-| Creator Store models | search and insert through the Studio MCP server (Andrew's Studio must be open), license recorded | [[80-assets/asset-sources-and-licenses]] |
-| Thumbnails and icon | Studio Free Camera capture, then layout | [[80-assets/thumbnail-pipeline]] |
-| Audio | copyright-free, licensed, moderated on upload | [[80-assets/audio-pipeline]] |
-| VFX and SFX | small feedback on every action, within particle caps | [[80-assets/vfx-sfx-library]] |
-| Lighting | Lighting and Atmosphere values in a Rojo config module | [[80-assets/lighting-and-mood]] |
+| 3D models | primitives in Studio, or Blender (optionally driven through Blender MCP) to FBX/OBJ, import to Studio | [[10-Art-Environment/3d-model-checklist]] |
+| Creator Store models | search and insert through the Studio MCP server (Andrew's Studio must be open), license recorded | [[10-Art-Environment/asset-sources-and-licenses]] |
+| Thumbnails and icon | Studio Free Camera capture, then layout | [[10-Art-Environment/thumbnail-pipeline]] |
+| Audio | copyright-free, licensed, moderated on upload | [[11-Audio/audio-pipeline]] |
+| VFX and SFX | small feedback on every action, within particle caps | [[09-Animation-VFX/vfx-sfx-library]] |
+| Lighting | Lighting and Atmosphere values in a Rojo config module | [[10-Art-Environment/lighting-and-mood]] |
 
 ## Two lanes (god plan model, as summarized in the report)
 - **Lane A, headless:** Rojo, Lune, Open Cloud. Code and data live in the repo. Lasting changes go here.
@@ -32,12 +32,12 @@ note(f"{S}/3d-model-checklist", "3D models: fewer larger parts, shared MeshIds, 
 - [ ] `Model.LevelOfDetail` set for static distant models (reported value name `SLIM`: UNVERIFIED, check the enum).
 - [ ] Textures: 256x256 for minor objects, 512x512 standard. Memory scales with the square: 1024 is 4x a 512.
 - [ ] Collision simplified where players never touch it.
-- [ ] License recorded ([[80-assets/asset-sources-and-licenses]]); no Toolbox free models.
-- [ ] Within [[20-luau-rojo/performance-budgets]].
+- [ ] License recorded ([[10-Art-Environment/asset-sources-and-licenses]]); no Toolbox free models.
+- [ ] Within [[14-QA-Optimization/performance-budgets]].
 """)
 
 note(f"{S}/thumbnail-pipeline", "Thumbnail workflow: Studio Free Camera (Shift+P) base shots, enhance, export 1920x1080 under 3 MB; icon is a separate 512x512 crop.", "playbook", "draft",
- R + "; views.terabox.com thumbnail creator guide", "Capture steps from secondary guides; confirm the Free Camera shortcut in Studio. Sizes per 30-ui-ux/thumbnail-icon-spec.", r"""
+ R + "; views.terabox.com thumbnail creator guide", "Capture steps from secondary guides; confirm the Free Camera shortcut in Studio. Sizes per 08-UI-UX/thumbnail-icon-spec.", r"""
 # Thumbnail pipeline
 
 1. Splash writes the shot list: one promise per image, shown in the first 10 seconds of play.
@@ -47,7 +47,7 @@ note(f"{S}/thumbnail-pipeline", "Thumbnail workflow: Studio Free Camera (Shift+P
 5. Icon: a separate 512x512 crop, readable at 150x150.
 6. Upload is Andrew's action. Every image is moderated.
 
-Spec: [[30-ui-ux/thumbnail-icon-spec]].
+Spec: [[08-UI-UX/thumbnail-icon-spec]].
 """)
 
 note(f"{S}/audio-pipeline", "Audio: copyright-free only, license recorded, Roblox moderation on upload; silence beats a bad loop; gentle sounds over jarring ones.", "playbook", "draft",
@@ -59,7 +59,7 @@ note(f"{S}/audio-pipeline", "Audio: copyright-free only, license recorded, Roblo
 - Uploads are moderated.
 - Silence is better than a bad loop.
 - Fit the mood: soft sounds at transitions; loud or jarring sounds break the mood.
-- Every core action gets a short sound ([[80-assets/vfx-sfx-library]]).
+- Every core action gets a short sound ([[09-Animation-VFX/vfx-sfx-library]]).
 """)
 
 note(f"{S}/vfx-sfx-library", "Juice on every action: checkpoint light and sound, coin spin and chime, finish fanfare; within particle and Highlight caps.", "reference", "draft",
@@ -89,8 +89,8 @@ note(f"{S}/lighting-and-mood", "Scenic's note: lighting goals (readability first
 The research behind this vault has no lighting section. This note holds goals only.
 
 ## Goals (from verified rules elsewhere)
-1. **Readability first.** Hazards and the next goal stand out from the background in every zone ([[10-game-design/genre-playbooks/obby]]).
-2. **Phone performance.** Limit shadow-casting lights ([[20-luau-rojo/performance-budgets]]).
+1. **Readability first.** Hazards and the next goal stand out from the background in every zone ([[02-Game-Design/genre-playbooks/obby]]).
+2. **Phone performance.** Limit shadow-casting lights ([[14-QA-Optimization/performance-budgets]]).
 3. **Mood second.** Match the design doc's mood words.
 
 ## Where values live
@@ -102,7 +102,7 @@ UNVERIFIED: which properties exist on `Lighting` and `Atmosphere` and their rang
 
 note(f"{S}/tool-setup", "Setup for Studio MCP (built into Studio), Blender MCP, and the headless toolchain; what each is for and what needs Andrew.", "playbook", "draft",
  R + "; c-s-labs luckbound; vibestackweekly; agentgid; quanticsoul4772 mcp-roblox README",
- "Studio MCP command and menu path are from secondary sources: UNVERIFIED until Andrew connects it on his Mac. Headless tools verified in 20-luau-rojo/toolchain.", r"""
+ "Studio MCP command and menu path are from secondary sources: UNVERIFIED until Andrew connects it on his Mac. Headless tools verified in 13-Luau-Engineering/toolchain.", r"""
 # Tool setup
 
 ## Roblox Studio MCP server (built into Studio)
@@ -120,7 +120,7 @@ note(f"{S}/tool-setup", "Setup for Studio MCP (built into Studio), Blender MCP, 
 `claude mcp add blender -- uvx blender-mcp`, then enable "Interface: Blender MCP" in Blender (reported). Pulls from Poly Haven, Sketchfab, Poly Pizza.
 
 ## Headless
-See [[20-luau-rojo/toolchain]]. Script Sync (built into Studio) syncs scripts only and is a fallback if Rojo breaks.
+See [[13-Luau-Engineering/toolchain]]. Script Sync (built into Studio) syncs scripts only and is a fallback if Rojo breaks.
 """)
 
 note(f"{S}/free-tool-table", "Every free tool in the studio and its cost (zero): Studio, Rojo, Lune, Open Cloud, Studio MCP, Assistant, Blender, Wally and friends, GitHub Actions, trackers.", "reference", "draft",
@@ -155,7 +155,7 @@ note(f"{S}/asset-sources-and-licenses", "Where assets may come from (primitives,
 | Roblox built-in generators (mesh, material) | good for materials and simple props |
 | Creator Store | fastest prototype; insert via Studio MCP; check license before publishing |
 | Paid marketplaces (Sketchfab, Kitbash3D, Quixel) | studio build budget is $0: not used without Andrew's approval; license must allow Roblox publishing |
-| Toolbox free models | **never** ([[80-assets/no-toolbox-rule]]) |
+| Toolbox free models | **never** ([[10-Art-Environment/no-toolbox-rule]]) |
 
 ## For every asset record
 Need, choice, source, asset ID or file, license, who approved.
@@ -167,6 +167,6 @@ note(f"{S}/no-toolbox-rule", "No Toolbox free models, ever: they can hide malici
 
 No Toolbox free models. They can contain hidden malicious scripts (backdoors, require-by-ID loaders).
 
-Instead: primitives and code, team-made assets, or licensed Creator Store items with the license recorded ([[80-assets/asset-sources-and-licenses]]).
+Instead: primitives and code, team-made assets, or licensed Creator Store items with the license recorded ([[10-Art-Environment/asset-sources-and-licenses]]).
 """)
 print("80 done")

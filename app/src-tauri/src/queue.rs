@@ -151,7 +151,48 @@ pub fn decide(root: &Path, id: &str, verdict: &str, note: &str) -> Result<QueueI
         .open(&log)
         .map_err(|e| format!("open {}: {e}", log.display()))?;
     writeln!(f, "{line}").map_err(|e| e.to_string())?;
+    let _ = remember(root, &item, &decision);
     Ok(item)
+}
+
+/// Which game an item is about: from its artifacts, else its run's request.
+fn project_of(root: &Path, item: &QueueItem) -> Option<String> {
+    let re = regex::Regex::new(r"projects/([A-Za-z0-9_-]+)").unwrap();
+    let mut text = item.artifacts.join(" ");
+    if let Some(r) = &item.run_id {
+        for f in ["pipeline.json", "request.json"] {
+            text.push(' ');
+            text.push_str(&fs::read_to_string(root.join("runs").join(r).join(f)).unwrap_or_default());
+        }
+    }
+    re.captures(&text).map(|c| c[1].to_string())
+}
+
+/// Append the decision to vault/19-Project-Memory/<game>.md (created on
+/// first use and listed in the section index). Agents read it; only the
+/// app writes it.
+pub fn remember(root: &Path, item: &QueueItem, d: &Decision) -> Result<(), String> {
+    let Some(game) = project_of(root, item) else { return Ok(()) };
+    let dir = root.join("vault/19-Project-Memory");
+    if !dir.is_dir() {
+        return Ok(());
+    }
+    let note = dir.join(format!("{game}.md"));
+    use std::io::Write;
+    if !note.is_file() {
+        let head = format!(
+            "---\ndescription: Decisions Andrew made on {game}, newest last. Read before planning work on this game.\ntype: project-memory\nstatus: verified\nlast_checked: {}\nverify: written by the app from the review queue (queue.rs remember); not edited by hand or by agents.\n---\n# {game}: decisions\n\n| Date | Decision | What | Note |\n|---|---|---|---|\n",
+            &d.at[..10.min(d.at.len())]
+        );
+        fs::write(&note, head).map_err(|e| e.to_string())?;
+        let idx = dir.join("index.md");
+        if let Ok(mut f) = fs::OpenOptions::new().append(true).open(&idx) {
+            let _ = writeln!(f, "| [[19-Project-Memory/{game}]] | Every approve, reject, and change request on {game}. | verified |");
+        }
+    }
+    let clean = |t: &str| t.replace('|', "/").replace('\n', " ");
+    let mut f = fs::OpenOptions::new().append(true).open(&note).map_err(|e| e.to_string())?;
+    writeln!(f, "| {} | {} | {} | {} |", &d.at[..10.min(d.at.len())], d.verdict.replace('_', " "), clean(&item.title), clean(&d.note)).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -201,6 +242,28 @@ mod tests {
         assert_eq!(b.status, "rejected");
         let log = fs::read_to_string(r.join("queue/decisions.jsonl")).unwrap();
         assert_eq!(log.lines().count(), 2);
+    }
+
+    #[test]
+    fn decisions_go_to_project_memory() {
+        let r = tmp_root("mem");
+        fs::create_dir_all(r.join("vault/19-Project-Memory")).unwrap();
+        fs::write(r.join("vault/19-Project-Memory/index.md"), "# idx\n").unwrap();
+        let mut i = item("m1", true);
+        i.title = "Shop | v2".into();
+        i.artifacts = vec!["projects/dawn-watch/src/Shop.luau".into()];
+        add(&r, &i).unwrap();
+        let mut j = item("m2", true);
+        j.artifacts = vec!["projects/dawn-watch/x".into()];
+        add(&r, &j).unwrap();
+        assert!(decide(&r, "m1", "changes_requested", "").is_err(), "change request needs a note");
+        decide(&r, "m1", "changes_requested", "cheaper\nprices").unwrap();
+        decide(&r, "m2", "approved", "").unwrap();
+        let note = fs::read_to_string(r.join("vault/19-Project-Memory/dawn-watch.md")).unwrap();
+        assert!(note.contains("| changes requested | Shop / v2 | cheaper prices |"), "{note}");
+        assert!(note.contains("| approved |"));
+        let idx = fs::read_to_string(r.join("vault/19-Project-Memory/index.md")).unwrap();
+        assert_eq!(idx.matches("[[19-Project-Memory/dawn-watch]]").count(), 1);
     }
 
     #[test]

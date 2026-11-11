@@ -1,5 +1,5 @@
 from common import note
-S = "50-retention-analytics"
+S = "06-Retention"
 R = "Research report (Nov 9 2026) B8 and C5"
 
 note(f"{S}/analytics-reading-guide", "How to read Creator Analytics: D1 and session first, then D7/D30, acquisition, monetization, performance. Cohorts, data delays, the 72-hour rule.", "reference", "draft",
@@ -21,13 +21,13 @@ note(f"{S}/analytics-reading-guide", "How to read Creator Analytics: D1 and sess
 - Reported features: hourly granularity, two-year history, New User First Session Retention, genre percentile benchmarks.
 
 ## Rules
-- Log the time of every significant change (update notes, [[50-retention-analytics/weekly-review-template]]).
+- Log the time of every significant change (update notes, [[15-LiveOps/weekly-review-template]]).
 - **Wait a full 72 hours** before drawing conclusions about a change.
 - Compare your own cohorts before and after a change. That is the most honest comparison.
 - A game with 2,000 CCU and 35% D1 will usually beat one with 8,000 CCU and 12% D1 over 30 days.
 
 ## Diagnosis
-Use [[50-retention-analytics/decision-tree]].
+Use [[06-Retention/decision-tree]].
 
 ## Tools
 Third-party: RoWatcher, BloxMetrics, GameAnalytics, Dive Games (all need custom server-side instrumentation). Open Cloud Analytics API with a read-only `universe.analytics:read` key; community `roblox-analytics-mcp`. Any of these need Andrew's account and key.
@@ -142,14 +142,14 @@ note(f"{S}/decision-tree", "What to fix first: low play-through means packaging,
 
 Work top to bottom. Fix one thing, wait 72 hours, compare cohorts.
 
-1. **Play-through rate low?** The packaging is the problem: icon, thumbnail, title, description ([[30-ui-ux/thumbnail-icon-spec]]).
-2. **First-play bounce high (under 60 s or 61-180 s)?** Fix loading, spawn flow, controls, tutorial friction, unclear goals, or a misleading thumbnail ([[10-game-design/first-60-seconds-checklist]]).
+1. **Play-through rate low?** The packaging is the problem: icon, thumbnail, title, description ([[08-UI-UX/thumbnail-icon-spec]]).
+2. **First-play bounce high (under 60 s or 61-180 s)?** Fix loading, spawn flow, controls, tutorial friction, unclear goals, or a misleading thumbnail ([[04-Onboarding/first-60-seconds-checklist]]).
 3. **D1 and D7 both weak?** Fix onboarding and the core loop first.
-4. **D1 fine but D7 falls sharply?** Players run out of things to do: progression and content ([[10-game-design/progression-systems]]).
+4. **D1 fine but D7 falls sharply?** Players run out of things to do: progression and content ([[05-Progression/progression-systems]]).
 5. **D1 stable but Day 2-7 or Day 8-28 declining?** Check save data, content pacing, return goals, and whether updates add value.
-6. **D30 low?** Missing end-game goals; live ops and seasons close this gap ([[50-retention-analytics/live-ops-calendar-template]]).
+6. **D30 low?** Missing end-game goals; live ops and seasons close this gap ([[15-LiveOps/live-ops-calendar-template]]).
 7. **Session short?** The core loop lacks depth.
-8. **Retention healthy, payers low?** Then (and only then) the shop ([[40-monetization/pricing-ladder]]).
+8. **Retention healthy, payers low?** Then (and only then) the shop ([[07-Monetization/pricing-ladder]]).
 9. **Everything healthy?** Then acquisition.
 
 Roblox's order: D1 and session time, then D7 and D30, then payer conversion, then acquisition.
@@ -176,10 +176,10 @@ note(f"{S}/weekly-review-template", "Weekly review: change log with timestamps, 
 |---|---|---|---|---|
 
 ## Decision
-Walk [[50-retention-analytics/decision-tree]]. One change for next week, with its reason.
+Walk [[06-Retention/decision-tree]]. One change for next week, with its reason.
 
 ## Competitors
-One hour max ([[70-competitors/tracker-watchlist]]).
+One hour max ([[16-Market-Research/tracker-watchlist]]).
 """)
 
 note(f"{S}/live-ops-calendar-template", "Live ops: weekly events, content cadence by genre, daily rewards, limited items, double-coin weekends. One human decision per update.", "template", "draft",

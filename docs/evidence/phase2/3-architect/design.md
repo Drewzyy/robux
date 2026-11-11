@@ -3,7 +3,7 @@ Run: pipe-pitch-to-build-20261109-105542-ca9c--3-architect. Date: 2026-11-09.
 
 **Number rule:** every number in this doc (seconds, counts, prices, percentages) is a **starting value to tune** in playtest. I say so once here and tag each table. Nothing is final.
 
-**Vault status:** `10-game-design/index` is `status: stub`. Every note it lists (templates, playbooks, worksheets, player-psychology) is marked "planned". I did not look for them elsewhere. **STUB: 10-game-design/index. STUB/NOT READ (listed as planned): game-design-doc-template, core-loop-template, first-60-seconds-checklist, difficulty-curve-worksheet, player-psychology.** There is no co-op or survival genre playbook in the vault. I designed from the architect skill rules, Pulse's pitch and Lead's plan.
+**Vault status:** `02-Game-Design/index` is `status: stub`. Every note it lists (templates, playbooks, worksheets, player-psychology) is marked "planned". I did not look for them elsewhere. **STUB: 02-Game-Design/index. STUB/NOT READ (listed as planned): game-design-doc-template, core-loop-template, first-60-seconds-checklist, difficulty-curve-worksheet, player-psychology.** There is no co-op or survival genre playbook in the vault. I designed from the architect skill rules, Pulse's pitch and Lead's plan.
 
 ---
 
@@ -87,7 +87,7 @@ Intensity = creatures alive at once (Mumble 1, Flicker 1, Hushhog 3 points).
 - There is no quit-rate data yet. Tune from playtest (the difficulty worksheet is not in the vault).
 
 ## 7. Social hooks (cheapest first)
-1. **Join friends:** the lobby and the join flow let friends land on the same lighthouse. Plan for friend-join on day 1. Which Roblox API to use is UNVERIFIED; Builder to confirm in `20-luau-rojo`.
+1. **Join friends:** the lobby and the join flow let friends land on the same lighthouse. Plan for friend-join on day 1. Which Roblox API to use is UNVERIFIED; Builder to confirm in `13-Luau-Engineering`.
 2. **Roles that need each other:** three stations plus the Hushhog requiring two beams makes the group matter. Players can ping a lane with a simple on-screen marker (no chat needed).
 3. **Shared goal:** the Lighthouse Board that everyone funds.
 4. **Friend leaderboard:** friends' nights completed this week. UNVERIFIED whether it is feasible; it needs a data store, and the plan limits storage to the upgrade board, so this is a Lead decision.
@@ -98,7 +98,7 @@ Intensity = creatures alive at once (Mumble 1, Flicker 1, Hushhog 3 points).
 - **Lobby:** small round cove. Oil barrels and a practice lamp (an optional free tutorial that makes the first lamp lit in under 10 s).
 - **Night map:** the gallery ring with 3 stations spaced evenly, barrels between them, 3 to 5 lanes radiating over the water, a dawn bar at the top of the screen, and an oil gauge on each lamp.
 - **Palette:** warm lamp light against deep blue fog. Cute, round creatures.
-- **Input:** phone, PC and gamepad all supported (one big interact button and one aim stick/drag). The UI specifics are for Frame (`30-ui-ux`, not loaded).
+- **Input:** phone, PC and gamepad all supported (one big interact button and one aim stick/drag). The UI specifics are for Frame (`08-UI-UX`, not loaded).
 
 ## 9. What we will not do
 - No pay-to-win. No gamepass or product raises beam strength, oil, or Glow.
@@ -106,7 +106,7 @@ Intensity = creatures alive at once (Mumble 1, Flicker 1, Hushhog 3 points).
 - No punishing the free path: nobody is eliminated, and dawn always arrives.
 - No paid random items in game 1. The only random element is the free fog event.
 - No horror, gore, or jump scares (age rating risk; Pulse noted this).
-- **Nothing in this design is for sale.** Monetization is a later, separate step (Merchant). I did not load `40-monetization/do-not-sell-list` because I am not proposing anything for sale.
+- **Nothing in this design is for sale.** Monetization is a later, separate step (Merchant). I did not load `07-Monetization/do-not-sell-list` because I am not proposing anything for sale.
 
 ## 10. Open questions and UNVERIFIED
 **Open questions for Andrew:**
@@ -120,12 +120,12 @@ Intensity = creatures alive at once (Mumble 1, Flicker 1, Hushhog 3 points).
 - Pulse's demand numbers, as Pulse itself flagged. "Co-op survive-the-night" rests on one source (S4).
 - Any Roblox API for friend join, invites, and leaderboards.
 - All balance numbers (all are starting values).
-- Policy and age rating for fog creatures; `60-policy` was not loaded and no one has done a policy check.
+- Policy and age rating for fog creatures; `01-Roblox-Fundamentals` was not loaded and no one has done a policy check.
 - Whether 3 stations and 3 creatures fit a solo build budget.
 
 ## 11. Loaded
-- `00-router/index.md`: required first read; routed design to `10-game-design`.
-- `10-game-design/index.md`: required section index. It is a stub, and all its notes are "planned", so I read none of them.
+- `00-Start-Here/index.md`: required first read; routed design to `02-Game-Design`.
+- `02-Game-Design/index.md`: required section index. It is a stub, and all its notes are "planned", so I read none of them.
 - `runs/...--1-pulse/pitch.md`: the pitch (pitch #1, Dawn Watch).
 - `runs/...--2-lead/plan.md`: Lead's plan and Stage 1 gate.
-- Not loaded: `40-monetization` (nothing proposed for sale), `60-policy`, `30-ui-ux`, `20-luau-rojo`.
+- Not loaded: `07-Monetization` (nothing proposed for sale), `01-Roblox-Fundamentals`, `08-UI-UX`, `13-Luau-Engineering`.

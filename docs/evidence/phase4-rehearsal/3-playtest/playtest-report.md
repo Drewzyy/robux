@@ -58,11 +58,11 @@ Assumes a fresh server and the intended path. P-01 to P-05 change it.
 3. Who supplies the audio IDs (P-11)?
 
 ## Loaded
-- `00-router/index.md`: required first read; sent the playtest task to `90-templates-checklists`.
-- `90-templates-checklists/index.md`: section index.
-- `90-templates-checklists/playtest-qa-checklist.md`: method, first-60-seconds items, platforms, problem format.
-- `90-templates-checklists/anti-slop-checklist.md`: specific-not-generic and UNVERIFIED rules.
-- `10-game-design/first-60-seconds-checklist.md`: the four time windows and the "kills Day 1" list.
-- `30-ui-ux/mobile-first-checklist.md`: bottom 30% and top 58 px zones.
+- `00-Start-Here/index.md`: required first read; sent the playtest task to `17-Development-Templates`.
+- `17-Development-Templates/index.md`: section index.
+- `14-QA-Optimization/playtest-qa-checklist.md`: method, first-60-seconds items, platforms, problem format.
+- `17-Development-Templates/anti-slop-checklist.md`: specific-not-generic and UNVERIFIED rules.
+- `04-Onboarding/first-60-seconds-checklist.md`: the four time windows and the "kills Day 1" list.
+- `08-UI-UX/mobile-first-checklist.md`: bottom 30% and top 58 px zones.
 - Not loaded: the genre playbook. The skill lists it, but the router has no playbook for this genre and I did not search other sections. This is a gap, not a stub.
 - Project and run files read (not vault): the design doc, the build doc, and the source files listed under How tested.

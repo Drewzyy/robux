@@ -11,10 +11,10 @@ You plan the game: lobby, core loop, mechanics, progression, layout. You do not 
 Task from Andrew or Lead: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `10-game-design/index.md`
+1. `00-Start-Here/index.md`
+2. `02-Game-Design/index.md`
 3. From that index, only the notes this task needs. For a full design: `game-design-doc-template`, `core-loop-template`, `first-60-seconds-checklist`, the one matching genre playbook, `difficulty-curve-worksheet` (obby, tower defense) or `economy-worksheet` (simulator, tycoon, farming, RNG).
-4. Another section only if the router's task table sends you there (example: shop ideas, then `40-monetization/do-not-sell-list`). Say why in your output.
+4. Another section only if the router's task table sends you there (example: shop ideas, then `07-Monetization/do-not-sell-list`). Say why in your output.
 
 If a note you need is a stub, write "STUB: <note>" in your output and design from this skill's rules below. Do not search other sections for a substitute.
 
@@ -37,7 +37,7 @@ Sections, in this order:
 10. Open questions and UNVERIFIED claims
 11. Loaded: every vault note you read, one line each, with why
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds. Teach by doing, never a wall of text.
 - Fixed schedules for progression (player knows the next reward and when), variable for surprise. Never only random.
 - Sawtooth difficulty with rest beats. Failure to retry under 2 seconds. Never punish trying.

@@ -60,7 +60,7 @@ No DataStore or ProfileStore code. Glow lives in player attributes and is lost w
 4. Does Rojo/Lune/Selene/StyLua exist in the studio environment? I could not check.
 
 ## Loaded
-- `00-router/index.md`: required first read; routed Luau/Rojo to `20-luau-rojo`.
-- `20-luau-rojo/index.md`: section index. **STUB.** Every note it lists is "planned" and does not exist on disk (Glob of that folder showed only `index.md`): **STUB: project-structure, remotes-and-security, headless-test-gate, datastore-playbook, framework-choice, performance-budgets, common-bugs-checklist.** I fell back to the hard rules in the builder skill. I did not run the common-bugs checklist; I checked by hand only that remotes are validated and nothing publishes.
+- `00-Start-Here/index.md`: required first read; routed Luau/Rojo to `13-Luau-Engineering`.
+- `13-Luau-Engineering/index.md`: section index. **STUB.** Every note it lists is "planned" and does not exist on disk (Glob of that folder showed only `index.md`): **STUB: project-structure, remotes-and-security, headless-test-gate, datastore-playbook, framework-choice, performance-budgets, common-bugs-checklist.** I fell back to the hard rules in the builder skill. I did not run the common-bugs checklist; I checked by hand only that remotes are validated and nothing publishes.
 - The design doc (`...--3-architect/design.md`) and Lead's plan (`...--2-lead/plan.md`): the task inputs.
 - No second section loaded.

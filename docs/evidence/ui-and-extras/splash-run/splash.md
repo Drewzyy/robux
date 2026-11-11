@@ -63,11 +63,11 @@ Capture on one phone-sized and one PC window. Do not show Flicker, Hushhog, Crow
 3. Are the Mumble and the lamp final? I drew simplified shapes from the design doc, not from art.
 
 ## Loaded
-- `00-router/index.md`: required first read.
-- `80-assets/index.md`: the section index.
-- `80-assets/thumbnail-mrbeast-logic.md`: the rule sheet (status: draft; all percentages UNVERIFIED).
-- `80-assets/thumbnail-pipeline.md`: the capture steps and sizes.
-- `30-ui-ux/thumbnail-icon-spec.md`: sizes, formats and moderation.
-- `60-policy/ip-and-toolbox-rules.md`: no logos, catalog items or recognisable characters.
+- `00-Start-Here/index.md`: required first read.
+- `10-Art-Environment/index.md`: the section index.
+- `10-Art-Environment/thumbnail-mrbeast-logic.md`: the rule sheet (status: draft; all percentages UNVERIFIED).
+- `10-Art-Environment/thumbnail-pipeline.md`: the capture steps and sizes.
+- `08-UI-UX/thumbnail-icon-spec.md`: sizes, formats and moderation.
+- `01-Roblox-Fundamentals/ip-and-toolbox-rules.md`: no logos, catalog items or recognisable characters.
 - `projects/dawn-watch/docs/design.md`: the promise, first 60 seconds, creatures and palette.
-- Not loaded: `50-retention-analytics/discovery-signals` (not needed). No MrBeast research was asked for in this task, so none was done.
+- Not loaded: `06-Retention/discovery-signals` (not needed). No MrBeast research was asked for in this task, so none was done.

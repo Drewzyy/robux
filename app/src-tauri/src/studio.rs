@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Clone, Serialize)]
 pub struct AgentStatus {
     pub name: String,
+    pub role: String,
     pub description: String,
     pub model: String,
     pub output: Option<String>,
@@ -24,7 +25,7 @@ pub fn agent_statuses(root: &Path) -> Result<Vec<AgentStatus>, String> {
     let all = runs::list(root)?; // newest first
     let items = queue::list(root)?;
     let mut out = vec![];
-    const TEAM: [&str; 13] = ["pulse", "lead", "architect", "builder", "scenic", "librarian", "frame", "playtest", "simulator", "splash", "merchant", "liveops", "producer"];
+    const TEAM: [&str; 18] = ["lead", "pulse", "architect", "simulator", "merchant", "frame", "scenic", "motion", "librarian", "builder", "crowd", "playtest", "tuner", "director", "release", "splash", "liveops", "producer"];
     let mut names: Vec<&String> = cfg.agents.keys().filter(|n| n.as_str() != "bridge-test" && n.as_str() != "assistant").collect();
     names.sort_by_key(|n| TEAM.iter().position(|t| t == n).unwrap_or(99));
     for name in names {
@@ -47,6 +48,7 @@ pub fn agent_statuses(root: &Path) -> Result<Vec<AgentStatus>, String> {
         };
         out.push(AgentStatus {
             name: name.clone(),
+            role: a.role.clone(),
             description: a.description.clone(),
             model: a.model.clone(),
             output: a.output.clone(),

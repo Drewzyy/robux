@@ -33,7 +33,7 @@
       {
         "name": "architect: loaded only allowed vault sections",
         "passed": true,
-        "detail": "sections: 00-router, 10-game-design"
+        "detail": "sections: 00-Start-Here, 02-Game-Design"
       },
       {
         "name": "architect: has a Loaded section listing vault notes read",
@@ -83,7 +83,7 @@
       {
         "name": "builder: loaded only allowed vault sections",
         "passed": true,
-        "detail": "sections: 00-router, 20-luau-rojo"
+        "detail": "sections: 00-Start-Here, 13-Luau-Engineering"
       },
       {
         "name": "builder: has a Loaded section listing vault notes read",
@@ -148,7 +148,7 @@
       {
         "name": "playtest: loaded only allowed vault sections",
         "passed": true,
-        "detail": "sections: 00-router, 90-templates-checklists, 10-game-design, 30-ui-ux"
+        "detail": "sections: 00-Start-Here, 17-Development-Templates, 02-Game-Design, 08-UI-UX"
       },
       {
         "name": "playtest: has a Loaded section listing vault notes read",

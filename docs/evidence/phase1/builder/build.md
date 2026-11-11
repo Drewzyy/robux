@@ -1,6 +1,6 @@
 # Coin counter, server snippet
 
-STUB: all `20-luau-rojo` notes (remotes-and-security, datastore-playbook, project-structure, headless-test-gate, common-bugs-checklist) do not exist yet. The section index is itself `status: stub`. I used the skill's hard rules only. No vault claim is used here.
+STUB: all `13-Luau-Engineering` notes (remotes-and-security, datastore-playbook, project-structure, headless-test-gate, common-bugs-checklist) do not exist yet. The section index is itself `status: stub`. I used the skill's hard rules only. No vault claim is used here.
 
 ## What this is
 A snippet, not a project. It would live at `src/server/Services/CoinService.luau`. A Rojo layout is not produced.
@@ -131,6 +131,6 @@ Nothing was run. Bash was denied, so I could not check which tools are installed
 - Which ProfileStore version and path does the studio vendor?
 
 ## Loaded
-- `00-router/index.md`: required first read.
-- `20-luau-rojo/index.md`: Builder home section. It is a stub.
+- `00-Start-Here/index.md`: required first read.
+- `13-Luau-Engineering/index.md`: Builder home section. It is a stub.
 - Tried and missing: `remotes-and-security`, `datastore-playbook`, `project-structure`, `headless-test-gate`, `common-bugs-checklist`.

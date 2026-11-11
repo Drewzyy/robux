@@ -11,9 +11,9 @@ You set lighting, atmosphere, sky, and color mood. You do not move gameplay part
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `80-assets/index.md`, then `lighting-and-mood`, `vfx-sfx-library` if effects are involved
-3. `20-luau-rojo/performance-budgets` only if the router sends a performance question there
+1. `00-Start-Here/index.md`
+2. `10-Art-Environment/index.md`, then `lighting-and-mood`, `vfx-sfx-library` if effects are involved
+3. `14-QA-Optimization/performance-budgets` only if the router sends a performance question there
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -29,7 +29,7 @@ Input: the design doc and the built project in `projects/<game>/`.
 `<run folder>/lighting.md` (values, why, per-zone notes, Loaded) and the config module in the project.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

@@ -159,24 +159,24 @@ mod tests {
     fn finds_and_ranks_and_refreshes() {
         let root = std::env::temp_dir().join(format!("brewix-search-{}", std::process::id()));
         let _ = fs::remove_dir_all(&root);
-        fs::create_dir_all(root.join("vault/20-luau-rojo")).unwrap();
-        fs::create_dir_all(root.join("vault/40-monetization")).unwrap();
+        fs::create_dir_all(root.join("vault/13-Luau-Engineering")).unwrap();
+        fs::create_dir_all(root.join("vault/07-Monetization")).unwrap();
         fs::create_dir_all(root.join("vault/.claude/skills")).unwrap();
-        fs::write(root.join("vault/20-luau-rojo/datastore.md"), "---\ntitle: Saving player data\n---\nUse DataStoreService with UpdateAsync and retries.").unwrap();
-        fs::write(root.join("vault/40-monetization/passes.md"), "# Gamepasses\nPrice gamepasses after the first session; mention data only once.").unwrap();
+        fs::write(root.join("vault/13-Luau-Engineering/datastore.md"), "---\ntitle: Saving player data\n---\nUse DataStoreService with UpdateAsync and retries.").unwrap();
+        fs::write(root.join("vault/07-Monetization/passes.md"), "# Gamepasses\nPrice gamepasses after the first session; mention data only once.").unwrap();
         fs::write(root.join("vault/.claude/skills/secret.md"), "datastore datastore datastore").unwrap();
         let h = search(&root, "datastore retries", &[], 5).unwrap();
-        assert_eq!(h[0].path, "vault/20-luau-rojo/datastore.md");
+        assert_eq!(h[0].path, "vault/13-Luau-Engineering/datastore.md");
         assert_eq!(h[0].title, "Saving player data");
         assert!(h.iter().all(|x| !x.path.contains(".claude")));
         // prefix on the last word, and the section filter
-        assert_eq!(search(&root, "gamepa", &[], 5).unwrap()[0].section, "40-monetization");
-        assert!(search(&root, "gamepasses", &["20-luau-rojo".into()], 5).unwrap().is_empty());
+        assert_eq!(search(&root, "gamepa", &[], 5).unwrap()[0].section, "07-Monetization");
+        assert!(search(&root, "gamepasses", &["13-Luau-Engineering".into()], 5).unwrap().is_empty());
         // OR fallback when no note has every word
         assert!(!search(&root, "UpdateAsync gamepasses", &[], 5).unwrap().is_empty());
         // a new note is picked up without a manual rebuild
-        fs::write(root.join("vault/40-monetization/robux.md"), "# Robux pricing\nDevEx rates.").unwrap();
-        assert_eq!(search(&root, "devex", &[], 5).unwrap()[0].path, "vault/40-monetization/robux.md");
+        fs::write(root.join("vault/07-Monetization/robux.md"), "# Robux pricing\nDevEx rates.").unwrap();
+        assert_eq!(search(&root, "devex", &[], 5).unwrap()[0].path, "vault/07-Monetization/robux.md");
         // junk input never reaches FTS5 as syntax
         assert!(search(&root, "\" OR ( NEAR *", &[], 5).is_ok());
         let _ = fs::remove_dir_all(&root);

@@ -11,9 +11,9 @@ You price the shop. Free players must get the full game.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
-1. `00-router/index.md`
-2. `40-monetization/index.md`, then `do-not-sell-list`, `product-catalog-template`, `pricing-ladder`, `processreceipt-template`, and `paid-random-items-checklist` if anything is random
-3. `60-policy/gambling-line` (the router sends policy questions there)
+1. `00-Start-Here/index.md`
+2. `07-Monetization/index.md`, then `do-not-sell-list`, `product-catalog-template`, `pricing-ladder`, `processreceipt-template`, and `paid-random-items-checklist` if anything is random
+3. `01-Roblox-Fundamentals/gambling-line` (the router sends policy questions there)
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
 
@@ -29,7 +29,7 @@ Input: the design doc. Creating real products in Creator Dashboard needs Andrew'
 `<run folder>/shop.md`: Catalog table / Do-not-sell check / ProcessReceipt plan / Needs Andrew / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.
 
-## Quality bar (game psychology, from 10-game-design/player-psychology)
+## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.
 - Sawtooth difficulty with rest beats; retry under 2 seconds; never punish trying.

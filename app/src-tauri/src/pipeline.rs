@@ -445,7 +445,7 @@ fn kind_for(agent: &str) -> &'static str {
     match agent {
         "pulse" => "pitch",
         "architect" => "design",
-        "builder" | "scenic" | "frame" => "build",
+        "builder" | "scenic" | "frame" | "motion" | "crowd" | "tuner" => "build",
         "librarian" => "asset",
         "splash" => "thumbnail",
         "playtest" => "playtest-report",
@@ -542,10 +542,10 @@ pub fn evaluate_stage(
     Gate { passed, checks }
 }
 
-const SECTIONS: [&str; 10] = [
-    "00-router", "10-game-design", "20-luau-rojo", "30-ui-ux", "40-monetization",
-    "50-retention-analytics", "60-policy", "70-competitors", "80-assets", "90-templates-checklists",
-];
+/// A vault section is a top-level folder named like `07-Monetization`.
+fn is_section(vault: &Path, name: &str) -> bool {
+    name.len() > 3 && name.as_bytes()[..2].iter().all(|b| b.is_ascii_digit()) && name.as_bytes()[2] == b'-' && vault.join(name).is_dir()
+}
 
 /// Compare the hook's load log with the agent's allowed sections.
 pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String], prior_dirs: &[PathBuf]) -> (bool, String) {
@@ -569,7 +569,7 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
                 let vault_prefix = format!("{}/", vault.display());
                 let pat = pat_raw.strip_prefix(&vault_prefix).unwrap_or(pat_raw);
                 let first = pat.split('/').next().unwrap_or("");
-                if SECTIONS.contains(&first) {
+                if is_section(&vault, first) {
                     target = first.to_string();
                 } else {
                     bad.push(format!("{tool} over the vault root ({pat_raw})"));
@@ -598,7 +598,7 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
             target.clone()
         };
         let first = rel.split('/').next().unwrap_or("").to_string();
-        if SECTIONS.contains(&first.as_str()) {
+        if is_section(&vault, &first) {
             if !seen.contains(&first) {
                 seen.push(first.clone());
             }
@@ -611,7 +611,7 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
             bad.push(format!("{tool} {rel}"));
         }
     }
-    if seen.first().map(|s| s.as_str()) != Some("00-router") && !seen.is_empty() {
+    if seen.first().map(|s| s.as_str()) != Some("00-Start-Here") && !seen.is_empty() {
         bad.push("did not read the router first".into());
     }
     if bad.is_empty() {
@@ -643,25 +643,28 @@ mod tests {
         let run = root.join("runs/x");
         fs::create_dir_all(&run).unwrap();
         let v = root.join("vault");
+        for sec in ["00-Start-Here", "02-Game-Design", "13-Luau-Engineering", "19-Project-Memory"] {
+            fs::create_dir_all(v.join(sec)).unwrap();
+        }
         let log = [
-            format!(r#"{{"tool":"Read","target":"00-router/index.md"}}"#),
-            format!(r#"{{"tool":"Read","target":"10-game-design/index.md"}}"#),
+            format!(r#"{{"tool":"Read","target":"00-Start-Here/index.md"}}"#),
+            format!(r#"{{"tool":"Read","target":"02-Game-Design/index.md"}}"#),
             format!(r#"{{"tool":"Read","target":"{}"}}"#, run.join("in.md").display()),
         ]
         .join("\n");
         fs::write(run.join("loads.jsonl"), &log).unwrap();
-        let allowed = vec!["00-router".to_string(), "10-game-design".to_string()];
+        let allowed = vec!["00-Start-Here".to_string(), "02-Game-Design".to_string()];
         assert!(loads_within(&root, &run, "architect", &allowed, &[]).0);
-        let bad = format!("{log}\n{}\n{}", r#"{"tool":"Read","target":"20-luau-rojo/index.md"}"#, format!(r#"{{"tool":"Glob","target":"x","input":{{"pattern":"**/*.md","path":"{}"}}}}"#, v.display()));
+        let bad = format!("{log}\n{}\n{}", r#"{"tool":"Read","target":"13-Luau-Engineering/index.md"}"#, format!(r#"{{"tool":"Glob","target":"x","input":{{"pattern":"**/*.md","path":"{}"}}}}"#, v.display()));
         fs::write(run.join("loads.jsonl"), bad).unwrap();
         let (ok, d) = loads_within(&root, &run, "architect", &allowed, &[]);
         assert!(!ok);
-        assert!(d.contains("20-luau-rojo") && d.contains("vault root"), "{d}");
+        assert!(d.contains("13-Luau-Engineering") && d.contains("vault root"), "{d}");
         // Absolute patterns: inside an allowed section, and inside projects/, are fine.
         let ok_log = format!(
             "{}\n{}\n{}",
-            r#"{"tool":"Read","target":"00-router/index.md"}"#,
-            format!(r#"{{"tool":"Glob","target":"(vault root)","input":{{"pattern":"{}/10-game-design/*.md"}}}}"#, v.display()),
+            r#"{"tool":"Read","target":"00-Start-Here/index.md"}"#,
+            format!(r#"{{"tool":"Glob","target":"(vault root)","input":{{"pattern":"{}/02-Game-Design/*.md"}}}}"#, v.display()),
             format!(r#"{{"tool":"Glob","target":"(vault root)","input":{{"pattern":"{}/projects/g/**/*"}}}}"#, root.display())
         );
         fs::write(run.join("loads.jsonl"), ok_log).unwrap();

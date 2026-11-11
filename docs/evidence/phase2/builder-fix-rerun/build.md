@@ -15,5 +15,5 @@ I did not audit RemoteEvent argument validation or ProfileStore/BindToClose usag
 None.
 
 ## Loaded
-- `00-router/index.md`: required first read.
-- `20-luau-rojo/index.md`: the Builder's home section. It is a stub, so I fell back to the skill's hard rules. I did not load the `headless-test-gate` note, because the gate script gave all the information needed.
+- `00-Start-Here/index.md`: required first read.
+- `13-Luau-Engineering/index.md`: the Builder's home section. It is a stub, so I fell back to the skill's hard rules. I did not load the `headless-test-gate` note, because the gate script gave all the information needed.

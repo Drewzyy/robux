@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check which vault sections an agent run loaded.
 
-  python3 scripts/check_loads.py <run_id> --allow 00-router 10-game-design
+  python3 scripts/check_loads.py <run_id> --allow 00-Start-Here 02-Game-Design
 
 Reads runs/<run_id>/loads.jsonl (written by vault/.claude/hooks/log-load.py)
 and fails if the run read any vault section not in --allow, or searched the
@@ -15,11 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 VAULT = ROOT / "vault"
-SECTIONS = [
-    "00-router", "10-game-design", "20-luau-rojo", "30-ui-ux", "40-monetization",
-    "50-retention-analytics", "60-policy", "70-competitors", "80-assets",
-    "90-templates-checklists",
-]
+SECTIONS = sorted(p.name for p in VAULT.iterdir() if p.is_dir() and re.match(r"\d\d-", p.name))
 
 
 def classify(target: str, run_id: str, agent: str):

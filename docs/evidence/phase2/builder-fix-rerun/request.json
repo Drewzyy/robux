@@ -26,7 +26,7 @@
   "approved_at": "2026-11-09T11:06:48Z",
   "finished_at": "2026-11-09T11:07:18Z",
   "actual_cost_usd": 0.069615,
-  "result_text": "`projects/dawn-watch` now passes the studio build gate. The rerun came back clean on `rojo build`, `selene`, `stylua --check` and the Lune tests.\n\nOnly `stylua --check` was failing. One long text-concatenation line in the client status text needed re-wrapping, so I ran `stylua` on `src`. That changed formatting only, not game behavior.\n\n`gate.json` has `passed: false` on purpose. I didn't audit remote-argument validation or ProfileStore with `BindToClose`, since this task was only the formatting fix. Both are recorded as NOT RUN.\n\nThe `20-luau-rojo` index is a stub, so I used the skill's hard rules instead of its notes.\n\nFiles are in `/home/user/robux/runs/run-builder-20261109-110648-cb6d`:\n- build.md\n- gate.json",
+  "result_text": "`projects/dawn-watch` now passes the studio build gate. The rerun came back clean on `rojo build`, `selene`, `stylua --check` and the Lune tests.\n\nOnly `stylua --check` was failing. One long text-concatenation line in the client status text needed re-wrapping, so I ran `stylua` on `src`. That changed formatting only, not game behavior.\n\n`gate.json` has `passed: false` on purpose. I didn't audit remote-argument validation or ProfileStore with `BindToClose`, since this task was only the formatting fix. Both are recorded as NOT RUN.\n\nThe `13-Luau-Engineering` index is a stub, so I used the skill's hard rules instead of its notes.\n\nFiles are in `/home/user/robux/runs/run-builder-20261109-110648-cb6d`:\n- build.md\n- gate.json",
   "error": null,
   "pipeline_id": null
 }

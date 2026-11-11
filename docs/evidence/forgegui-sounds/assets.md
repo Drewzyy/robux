@@ -5,7 +5,7 @@ Project: `projects/dawn-watch` (sheet: `projects/dawn-watch/sounds.json`, design
 ## Assets
 | Need | Choice | Source | Asset ID or file | License | Status |
 |---|---|---|---|---|---|
-| 41 sound effects (all in sounds.json) | Generate from the prompts in the sheet | ForgeGUI (Andrew generates; UNVERIFIED that ForgeGUI makes audio, see `80-assets/forgegui`) | all `null` | all `null` until Andrew fills | 41 of 41 need generating |
+| 41 sound effects (all in sounds.json) | Generate from the prompts in the sheet | ForgeGUI (Andrew generates; UNVERIFIED that ForgeGUI makes audio, see `11-Audio/forgegui`) | all `null` | all `null` until Andrew fills | 41 of 41 need generating |
 
 Check of the existing 40 entries against the design: ids unique, no invented asset IDs, prompts say length, character and what to avoid, tone is cozy (no horror, matching section 9 of the design). All kept unchanged; none were wrong.
 
@@ -23,12 +23,12 @@ Nothing dropped. No Toolbox audio, no copyrighted melodies (prompts forbid them)
 - Open questions: none beyond the above. `beam_hum` is the only loop; check it loops cleanly.
 
 ## Loaded
-- `00-router/index.md`: required first read.
-- `80-assets/index.md`: section index.
-- `80-assets/audio-pipeline.md`: sounds.json shape and roles.
-- `80-assets/forgegui.md`: tool status (unverified for audio) and hand-off.
-- `80-assets/asset-sources-and-licenses.md`: license recording rules.
-- `80-assets/no-toolbox-rule.md`: no Toolbox.
-- `80-assets/3d-model-checklist.md`: required by the skill; not relevant to sounds.
-- `60-policy/ip-and-toolbox-rules.md`: IP and Toolbox rules.
+- `00-Start-Here/index.md`: required first read.
+- `10-Art-Environment/index.md`: section index.
+- `11-Audio/audio-pipeline.md`: sounds.json shape and roles.
+- `11-Audio/forgegui.md`: tool status (unverified for audio) and hand-off.
+- `10-Art-Environment/asset-sources-and-licenses.md`: license recording rules.
+- `10-Art-Environment/no-toolbox-rule.md`: no Toolbox.
+- `10-Art-Environment/3d-model-checklist.md`: required by the skill; not relevant to sounds.
+- `01-Roblox-Fundamentals/ip-and-toolbox-rules.md`: IP and Toolbox rules.
 - `projects/dawn-watch/sounds.json` and `docs/design.md`: the inputs.

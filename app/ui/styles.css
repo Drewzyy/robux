@@ -233,3 +233,4 @@ input.search { width: 100%; margin: 0 0 18px; padding: 11px 14px 11px 38px; bord
 #vault-results { margin-bottom: 18px; }
 .row-sub mark { background: rgba(255, 59, 48, 0.22); color: #fff; border-radius: 3px; padding: 0 2px; }
 input.search:focus { outline: none; border-color: #FF3B30; box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.25); }
+.row-title .role { margin-left: 8px; color: #8E8E93; font-weight: 400; font-size: 13px; }

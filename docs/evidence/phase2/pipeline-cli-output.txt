@@ -10,7 +10,7 @@ approved; running
       ok   claude run finished without error: exit Some(0), turns Some(11)
       ok   wrote pitch.md: present
       FAIL agent's own gate passed: failed: required vault notes loaded; live market data verified at source
-      ok   loaded only allowed vault sections: sections: 00-router, 70-competitors, 10-game-design
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 16-Market-Research, 02-Game-Design
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   names its data sources: 
@@ -21,7 +21,7 @@ approved; running
       ok   claude run finished without error: exit Some(0), turns Some(7)
       ok   wrote plan.md: present
       FAIL agent's own gate passed: failed: toolchain and external claims verified
-      ok   loaded only allowed vault sections: sections: 00-router, 90-templates-checklists
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 17-Development-Templates
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   plan table with stages: 6 table rows
@@ -32,7 +32,7 @@ approved; running
       ok   claude run finished without error: exit Some(0), turns Some(7)
       ok   wrote design.md: present
       FAIL agent's own gate passed: failed: nothing on the do-not-sell list is proposed for sale
-      ok   loaded only allowed vault sections: sections: 00-router, 10-game-design
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 02-Game-Design
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   core loop section: 
@@ -44,7 +44,7 @@ approved; running
       ok   claude run finished without error: exit Some(0), turns Some(49)
       ok   wrote build.md: present
       FAIL agent's own gate passed: failed: rojo build; selene lint; stylua --check; lune unit tests
-      ok   loaded only allowed vault sections: sections: 00-router, 20-luau-rojo
+      ok   loaded only allowed vault sections: sections: 00-Start-Here, 13-Luau-Engineering
       ok   has a Loaded section listing vault notes read: 
       ok   no filler phrases: none found
       ok   declares its project folder: projects/dawn-watch
