@@ -248,8 +248,10 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         // in passive mode (progress bar, no questions), then reopen the app.
         // The vault refresh happens on that next launch (sync_release).
         on_line("Installing. BrewixGames will close and reopen by itself.");
-        let script = format!("start \"\" /wait \"{}\" /P & start \"\" \"{}\"", zip.display(), running.display());
-        crate::paths::command("cmd").args(["/C", &script]).spawn().map_err(|e| format!("could not start the installer: {e}"))?;
+        crate::paths::command("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", &handoff_script(&zip, &running)])
+            .spawn()
+            .map_err(|e| format!("could not start the installer: {e}"))?;
         std::process::exit(0);
     }
     on_line("Unpacking...");
@@ -267,4 +269,35 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
     let _ = root; // the vault refresh runs on the next launch (studio::sync_release)
     let _ = std::fs::remove_dir_all(&tmp);
     Ok(running.join("Contents/MacOS/brewixgames"))
+}
+
+/// PowerShell that waits for the installer (passive: progress bar only),
+/// then reopens the app. Sent as -EncodedCommand (base64 of UTF-16LE) so no
+/// quoting layer can mangle the paths; a cmd.exe /C line did exactly that.
+fn handoff_script(setup: &Path, app: &Path) -> String {
+    use base64::Engine;
+    let q = |p: &Path| p.display().to_string().replace('\'', "''");
+    let script = format!(
+        "Start-Sleep -Seconds 1; Start-Process -FilePath '{}' -ArgumentList '/P' -Wait; Start-Process -FilePath '{}'",
+        q(setup),
+        q(app)
+    );
+    let utf16: Vec<u8> = script.encode_utf16().flat_map(|u| u.to_le_bytes()).collect();
+    base64::engine::general_purpose::STANDARD.encode(utf16)
+}
+
+#[cfg(test)]
+mod handoff_tests {
+    use super::*;
+
+    #[test]
+    fn handoff_survives_spaces_and_quotes() {
+        use base64::Engine;
+        let enc = handoff_script(Path::new("C:\\Users\\Al O'Neil\\Temp\\setup.exe"), Path::new("C:\\Users\\Al O'Neil\\AppData\\Local\\BrewixGames\\brewixgames.exe"));
+        let bytes = base64::engine::general_purpose::STANDARD.decode(enc).unwrap();
+        let units: Vec<u16> = bytes.chunks(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+        let text = String::from_utf16(&units).unwrap();
+        assert!(text.contains("-FilePath 'C:\\Users\\Al O''Neil\\Temp\\setup.exe' -ArgumentList '/P' -Wait"), "{text}");
+        assert!(text.ends_with("BrewixGames\\brewixgames.exe'"), "{text}");
+    }
 }
