@@ -4,7 +4,7 @@
 use base64::Engine;
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use studio_core::{budget, bridge, chat, claude, cost, notify, paths, pipeline, queue, runs, settings, studio, update};
+use studio_core::{budget, bridge, chat, claude, cost, notify, ollama, paths, pipeline, queue, runs, settings, studio, update};
 use tauri::{AppHandle, Emitter};
 
 fn root() -> Result<PathBuf, String> {
@@ -309,6 +309,27 @@ fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
     Ok(run_id)
 }
 
+// ---------- free local models (Ollama) ----------
+
+#[tauri::command]
+fn ollama_status() -> ollama::Status {
+    ollama::status()
+}
+
+/// Download one model from the supported list. Andrew presses Download for
+/// a named model with its size shown; nothing downloads otherwise.
+#[tauri::command]
+fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let res = ollama::pull(&model, &mut |l| {
+            let _ = app2.emit("ollama-line", json!({ "model": model, "line": l }));
+        });
+        let _ = app.emit("ollama-done", json!({ "model": model, "error": res.err() }));
+    });
+    Ok(())
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -408,6 +429,8 @@ fn main() {
             pipeline_cancel,
             pipeline_approve_and_start,
             chat_get,
+            ollama_status,
+            ollama_pull,
             chat_reset,
             chat_send,
             simulations,

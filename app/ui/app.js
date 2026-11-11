@@ -713,9 +713,48 @@ T.event.listen("pipe-done", (ev) => finishLive(ev.payload.pipeline_id, ev.payloa
 // =====================================================================
 // 5. Settings
 // =====================================================================
+// Local model picker: what this computer can run, what is installed, and a
+// Download button that names the model and its size. Nothing downloads alone.
+function localModelRows(s, o, save) {
+  if (!o) return el("div", { class: "srow" }, el("div", { class: "grow label" }, "Local model"), el("span", { class: "note" }, "Could not check Ollama."));
+  const installed = new Set(o.installed);
+  const has = (m) => installed.has(m) || installed.has(m + ":latest");
+  const names = [...new Set([...o.choices.map((c) => c.model), ...o.installed])];
+  const pick = el("select", { id: "ollama-model", style: "width:240px" }, names.map((m) =>
+    el("option", { value: m }, `${m}${m === o.recommended.model ? "  (best fit)" : ""}${has(m) ? "" : "  · not downloaded"}`)));
+  pick.value = state.ollamaPicked || s.ollama_model || o.recommended.model;
+  const info = el("div", { class: "hint", id: "ollama-info" });
+  const dl = el("button", { class: "btn secondary", id: "ollama-download" });
+  const refresh = () => {
+    const c = o.choices.find((x) => x.model === pick.value);
+    info.textContent = c ? c.why : "Installed in Ollama.";
+    dl.style.display = has(pick.value) || !c || !o.version_ok ? "none" : "";
+    dl.textContent = c ? `Download · ${c.size_gb} GB` : "";
+  };
+  pick.addEventListener("change", () => { state.ollamaPicked = pick.value; refresh(); });
+  dl.onclick = async () => {
+    dl.disabled = true;
+    state.ollamaPull = pick.value;
+    state.ollamaPicked = pick.value;
+    try { await invoke("ollama_pull", { model: pick.value }); info.textContent = "Starting download..."; } catch (e) { dl.disabled = false; toast(String(e), true); }
+  };
+  refresh();
+  return [
+    el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Ollama"), el("div", { class: "hint", id: "ollama-status" }, o.message)),
+      el("span", { class: "note" }, [o.version ? `v${o.version}` : "not running", o.memory_gb ? `${o.memory_gb} GB memory` : ""].filter(Boolean).join(" · "))),
+    el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Local model"), info),
+      el("div", { class: "inline" }, pick, dl, el("button", { class: "btn secondary", id: "ollama-save", onclick: () => save({ ollama_model: pick.value }, "Local model saved.") }, "Use")))];
+}
+T.event.listen("ollama-line", (ev) => { const n = $("ollama-info"); if (n) n.textContent = `Downloading ${ev.payload.model}: ${ev.payload.line}`; });
+T.event.listen("ollama-done", (ev) => {
+  state.ollamaPull = null;
+  if (ev.payload.error) toast(`Download failed: ${ev.payload.error}`, true); else toast(`${ev.payload.model} is downloaded.`);
+  if ((location.hash || "") === "#settings") viewSettings();
+});
+
 async function viewSettings() {
   await refreshStatus();
-  const [s, info] = await Promise.all([invoke("settings_get"), invoke("studio_info")]);
+  const [s, info, o] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null)]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
@@ -752,8 +791,7 @@ async function viewSettings() {
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
           segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: $("ollama-model").value.trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Local model"), el("div", { class: "hint" }, "Needs Ollama 0.14 or newer running on this computer, and the model already downloaded in Ollama.")),
-          el("div", { class: "inline", style: "width:320px" }, el("input", { type: "text", id: "ollama-model", placeholder: "for example qwen3-coder", value: s.ollama_model }), el("button", { class: "btn secondary", onclick: () => save({ ollama_model: $("ollama-model").value.trim() }, "Local model saved.") }, "Save"))))),
+        localModelRows(s, o, save))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
       el("div", { class: "list" },

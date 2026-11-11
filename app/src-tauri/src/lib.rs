@@ -10,6 +10,7 @@ pub mod claude;
 pub mod cost;
 pub mod gates;
 pub mod notify;
+pub mod ollama;
 pub mod settings;
 pub mod studio;
 pub mod update;

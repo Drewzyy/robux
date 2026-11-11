@@ -79,6 +79,16 @@ pub fn prepare_with_id(
     let pricing = cost::load_pricing(root)?;
     let mut estimate = cost::estimate(agent, profile, prompt, &pricing)?;
     let st = crate::settings::load();
+    if st.engine == "ollama" && std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_err() {
+        let o = crate::ollama::status();
+        let m = &st.ollama_model;
+        if !o.running || !o.version_ok {
+            return Err(o.message);
+        }
+        if !o.installed.iter().any(|i| i == m || *i == format!("{m}:latest")) {
+            return Err(format!("The local model {m} is not downloaded yet. Download it in Settings, or switch the engine back to Claude."));
+        }
+    }
     if st.engine == "ollama" {
         // Local models cost nothing to run; the cap stays as a formality.
         estimate.model = st.ollama_model.clone();

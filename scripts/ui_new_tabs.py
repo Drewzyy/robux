@@ -5,9 +5,29 @@ import os, subprocess, sys, time
 from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 ROOT = Path(__file__).resolve().parent.parent
 SHOTS = ROOT / "docs/screenshots"
+
+# Fake Ollama on 11434: version, model list, and a streamed download.
+import http.server, threading, json as _json
+_pulled = set()
+class _Ollama(http.server.BaseHTTPRequestHandler):
+    def _send(self, obj):
+        b = _json.dumps(obj).encode(); self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+    def do_GET(self):
+        if self.path == "/api/version": self._send({"version": "0.14.3"})
+        elif self.path == "/api/tags": self._send({"models": [{"name": m} for m in sorted(_pulled | {"llama3.2:latest"})]})
+        else: self.send_response(404); self.end_headers()
+    def do_POST(self):
+        body = _json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        self.send_response(200); self.send_header("Content-Type", "application/x-ndjson"); self.end_headers()
+        for i in range(0, 101, 25):
+            self.wfile.write((_json.dumps({"status": "pulling", "completed": i, "total": 100}) + "\n").encode()); self.wfile.flush(); time.sleep(0.2)
+        self.wfile.write(b'{"status":"success"}\n'); _pulled.add(body.get("model"))
+    def log_message(self, *a): pass
+threading.Thread(target=http.server.ThreadingHTTPServer(("127.0.0.1", 11434), _Ollama).serve_forever, daemon=True).start()
 ok = True
 def check(name, cond, detail=""):
     global ok; ok = ok and bool(cond)
@@ -70,6 +90,16 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(0.5)
     else:
         check("request changes", True, "item already decided; skipped")
+    d.execute_script("location.hash='#settings'"); time.sleep(3)
+    check("Ollama detected with memory and version", "Ollama is ready" in view() and "GB memory" in view() and "v0.14.3" in view())
+    Select(d.find_element(By.ID, "ollama-model")).select_by_value("qwen3:4b"); time.sleep(0.5)
+    dl = d.find_element(By.ID, "ollama-download")
+    check("download button names the size", "2.5 GB" in dl.text, dl.text)
+    dl.click()
+    WebDriverWait(d, 30).until(lambda x: "downloaded" in x.find_element(By.ID, "toast").text)
+    time.sleep(3)
+    check("model shows as downloaded after", "not downloaded" not in Select(d.find_element(By.ID, "ollama-model")).first_selected_option.text, Select(d.find_element(By.ID, "ollama-model")).first_selected_option.text)
+    d.save_screenshot(str(SHOTS / "ui-settings-ollama.png"))
     d.execute_script("location.hash='#settings'"); time.sleep(2)
     d.execute_script("document.getElementById('view').scrollTop=260"); time.sleep(0.5)
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))
