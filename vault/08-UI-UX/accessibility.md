@@ -5,7 +5,7 @@ status: draft
 last_checked: 2026-11-11
 keywords: accessibility, disability, colorblind, colourblind, captions, subtitles, reduced motion, text size, deaf, hearing, controls
 sources: https://create.roblox.com/docs/production/publishing/accessibility (search summary); https://www.datawrapper.de/blog/colorblindness-part2
-verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+verify: PreferredTextSize, ReducedMotionEnabled, PreferredTransparency, and the TextScaled caveat checked against Roblox/creator-docs (production/publishing/accessibility.md) on 2026-11-11; the rest is practice, untested in Studio.
 tags: [ui-ux, playbook]
 ---
 # Accessibility

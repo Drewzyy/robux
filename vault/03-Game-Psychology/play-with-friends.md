@@ -5,7 +5,7 @@ status: draft
 last_checked: 2026-11-11
 keywords: friends, invite, social, co-op, party, friend boost, retention, socialservice, multiplayer, play together
 sources: https://create.roblox.com/docs/production/promotion/invite-prompts (search summary); https://devforum.roblox.com/t/2428901
-verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+verify: reward-on-join via Player:GetJoinData checked against Roblox/creator-docs (production/promotion) on 2026-11-11; the 10x figure is from a search summary and UNVERIFIED.
 tags: [game-psychology, playbook]
 ---
 # Play with friends

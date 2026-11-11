@@ -828,7 +828,7 @@ async function viewSettings() {
               : "Off. Agents only write files in your projects folder.")),
           segmented([["off", "Off"], ["studio", "Roblox Studio"], ["mock", "Test"]], s.studio_mcp, async (v) => { await save({ studio_mcp: v, studio_mcp_path: ($("studio-mcp-path") || {}).value || s.studio_mcp_path }, v === "off" ? "Studio connection off." : v === "mock" ? "Using the test Studio." : "Connected to Roblox Studio."); viewSettings(); })),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio MCP server"),
-            el("div", { class: "hint" }, sm.found ? `Found: ${sm.found}` : "Not found. Install Roblox's Studio MCP server (github.com/Roblox/studio-rust-mcp-server), open Studio once, or paste its path. No Roblox login is stored.")),
+            el("div", { class: "hint" }, sm.found ? `Found: ${sm.found}. In Studio, also turn it on: Assistant, the ... menu, Manage MCP Servers, Enable Studio as MCP server.` : "Not found. Update Roblox Studio and open it once; the MCP server is built in. Then in Studio: Assistant, the ... menu, Manage MCP Servers, Enable Studio as MCP server. No Roblox login is stored.")),
           el("div", { class: "inline" }, el("input", { type: "text", id: "studio-mcp-path", style: "width:240px", placeholder: "custom path (optional)", value: s.studio_mcp_path }),
             el("button", { class: "btn secondary", onclick: () => save({ studio_mcp_path: $("studio-mcp-path").value.trim() }, "Path saved.") }, "Save"))))),
 

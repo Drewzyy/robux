@@ -161,7 +161,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
             if let Some(cmd) = crate::studio_mcp::server_command(&st) {
                 servers.insert(crate::studio_mcp::SERVER.into(), serde_json::json!({ "type": "stdio", "command": cmd.0, "args": cmd.1 }));
                 tools.extend(crate::studio_mcp::TOOLS.iter().map(|t| format!("mcp__{}__{t}", crate::studio_mcp::SERVER)));
-                notes.push_str(" Roblox Studio is connected (mcp__Roblox_Studio__ tools). Use run_code to inspect or build in the open place and insert_model for models. Publishing, uploading, purchases, web requests, and DataStore writes are blocked; do not try them.");
+                notes.push_str(" Roblox Studio is connected (mcp__Roblox_Studio__ tools). With Studio's built-in server, call list_roblox_studios first and pass that studio_id on every call; explore with search_game_tree and inspect_instance, edit scripts with multi_edit, run code with execute_luau, playtest with start_stop_play, get_console_output, and screen_capture. With the older server, use run_code and insert_model. Uploads, AI asset generation, Studio's own subagent, and running code that publishes, buys, calls the web, or writes DataStores are blocked; do not try them.");
             }
         }
         if crate::blender_mcp::AGENTS.contains(&req.agent.as_str()) {

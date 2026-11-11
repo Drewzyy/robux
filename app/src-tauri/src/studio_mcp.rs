@@ -14,12 +14,34 @@ use std::path::{Path, PathBuf};
 pub const SERVER: &str = "Roblox_Studio";
 /// Agents that may use Studio when the connection is on.
 pub const AGENTS: &[&str] = &["builder", "scenic", "frame", "playtest", "motion", "crowd", "tuner", "assistant"];
-pub const TOOLS: &[&str] = &["run_code", "insert_model", "get_console_output", "start_stop_play", "run_script_in_play_mode", "get_studio_mode"];
+/// Tools agents may call. The first group is Studio's built-in MCP server
+/// (Assistant, Manage MCP Servers); the second is the older standalone
+/// server (studio-rust-mcp-server), kept for people who still run it.
+pub const TOOLS: &[&str] = &[
+    "list_roblox_studios", "get_studio_state", "search_game_tree", "inspect_instance",
+    "script_read", "script_search", "script_grep", "multi_edit", "execute_luau",
+    "start_stop_play", "get_console_output", "screen_capture",
+    "character_navigation", "user_keyboard_input", "user_mouse_input",
+    "search_asset", "insert_asset", "store_image", "generate_procedural_model", "wait_job_finished",
+    "http_get", "skill",
+    "run_code", "insert_model", "run_script_in_play_mode", "get_studio_mode",
+];
+/// Tools that upload to or create assets on Andrew's account, or hand work
+/// to Studio's own assistant outside our guard.
+pub const BLOCKED: &[&str] = &["upload_image", "generate_mesh", "generate_material", "subagent"];
+/// Tools that run code right now in Studio (checked against DENY).
+const RUNS_CODE: &[&str] = &["execute_luau", "run_code", "run_script_in_play_mode"];
 
-/// Where Roblox's installer puts the server.
+/// Where the server lives: Studio's built-in one first (Roblox docs,
+/// studio/mcp), then the older standalone app.
 pub fn default_path() -> Option<PathBuf> {
     let c: Vec<PathBuf> = if cfg!(target_os = "macos") {
-        vec![PathBuf::from("/Applications/RobloxStudioMCP.app/Contents/MacOS/rbx-studio-mcp")]
+        let mut v = vec![PathBuf::from("/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP")];
+        if let Some(h) = crate::paths::home() {
+            v.push(h.join("Applications/RobloxStudio.app/Contents/MacOS/StudioMCP"));
+        }
+        v.push(PathBuf::from("/Applications/RobloxStudioMCP.app/Contents/MacOS/rbx-studio-mcp"));
+        v
     } else if cfg!(windows) {
         std::env::var("LOCALAPPDATA").map(|d| vec![Path::new(&d).join("Roblox").join("mcp.bat")]).unwrap_or_default()
     } else {
@@ -34,8 +56,15 @@ pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<Stri
         "mock" => Some((std::env::current_exe().ok()?.display().to_string(), vec!["mock-studio-mcp".into()])),
         "studio" => {
             let p = if s.studio_mcp_path.trim().is_empty() { default_path()? } else { PathBuf::from(s.studio_mcp_path.trim()) };
-            let args = if p.extension().and_then(|e| e.to_str()) == Some("bat") { vec![] } else { vec!["--stdio".into()] };
-            Some((p.display().to_string(), args))
+            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
+            if name.ends_with(".bat") || name.ends_with(".cmd") {
+                // Roblox docs: cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat
+                Some(("cmd.exe".into(), vec!["/c".into(), p.display().to_string()]))
+            } else if name.starts_with("rbx-studio-mcp") {
+                Some((p.display().to_string(), vec!["--stdio".into()]))
+            } else {
+                Some((p.display().to_string(), vec![]))
+            }
         }
         _ => None,
     }
@@ -54,7 +83,17 @@ const DENY: &[(&str, &str)] = &[
 ];
 
 /// Ok when a Studio tool call is safe to run; Err with the reason otherwise.
-pub fn guard(tool_input: &serde_json::Value) -> Result<(), String> {
+pub fn guard(tool: &str, tool_input: &serde_json::Value) -> Result<(), String> {
+    let short = tool.rsplit("__").next().unwrap_or(tool);
+    if BLOCKED.contains(&short) {
+        return Err(format!("Blocked by BrewixGames: the Studio tool {short} uploads or creates assets on Andrew's account, or works outside BrewixGames' checks. Build it another way or list it under Open questions."));
+    }
+    if !RUNS_CODE.contains(&short) {
+        // Writing scripts into the game (multi_edit) may use purchases and
+        // saving: that code only runs when Andrew plays. Reading, exploring,
+        // and playtesting are safe.
+        return Ok(());
+    }
     fn strings(v: &serde_json::Value, out: &mut Vec<String>) {
         match v {
             serde_json::Value::String(s) => out.push(s.clone()),
@@ -84,7 +123,7 @@ pub fn guard_hook(stdin: &str) -> i32 {
     if !tool.starts_with(&format!("mcp__{SERVER}__")) {
         return 0;
     }
-    match guard(v.get("tool_input").unwrap_or(&serde_json::Value::Null)) {
+    match guard(tool, v.get("tool_input").unwrap_or(&serde_json::Value::Null)) {
         Ok(()) => 0,
         Err(e) => {
             eprintln!("{e}");
@@ -178,10 +217,16 @@ mod tests {
             "MarketplaceService:PromptPurchase(p, 1)",
             "loadstring(src)()",
         ] {
-            assert!(guard(&json!({ "command": bad })).is_err(), "{bad}");
+            assert!(guard("mcp__Roblox_Studio__run_code", &json!({ "command": bad })).is_err(), "{bad}");
+            assert!(guard("mcp__Roblox_Studio__execute_luau", &json!({ "code": bad, "datamodel_type": "Edit" })).is_err(), "{bad}");
         }
-        assert!(guard(&json!({ "command": "local p = Instance.new('Part'); p.Parent = workspace; print('ok')" })).is_ok());
-        assert!(guard(&json!({ "query": "street lamp" })).is_ok());
+        assert!(guard("mcp__Roblox_Studio__execute_luau", &json!({ "code": "local p = Instance.new('Part'); p.Parent = workspace; print('ok')" })).is_ok());
+        assert!(guard("mcp__Roblox_Studio__insert_model", &json!({ "query": "street lamp" })).is_ok());
+        // game scripts written into the place may use purchases and saving
+        assert!(guard("mcp__Roblox_Studio__multi_edit", &json!({ "edits": "MarketplaceService.ProcessReceipt = ... store:UpdateAsync(k, f)" })).is_ok());
+        for b in ["upload_image", "generate_mesh", "generate_material", "subagent"] {
+            assert!(guard(&format!("mcp__Roblox_Studio__{b}"), &json!({})).is_err(), "{b}");
+        }
     }
 
     #[test]
