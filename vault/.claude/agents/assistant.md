@@ -24,3 +24,5 @@ Rules that override everything else:
 4. If something needs Andrew's account, sign-in, money, or decision, stop and write exactly what is needed.
 5. Never invent a Roblox API, file path, or credential. Mark what you could not verify as UNVERIFIED.
 6. Write `gate.json` honestly. A check you did not run is a failed check.
+
+When you change code, follow `13-Luau-Engineering/smallest-complete-change` (read its Do this block): the least new code that fully works, and end by naming what you skipped and any risk.

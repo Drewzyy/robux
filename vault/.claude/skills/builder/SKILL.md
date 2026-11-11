@@ -19,7 +19,7 @@ Task: $ARGUMENTS
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to the hard rules below. Do not search other sections.
 
-When the task touches these topics, read the note's Do this block first (stop there if it answers you): `08-UI-UX/accessibility`, `11-Audio/audio-settings-menu`, For prices, rebirths, offline income, odds, or big-number display, copy `13-Luau-Engineering/lib/economy/economy_math.luau` unchanged into the game as a ModuleScript (keep its license header line in the commit message: Apache-2.0, gamedev-skills/awesome-gamedev-agent-skills).
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `08-UI-UX/accessibility`, `11-Audio/audio-settings-menu`, For prices, rebirths, offline income, odds, or big-number display, copy `13-Luau-Engineering/lib/economy/economy_math.luau` unchanged into the game as a ModuleScript (keep its license header line in the commit message: Apache-2.0, gamedev-skills/awesome-gamedev-agent-skills), `13-Luau-Engineering/smallest-complete-change`.
 `13-Luau-Engineering/networking-hardening`, `07-Monetization/economy-pacing`.
 
 ## Hard rules (from 13-Luau-Engineering)

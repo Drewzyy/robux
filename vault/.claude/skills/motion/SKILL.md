@@ -17,7 +17,7 @@ Task: $ARGUMENTS
 
 Use `brewix search <words> --agent motion` to find a specific note fast. If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules.
 
-When the task touches these topics, read the note's Do this block first (stop there if it answers you): `09-Animation-VFX/combat-animation`, `09-Animation-VFX/character-movement-animations`, `09-Animation-VFX/building-and-world-animation`, `08-UI-UX/ui-animation`.
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `09-Animation-VFX/combat-animation`, `09-Animation-VFX/character-movement-animations`, `09-Animation-VFX/building-and-world-animation`, `08-UI-UX/ui-animation`, `13-Luau-Engineering/smallest-complete-change`.
 
 ## Steps
 1. List every player action in the design and build that gives a reward, hit, pickup, level up, or error. Each one needs visible feedback within 0.1 s.

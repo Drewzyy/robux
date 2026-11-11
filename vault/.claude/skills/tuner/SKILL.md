@@ -16,6 +16,8 @@ Task: $ARGUMENTS
 
 Use `brewix search <words> --agent tuner` to find a specific note fast. If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules.
 
+When the task touches these topics, read the note's Do this block first (stop there if it answers you): `13-Luau-Engineering/smallest-complete-change`.
+
 ## Steps
 1. Walk the code for per-frame loops, unbounded spawns, leaked connections, heavy effects, and part counts.
 2. If Studio is connected, count parts and lights with run_code; otherwise say the counts are estimates from code.

@@ -195,7 +195,8 @@
         "08-UI-UX",
         "07-Monetization",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "13-Luau-Engineering"
       ],
       "output": "ui.md",
       "role": "UX/UI Designer"
@@ -226,7 +227,8 @@
         "08-UI-UX",
         "03-Game-Psychology",
         "04-Onboarding",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "13-Luau-Engineering"
       ],
       "output": "playtest-report.md",
       "role": "QA and Exploit Testing Agent"
@@ -488,7 +490,8 @@
         "08-UI-UX",
         "10-Art-Environment",
         "16-Market-Research",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "13-Luau-Engineering"
       ],
       "output": "direction.md",
       "role": "Creative Director"
