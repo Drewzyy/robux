@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (B8e, C4); zehn-studio26.com; we-are-family.com; techtimes.com (Korea loot box rules); antimedia.co; andrian-syh monetization-policy
 verify: Roblox policy (live May 26, 2026) as reported by secondary sources. Re-read the official Paid Random Items policy in Creator Hub before building any paid random feature.
+tags: [monetization, checklist]
 ---
 # Paid random items checklist
 

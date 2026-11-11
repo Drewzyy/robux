@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8 audio; Andrew's ForgeGUI decision (2026-11-09)
 verify: The sounds.json shape is checked by scripts/gates/check_stage.py (librarian). Whether ForgeGUI makes audio is UNVERIFIED (see 11-Audio/forgegui). Each license line is checked when the sound is chosen.
+tags: [audio, playbook]
 ---
 # Audio pipeline
 

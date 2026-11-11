@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; thumbblox.com roblox-thumbnail-size; umatechnology upload guide; obby.fun icon/thumbnail maker
 verify: Sizes from secondary guides. Confirm in the Creator Dashboard upload screen before first upload. The custom-thumbnail requirement was verified in creator-docs discovery.md on 2026-11-09.
+tags: [ui-ux, reference]
 ---
 # Thumbnail and icon spec
 

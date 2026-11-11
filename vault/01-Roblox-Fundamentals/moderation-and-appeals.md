@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6 (C6)
 verify: Secondary reporting. The claim that one strike can cost DevEx eligibility is UNVERIFIED; check the DevEx terms.
+tags: [roblox-fundamentals, playbook]
 ---
 # Moderation and appeals
 

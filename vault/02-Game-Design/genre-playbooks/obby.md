@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; rocode.app/guides/roblox-game-genres; Tower of Hell teardown (16-Market-Research)
 verify: Design rules are community and practitioner guidance, not Roblox rules. Check against Creator Analytics after launch: first-play bounce under 60s and D1 vs similar-game benchmarks.
+tags: [game-design, playbook]
 ---
 # Obby playbook
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5 (C5 live-ops, B5); Grow a Garden and Tower of Hell cadence from the report
 verify: Cadence figures are observed from other games (secondary). Verify fit for each game with event spike and decay in your own analytics.
+tags: [liveops, template]
 ---
 # Live ops calendar
 

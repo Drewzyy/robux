@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2 (two-phase bootstrap pattern)
 verify: Verified 2026-11-09: these files, written to a temp project, passed scripts/gates/build_gate.py (rojo build, selene, stylua --check, lune tests). Remote validation is pattern-only; test in Studio.
+tags: [luau-engineering, template]
 ---
 # Service and controller template
 

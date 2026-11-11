@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6 (C6 IP)
 verify: Studio rules aligned with Roblox IP policy as summarized. Librarian's and Splash's gates check these per asset.
+tags: [roblox-fundamentals, reference]
 ---
 # IP and Toolbox rules
 

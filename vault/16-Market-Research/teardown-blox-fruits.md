@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7; games.studio23.london top genres; studiokrew.com
 verify: Tracker numbers are a Nov 2026 snapshot as quoted in the report and move hourly: UNVERIFIED until re-read on Rolimons or RoVitals with a date.
+tags: [market-research, teardown]
 ---
 # Teardown: Blox Fruits
 

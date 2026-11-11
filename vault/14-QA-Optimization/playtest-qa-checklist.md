@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9 (C9); 02-Game-Design and 08-UI-UX checklists
 verify: Checklist used by the Playtest agent; its report is checked by scripts/gates/check_stage.py (method stated, verdict, severities).
+tags: [qa-optimization, checklist]
 ---
 # Playtest QA checklist
 

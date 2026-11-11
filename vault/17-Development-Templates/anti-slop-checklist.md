@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9 (A5 good vs useless vault; C9); god plan Section 7.3 (not in repo)
 verify: The studio's own list is below. The god plan's 16-point hand-tuned checklist is NOT in this repo and is not reproduced: BLOCKED until Andrew adds the god plan.
+tags: [development-templates, checklist]
 ---
 # Anti-slop checklist
 

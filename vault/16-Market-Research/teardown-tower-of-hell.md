@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7; god plan Section 2.2 (not in repo); studiokrew.com top games 2026
 verify: Tracker numbers are a Nov 2026 snapshot as quoted in the report and move hourly: UNVERIFIED until re-read on Rolimons or RoVitals with a date.
+tags: [market-research, teardown]
 ---
 # Teardown: Tower of Hell
 

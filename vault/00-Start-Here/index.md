@@ -4,6 +4,7 @@ type: router
 status: verified
 last_checked: 2026-11-09
 verify: scripts/check_vault.py checks every path in this file exists and that this file stays under 80 lines.
+tags: [start-here, router]
 ---
 # Router
 

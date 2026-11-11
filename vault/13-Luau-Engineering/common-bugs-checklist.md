@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2 (C2 consolidated)
 verify: Checklist distilled from the other 13-Luau-Engineering notes; each item points to the note that justifies it.
+tags: [luau-engineering, checklist]
 ---
 # Common bugs checklist
 

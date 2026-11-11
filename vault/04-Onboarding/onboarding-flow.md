@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; create.roblox.com/docs/production/game-design/onboarding (as distilled in the report)
 verify: Verify by stopwatch playtest against 04-Onboarding/first-60-seconds-checklist.
+tags: [onboarding, template]
 ---
 # Onboarding flow
 

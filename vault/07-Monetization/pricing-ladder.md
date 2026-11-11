@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1; spawnblox.com; Andy A. G. Medium 2026 guide; pragma.vision; axltaylor2013-star roblox-monetization
 verify: Community guidance. Revenue-share claims (250 R$ tier carries 40-55%; 14-minute visitors 30x more likely to spend) are UNVERIFIED hypotheses. Test with Roblox Price Optimization once traffic allows.
+tags: [monetization, reference]
 ---
 # Pricing ladder
 

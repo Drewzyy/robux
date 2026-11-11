@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report Part D and C4 to C6
 verify: Each entry names its source; the authoritative dated table lives in 01-Roblox-Fundamentals/policy-change-watch. Re-check sources before launch.
+tags: [start-here, reference]
 ---
 # Policy change log
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5; gameanalytics.com/reports/2026-roblox-report; bloxg.com; god plan Section 3 (not in repo)
 verify: GameAnalytics figures as quoted in the report; re-read the 2026 report before quoting externally. Community tables are labeled community. Use Creator Analytics similar-game benchmarks for decisions.
+tags: [retention, reference]
 ---
 # Benchmarks
 

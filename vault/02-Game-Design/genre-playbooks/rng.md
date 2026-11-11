@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; rocode.app/guides/roblox-game-genres; Paid Random Items reporting (see 07-Monetization)
 verify: Odds rules are Roblox policy as reported in 2026 secondary sources. Re-read the Paid Random Items policy in Creator Hub before building any paid roll.
+tags: [game-design, playbook]
 ---
 # RNG playbook
 

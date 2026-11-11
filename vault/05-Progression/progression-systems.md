@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (B2, B5, C1)
 verify: Design guidance; no numeric claims. Verify per game through D7 retention (low D7 usually means weak progression, per Roblox guidance as summarized in the report).
+tags: [progression, reference]
 ---
 # Progression systems
 

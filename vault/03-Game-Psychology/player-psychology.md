@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (Part B, all sources listed there)
 verify: Each claim carries its source below. Research claims are as summarized in the report, not re-read from primary papers; treat effect sizes as UNVERIFIED until checked against the paper.
+tags: [game-psychology, reference]
 ---
 # Player psychology (condensed)
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8 (C8)
 verify: Each asset's license is checked on its source page when chosen; Librarian's gate requires a license line per asset.
+tags: [art-environment, checklist]
 ---
 # Asset sources and licenses
 

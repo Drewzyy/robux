@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (C4 'What not to sell'); god plan Section 4.3 (not in repo); Roblox Community Standards on deceptive monetization (as reported)
 verify: Studio rules (stricter than Roblox policy). Merchant's gate checks every product against this list; Andrew is the final check in the review queue.
+tags: [monetization, checklist]
 ---
 # Do-not-sell list
 

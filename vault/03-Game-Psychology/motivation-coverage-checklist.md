@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (B3b, B9)
 verify: Checklist. Verified per game by having each row name a real mechanic that exists in the build.
+tags: [game-psychology, checklist]
 ---
 # Motivation coverage checklist
 

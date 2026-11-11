@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; mattqdev ProfileService 2026 guide; ivar-anon roblox-datastores; justozy datastore anti-patterns; chguo999 roblox-datastores
 verify: Community references. ProfileStore's exact API is UNVERIFIED here: read its official docs (and Wally page) before writing code against it, and test save/load in Studio with API access enabled.
+tags: [luau-engineering, playbook]
 ---
 # DataStore playbook
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6; umatechnology.org AI moderation article; Roblox Q3 2026 shareholder letter as cited by the god plan
 verify: Secondary reporting. The Q3 2026 shareholder letter claim (40% of top-100 RfY games under three months old) is UNVERIFIED here; read the letter before quoting.
+tags: [roblox-fundamentals, reference]
 ---
 # AI content rules
 

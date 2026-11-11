@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; ashexplained, tabooharmony roblox-gui, simplified.media, johnygorsky roblox-ui
 verify: Community guidance. Mobile share of sessions differs by source (50% to 78%): no single figure is verified. The 44-48 px tap size is Apple/Material guidance, not a Roblox rule. Verify on a real phone.
+tags: [ui-ux, checklist]
 ---
 # Mobile-first checklist
 

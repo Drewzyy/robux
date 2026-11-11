@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6; github.com/Roblox/creator-docs content-maturity.md; webwise.ie
 verify: Spot-checked 2026-11-09 against creator-docs content-maturity.md on GitHub: label texts quoted, no-label restriction, resubmission, and avatar-item exclusion confirmed. Re-read before filling the questionnaire.
+tags: [roblox-fundamentals, reference]
 ---
 # Content maturity guide
 

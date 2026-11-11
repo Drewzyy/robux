@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: audio settings, volume, soundgroup, music slider, sfx slider, mute, settings menu, sound options
 sources: https://create.roblox.com/docs/sound/groups (search summary); https://devforum.roblox.com/t/support-for-nested-soundgroups/1669856
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [audio, playbook]
 ---
 # Audio settings menu
 

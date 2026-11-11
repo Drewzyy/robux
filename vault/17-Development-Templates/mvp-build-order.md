@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9 (C1 build order, C9 minimum viable vault)
 verify: Order from the report; no facts to verify.
+tags: [development-templates, reference]
 ---
 # MVP build order
 

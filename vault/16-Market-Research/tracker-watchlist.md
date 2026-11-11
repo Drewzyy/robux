@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7
 verify: Tool list from the report. Each site's availability is UNVERIFIED until opened; Pulse records the date of every number it reads.
+tags: [market-research, reference]
 ---
 # Tracker watchlist
 

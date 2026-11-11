@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9
 verify: Checklist; no facts to verify.
+tags: [development-templates, checklist]
 ---
 # Update checklist
 

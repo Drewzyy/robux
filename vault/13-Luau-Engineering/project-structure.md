@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; kanzerog rojo-roblox-skill project-structure; carmodyofficial-ops roblox_systems_architecture
 verify: Verified 2026-11-09: the layout below, extracted into a temp project, passed scripts/gates/build_gate.py (rojo build 7.7.1, selene, stylua, lune 0.11.1). See LOG.md Phase 3 spot checks.
+tags: [luau-engineering, reference]
 ---
 # Project structure
 

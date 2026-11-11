@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: lighting, atmosphere, bloom, colorcorrection, mood, future lighting, shadows, day night, preset
 sources: https://devforum.roblox.com/t/improve-lighting-step-by-step/1387033 ; https://devforum.roblox.com/t/bloom-vs-color-correction/494805
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [art-environment, playbook]
 ---
 # Lighting presets
 

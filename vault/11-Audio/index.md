@@ -4,6 +4,7 @@ type: section-index
 status: verified
 last_checked: 2026-11-11
 verify: scripts/check_vault.py --full checks every link below resolves and every status matches the note.
+tags: [audio, section-index]
 ---
 # 11-Audio
 

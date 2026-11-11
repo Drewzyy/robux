@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; rocode.app/guides/how-to-make-a-grow-a-garden-game; geeiq.com/resources/blog/grow-a-garden; tabooharmony roblox-brain player psychology
 verify: Mechanics are from community breakdowns of Grow a Garden, not its source code. Verify the offline growth code with a Lune test (growth from planted time) before shipping.
+tags: [game-design, playbook]
 ---
 # Farming playbook (Grow a Garden style)
 

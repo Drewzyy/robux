@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: walk animation, run animation, idle, jump, movement animation, animate script, mixamo, moon animator, r15
 sources: https://devforum.roblox.com/t/plugin-romixamo-use-mixamo-animations-in-roblox-easily-as-one-click/3655115 ; creation.dev animation plugins
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [animation-vfx, playbook]
 ---
 # Character movement animations
 

@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report C4 and D1
 verify: scripts/check_vault.py --full checks every link below resolves and every status matches the note.
+tags: [monetization, section-index]
 ---
 # 07-Monetization
 

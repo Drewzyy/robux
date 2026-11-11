@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: scripts/gates/build_gate.py; Phase 2 verification (LOG.md)
 verify: Verified 2026-11-09: gate passes a known-good project and fails a project with a lint error, bad formatting, and a failing test (LOG.md Phase 2).
+tags: [luau-engineering, reference]
 ---
 # Headless test gate
 

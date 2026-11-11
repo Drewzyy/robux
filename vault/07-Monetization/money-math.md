@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1; moonetix.com; obby.fun creator rewards guide; loottally.com; gamertagmythras.com DevEx guide
 verify: DevEx section spot-checked 2026-11-09 against creator-docs developer-exchange.md (rates, minimum, eligibility, earned vs bought Robux all match). Creator Rewards and tax treatment remain secondary. Re-check in the DevEx portal before any cashout.
+tags: [monetization, reference]
 ---
 # Money math
 

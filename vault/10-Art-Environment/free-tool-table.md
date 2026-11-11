@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8 (C8 free tool table)
 verify: Costs are $0 per the report; GitHub Actions free tier limits are UNVERIFIED. Rojo 7.7.1 and Lune 0.11.1 versions verified locally (see toolchain).
+tags: [art-environment, reference]
 ---
 # Free tool table
 

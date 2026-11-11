@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6; antimedia.co/news/roblox-gambling-2026
 verify: Secondary reporting of Roblox policy. Read Community Standards (gambling section) before any chance-based feature.
+tags: [roblox-fundamentals, reference]
 ---
 # The gambling line
 

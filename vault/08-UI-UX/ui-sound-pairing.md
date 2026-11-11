@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: ui sound, click sound, button sound, satisfying, sfx, feedback, pitch
 sources: https://devforum.roblox.com/t/the-audio-balance-in-most-roblox-games-is-terrible-but-it-doesnt-have-to-be/729433
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [ui-ux, playbook]
 ---
 # UI sound pairing
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5 (B8b, C5)
 verify: Roblox's priority order as summarized from Creator Docs and creator guides. Each branch is checked against your own before/after cohorts, waiting 72 hours.
+tags: [retention, reference]
 ---
 # Decision tree
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9 (C9; roblox-games/game-idea-template.md is on Andrew's Mac)
 verify: Template. The original game-idea-template.md is not in this repo; this is the studio's version. Reconcile when Andrew adds the original.
+tags: [development-templates, template]
 ---
 # Game idea template
 

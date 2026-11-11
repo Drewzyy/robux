@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (B4); create.roblox.com/docs/production/game-design/onboarding; wizuslabs FTUE; tabooharmony roblox-brain
 verify: Spot-checked 2026-11-09 against creator-docs onboarding.md: the three goals, low early XP thresholds, starter items, and A/B testing tutorial steps are Roblox guidance; the second-by-second windows are community guidance (Roblox gives no seconds target). Verify per game by stopwatch playtest and first-play bounce.
+tags: [onboarding, checklist]
 ---
 # First 60 seconds checklist
 

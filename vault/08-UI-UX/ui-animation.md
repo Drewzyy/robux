@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: ui animation, tween, easing, button press, juice, microinteraction, popup, reduced motion, color animation, colour tween
 sources: Motion design references (Emil Kowalski, impeccable motion-design); create.roblox.com accessibility (search summary)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [ui-ux, playbook]
 ---
 # UI animation
 

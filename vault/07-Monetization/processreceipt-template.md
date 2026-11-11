@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (developer products, ProcessReceipt rules)
 verify: Verified 2026-11-09: the decision module and its Lune test pass scripts/gates/build_gate.py. The wrapper's Roblox API use (MarketplaceService.ProcessReceipt, Enum.ProductPurchaseDecision) must be tested with a real purchase in Studio: UNVERIFIED live.
+tags: [monetization, template]
 ---
 # ProcessReceipt template
 

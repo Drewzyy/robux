@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; crates.io; quanticsoul4772 non-MCP tools guide; justinclevenger and el4cteo tooling notes
 verify: Verified 2026-11-09: rojo 7.7.1, selene 0.31.0, stylua 2.6.0, lune 0.11.1 installed from crates.io and run by scripts/gates/build_gate.py. Other tools listed are UNVERIFIED here (not installed).
+tags: [luau-engineering, reference]
 ---
 # Toolchain
 

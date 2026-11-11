@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report C2
 verify: scripts/check_vault.py --full checks every link below resolves and every status matches the note.
+tags: [luau-engineering, section-index]
 ---
 # 13-Luau-Engineering
 

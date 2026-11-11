@@ -1,0 +1,1 @@
+obsidian-markdown and obsidian-bases are copied unchanged from https://github.com/kepano/obsidian-skills (MIT, see OBSIDIAN-SKILLS-LICENSE). Claude sessions working on this repo use them when editing the vault.

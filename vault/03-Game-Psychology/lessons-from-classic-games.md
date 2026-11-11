@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: classic games, inspiration, club penguin, animal crossing, runescape, minecraft, pokemon, adopt me, retention, design lessons
 sources: https://www.denofgeek.com/culture/where-have-all-the-online-gaming-spaces-for-kids-gone/ ; https://rowatcher.com/news/how-top-roblox-games-keep-players-coming-back-retention-mechanics-that-work
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [game-psychology, playbook]
 ---
 # Lessons from classic games
 

@@ -5,6 +5,7 @@ status: unverified
 last_checked: 2026-11-09
 sources: Andrew's instruction 2026-11-09; web search results (creati.ai, topai.tools, moge.ai, forgegui.com blog listing); forgegui.com itself could not be reached from the build sandbox
 verify: UNVERIFIED: no source found says ForgeGUI makes audio; every listing describes visual assets. Andrew confirms in his ForgeGUI account whether it generates sound effects, its price, and its license for Roblox games, then updates this note.
+tags: [audio, reference]
 ---
 # ForgeGUI
 

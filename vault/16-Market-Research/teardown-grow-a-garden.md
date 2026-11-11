@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7; geeiq.com grow-a-garden; rocode.app grow-a-garden guide; pvpbank.com 2026 hot games
 verify: Tracker numbers are a Nov 2026 snapshot as quoted in the report and move hourly: UNVERIFIED until re-read on Rolimons or RoVitals with a date.
+tags: [market-research, teardown]
 ---
 # Teardown: Grow a Garden
 

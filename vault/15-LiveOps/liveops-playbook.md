@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-11
 sources: https://create.roblox.com/docs/production/game-design/liveops-essentials
 verify: UNVERIFIED: written from model knowledge; check against https://create.roblox.com/docs/production/game-design/liveops-essentials
+tags: [liveops, reference]
 ---
 # Live ops playbook (zero spend)
 

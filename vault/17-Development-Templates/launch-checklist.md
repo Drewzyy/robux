@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C9
 verify: Checklist; each line points to the note that defines it. Andrew ticks the final two lines himself.
+tags: [development-templates, checklist]
 ---
 # Launch checklist
 

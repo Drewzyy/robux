@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; dev.to 3-click rule; god plan shop rules (god plan not in repo)
 verify: Studio rules plus community guidance. Verify in a playtest: count taps to buy, and confirm no shop prompt fires in the first 5 minutes or on death.
+tags: [ui-ux, reference]
 ---
 # Shop UI
 

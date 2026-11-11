@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (B2); Skinner 1938; Ferster and Skinner 1957; Yu-kai Chou on operant conditioning
 verify: Theory from operant conditioning literature as summarized in the report. Roblox paid-random rules re-checked in 07-Monetization before use.
+tags: [game-psychology, reference]
 ---
 # Reward schedules
 

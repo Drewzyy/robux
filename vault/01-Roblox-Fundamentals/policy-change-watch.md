@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6 (Part D)
 verify: Each dated change cites its report source; re-check on Creator Hub and DevForum before each launch.
+tags: [roblox-fundamentals, reference]
 ---
 # Policy change watch
 

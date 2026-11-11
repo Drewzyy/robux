@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6
 verify: Links listed as given in the report. Each must be opened and its date recorded before a launch; until then each row is UNVERIFIED for currency.
+tags: [roblox-fundamentals, reference]
 ---
 # Policy index
 

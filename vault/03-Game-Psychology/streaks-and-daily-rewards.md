@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: streak, daily reward, login bonus, retention, come back tomorrow, loss aversion, streak freeze, habit
 sources: https://devforum.roblox.com/t/do-daily-rewards-actually-keep-players-retention/3556728 ; https://www.gameanalytics.com/blog/appointment-mechanics-how-to-keep-your-players-in-game ; https://www.wewardapp.com/blog/how-we-built-the-streak-feature-to-boost-user-retention-and-create-healthy-habits
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [game-psychology, playbook]
 ---
 # Streaks and daily rewards
 

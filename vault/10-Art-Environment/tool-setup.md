@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8; c-s-labs luckbound; vibestackweekly; agentgid; quanticsoul4772 mcp-roblox README
 verify: Studio MCP command and menu path are from secondary sources: UNVERIFIED until Andrew connects it on his Mac. Headless tools verified in 13-Luau-Engineering/toolchain.
+tags: [art-environment, playbook]
 ---
 # Tool setup
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; ashexplained roblox-game-ux; tabooharmony roblox-gui
 verify: Template. Verify by a phone playtest screenshot: every HUD element readable and outside the top 58 px and the bottom thumb controls.
+tags: [ui-ux, template]
 ---
 # HUD template
 

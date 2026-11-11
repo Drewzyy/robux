@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8; views.terabox.com thumbnail creator guide
 verify: Capture steps from secondary guides; confirm the Free Camera shortcut in Studio. Sizes per 08-UI-UX/thumbnail-icon-spec.
+tags: [art-environment, playbook]
 ---
 # Thumbnail pipeline
 

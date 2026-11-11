@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: server boost, server luck, server-wide, social purchase, boost, luck, developer product, timer
 sources: https://deltiasgaming.com/?p=364175 (Plants vs Brainrots server luck, 149 Robux, 15 minutes)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Check against the Monetization pages before shipping.
+tags: [monetization, playbook]
 ---
 # Server boosts
 

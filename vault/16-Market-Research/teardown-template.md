@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7
 verify: Template. A filled teardown is verified by dating every number and linking its tracker page.
+tags: [market-research, template]
 ---
 # Teardown template
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (C1, B0)
 verify: Template. Verify a filled copy by playtest: time the first verb, first reward, and first open loop with a stopwatch.
+tags: [game-design, template]
 ---
 # Core loop template
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (all parts)
 verify: Each term links to the note that defines it; scripts/check_vault.py checks the links resolve.
+tags: [start-here, reference]
 ---
 # Glossary
 

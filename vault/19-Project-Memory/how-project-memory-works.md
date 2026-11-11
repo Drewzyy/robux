@@ -4,6 +4,7 @@ type: reference
 status: verified
 last_checked: 2026-11-11
 verify: app/src-tauri/src/queue.rs writes these notes; cargo test covers it.
+tags: [project-memory, reference]
 ---
 # How project memory works
 

@@ -1,0 +1,43 @@
+# Open in Obsidian: a live table of every vault note.
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'file.name != "index"'
+formulas:
+  unverified: 'if(verify.contains("UNVERIFIED"), "check", "")'
+properties:
+  file.folder:
+    displayName: "Section"
+  formula.unverified:
+    displayName: "Needs checking"
+  last_checked:
+    displayName: "Checked"
+views:
+  - type: table
+    name: "All notes"
+    groupBy:
+      property: file.folder
+      direction: ASC
+    order:
+      - file.name
+      - status
+      - formula.unverified
+      - description
+      - last_checked
+  - type: table
+    name: "Needs checking"
+    filters:
+      or:
+        - 'status == "draft"'
+        - 'verify.contains("UNVERIFIED")'
+    order:
+      - file.name
+      - file.folder
+      - status
+      - sources
+  - type: cards
+    name: "Playbooks"
+    filters: 'type == "playbook"'
+    order:
+      - file.name
+      - description

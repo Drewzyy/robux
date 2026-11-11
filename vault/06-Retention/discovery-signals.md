@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5; github.com/Roblox/creator-docs/blob/main/content/en-us/discovery.md (read Nov 9 2026 per report); allthings.how; gmmarket.me
 verify: Spot-checked 2026-11-09 against creator-docs discovery.md on GitHub: stages, signals, bounce segments, Day 1/2-7/8-28 windows, 60-minute cap, non-RfY traffic excluded, and the custom thumbnail rule all match. The June 2026 28-day/QPTR change is NOT in that page; it stays secondary.
+tags: [retention, reference]
 ---
 # Discovery signals
 

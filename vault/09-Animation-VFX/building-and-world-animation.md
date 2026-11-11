@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: building animation, placement, spawn animation, pop in, environment animation, wind, water, day night, lighting animation, tween
 sources: Roblox TweenService and Lighting (model knowledge); community lighting guides (devforum)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [animation-vfx, playbook]
 ---
 # Building and world animation
 

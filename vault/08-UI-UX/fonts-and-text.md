@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: fonts, text, typography, mobile, phone, font, luckiest guy, fredoka, gotham, source sans, readability, textscaled
 sources: https://create.roblox.com/docs/production/publishing/accessibility (search summary); devforum.roblox.com/t/new-fonts-are-live/821617
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [ui-ux, playbook]
 ---
 # Fonts and text
 

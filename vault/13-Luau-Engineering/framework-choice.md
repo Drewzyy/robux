@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; carmodyofficial-ops roblox_systems_architecture; anzordatunasvhili-beep roblox_key_knit CLAUDE.md
 verify: Community comparison. Before adopting Knit, check its Wally page (wally.run) for the current version and maintenance status: UNVERIFIED here.
+tags: [luau-engineering, reference]
 ---
 # Framework choice
 

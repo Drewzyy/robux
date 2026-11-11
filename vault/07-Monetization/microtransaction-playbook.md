@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: microtransactions, developer products, game passes, starter pack, vip, 2x, boosts, cosmetics, conversion, monetization
 sources: https://create.roblox.com/docs/production/game-design/starter-pack-design (search summary); https://create.roblox.com/docs/production/monetization (search summary)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Check against the Monetization pages before shipping.
+tags: [monetization, playbook]
 ---
 # Microtransaction playbook
 

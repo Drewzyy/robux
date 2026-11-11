@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1; moonetix.com; spawnblox.com; blancmathis monetization reference
 verify: Template. A filled copy is checked by Merchant's gate and by scripts/gates/check_stage.py (catalog and do-not-sell sections present).
+tags: [monetization, template]
 ---
 # Product catalog template
 

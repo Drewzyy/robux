@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C7 (C7)
 verify: Synthesis of the six teardowns; no numeric claims.
+tags: [market-research, reference]
 ---
 # Copy vs avoid
 

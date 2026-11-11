@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; pinheadsk8r, ivar-anon, brockmartin security-hardening references; tabooharmony roblox-networking
 verify: Community security references. The NaN rule is checked by the Lune test in service-controller-template. Server Authority status (reported graduated June 2026) is UNVERIFIED; check Creator Docs.
+tags: [luau-engineering, reference]
 ---
 # Remotes and security
 

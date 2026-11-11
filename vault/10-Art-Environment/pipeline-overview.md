@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8
 verify: Overview; each step is detailed and sourced in its own note.
+tags: [art-environment, reference]
 ---
 # Pipeline overview
 

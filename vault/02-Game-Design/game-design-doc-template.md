@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Architect skill (vault/.claude/skills/architect); Research report (Nov 9 2026) Part B and C1
 verify: Checked by scripts/gates/check_stage.py (architect): core loop, first 60 seconds windows, and 'will not do' sections must be present.
+tags: [game-design, template]
 ---
 # Game design doc template (one page)
 

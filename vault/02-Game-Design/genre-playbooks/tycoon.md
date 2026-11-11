@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; rocode.app/guides/roblox-game-genres; newgame.co.jp Gun Armory Tycoon guide; tbod-tycoon-but-one-dropper.wiki rebirth guide
 verify: Community guidance. Verify pacing with the economy worksheet (time-to-next-purchase column) and with playtest timing of the first 5 purchases.
+tags: [game-design, playbook]
 ---
 # Tycoon playbook
 

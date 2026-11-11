@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: satisfying sound, sfx, sound design, pitch, combo, coin sound, juice, feedback
 sources: Game feel practice (practitioner sources); devforum audio balance thread
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [audio, playbook]
 ---
 # Satisfying sound effects
 

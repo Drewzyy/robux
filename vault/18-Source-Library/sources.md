@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report source list (all URLs checked live Nov 9, 2026 by the research)
 verify: URLs copied from the research report, which says each was live on 2026-11-09. Primary sources are marked; spot checks are logged in LOG.md Phase 3.
+tags: [source-library, reference]
 ---
 # Sources
 

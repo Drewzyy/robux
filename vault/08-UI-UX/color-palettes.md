@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: color, colour, palette, ui colors, contrast, accent, colorblind, okabe-ito, theme
 sources: https://www.datawrapper.de/blog/colorblindness-part2 ; Okabe-Ito palette (conceptviz.app reference)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [ui-ux, playbook]
 ---
 # Colour palettes for UI
 

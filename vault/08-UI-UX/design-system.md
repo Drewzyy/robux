@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C3; Veronica Aalin, dev.to 'Designing Clean Roblox GUIs'; ashexplained roblox-game-ux
 verify: Community guidance. The 4.5:1 contrast ratio is the WCAG AA text standard; check with any contrast checker on real colours.
+tags: [ui-ux, reference]
 ---
 # Design system
 

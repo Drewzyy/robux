@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (D1 item 1); gamertagmythras.com RDC 2026 announcements; livecards.net Roblox Wallet explained; en.creatorshub.info Roblox Wallet
 verify: Announced at RDC 2026 per secondary sources. UNVERIFIED until Andrew sees an invite in Creator Hub; check in December 2026.
+tags: [monetization, reference]
 ---
 # Roblox Wallet
 

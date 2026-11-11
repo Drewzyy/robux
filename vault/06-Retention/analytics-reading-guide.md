@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5; yeno.games; rowatcher.com (two articles); craftane.com
 verify: Secondary guides. Access thresholds and data delays are UNVERIFIED; confirm in Creator Analytics itself once the game is live.
+tags: [retention, reference]
 ---
 # Reading Creator Analytics
 

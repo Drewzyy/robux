@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; pvpbank.com roblox-2026-hot-games-guide
 verify: Community analysis of one game. No numeric claims to verify.
+tags: [game-design, playbook]
 ---
 # Roleplay sandbox playbook
 

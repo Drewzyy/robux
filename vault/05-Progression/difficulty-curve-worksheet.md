@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (B6); gamedesign.gg difficulty-curves; Celeste and Super Meat Boy conventions as cited
 verify: Template. A filled copy is verified by playtest plus a funnel event per stage (stage reached) after launch.
+tags: [progression, template]
 ---
 # Difficulty curve worksheet
 

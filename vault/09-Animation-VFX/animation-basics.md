@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-11
 sources: https://create.roblox.com/docs/animation/editor
 verify: UNVERIFIED: written from model knowledge; check against https://create.roblox.com/docs/animation/editor
+tags: [animation-vfx, reference]
 ---
 # Animation basics
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8 (C8 VFX/SFX)
 verify: Design guidance; caps are community figures (UNVERIFIED limits), measure on a phone.
+tags: [animation-vfx, reference]
 ---
 # VFX and SFX library
 

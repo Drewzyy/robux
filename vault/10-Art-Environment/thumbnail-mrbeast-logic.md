@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Andrew's thumbnail brief (Nov 9 2026), written from 1of10, Thumix, ThumbnailAI, YouThumb, and aaaronmiller/create-viral-content viral-thumbnails reference
 verify: The rules are the takeaway; every percentage below is UNVERIFIED (creator-marketing sources, not studies). The 10-point checklist is checked per thumbnail by Splash and partly by scripts/gates/check_stage.py (splash). Real CTR is verified only in Creator Analytics after launch.
+tags: [art-environment, playbook]
 ---
 # Thumbnails: MrBeast logic for Roblox games
 

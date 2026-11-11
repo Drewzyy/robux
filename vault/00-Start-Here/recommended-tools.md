@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: tools, recommended tools, free tools, rojo, wally, blender, mixamo, moon animator, audacity, plugins
 sources: https://github.com/rojo-rbx/rojo ; https://devforum.roblox.com (plugin threads); creation.dev tool lists
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Check against the Monetization pages before shipping.
+tags: [start-here, playbook]
 ---
 # Recommended tools (zero spend)
 

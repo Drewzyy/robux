@@ -5,6 +5,7 @@ status: unverified
 last_checked: 2026-11-09
 sources: Research report has no lighting section; goals derived from readability rules in C1 and performance rules in C2
 verify: UNVERIFIED: the research does not cover lighting. Property names must be checked against the Lighting and Atmosphere Engine API pages before use, and values tested in Studio on a phone.
+tags: [art-environment, reference]
 ---
 # Lighting and mood
 

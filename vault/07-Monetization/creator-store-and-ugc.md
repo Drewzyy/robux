@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (C4)
 verify: Secondary reporting. Verify splits on the Creator Store and Marketplace policy pages before selling anything.
+tags: [monetization, reference]
 ---
 # Creator Store and UGC
 

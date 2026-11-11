@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: currency, coins, gems, economy, satisfaction, count up, number go up, sink, soft currency, premium currency
 sources: https://create.roblox.com/docs/production/game-design/monetization-foundations (search summary); practitioner game-feel sources
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Check against the Monetization pages before shipping.
+tags: [monetization, playbook]
 ---
 # Currency satisfaction
 

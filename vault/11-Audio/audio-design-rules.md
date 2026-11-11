@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-11
 sources: https://create.roblox.com/docs/performance-optimization
 verify: UNVERIFIED: written from model knowledge; check against https://create.roblox.com/docs/performance-optimization
+tags: [audio, reference]
 ---
 # Audio design rules
 

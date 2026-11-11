@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: vault/.claude/skills/*; app/src-tauri/src/pipeline.rs (evaluate_stage)
 verify: Verified 2026-11-09 against the studio code: pipeline.rs parses gate.json with this exact shape and check_stage.py requires the Loaded section (Phase 2 runs).
+tags: [development-templates, template]
 ---
 # Agent output format
 

@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: attack animation, combat, hitstop, impact, anticipation, recovery, melee, sword, punch, hit feedback, telegraph
 sources: https://www.gamedeveloper.com/game-platforms/anatomy-of-an-enemy-attack-in-dark-souls-3 ; https://aztez.com/blog/2012/05/24/the-amalur-problem/ ; https://www.slynyrd.com/blog/2018/9/8/pixelblog-9-melee-attacks
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [animation-vfx, playbook]
 ---
 # Combat animation
 

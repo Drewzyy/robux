@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Pulse skill (vault/.claude/skills/pulse)
 verify: Checked by scripts/gates/check_stage.py (pulse): data sources, ranked pitches, numbers sourced or UNVERIFIED.
+tags: [development-templates, template]
 ---
 # Pitch template (Pulse)
 

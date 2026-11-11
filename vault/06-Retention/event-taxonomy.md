@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5; craftane.com; jimmygit1977 and tabooharmony roblox-analytics skills
 verify: Method names and limits are community-reported. Copy exact signatures and limits from the AnalyticsService Engine API page before coding: UNVERIFIED here.
+tags: [retention, reference]
 ---
 # Event taxonomy
 

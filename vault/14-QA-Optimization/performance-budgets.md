@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C2; brockmartin performance-optimization; tabooharmony roblox-performance; el4cteo roblox-performance; andrian-syh device-performance
 verify: Frame budget is Roblox guidance. Memory, part, and particle numbers differ between community sources: UNVERIFIED as limits, use as tiered targets and measure with MicroProfiler on a low-end phone.
+tags: [qa-optimization, reference]
 ---
 # Performance budgets
 

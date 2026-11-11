@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1 (C1, C5)
 verify: Template. Verify a filled copy with a Lune test that simulates the first hour of income and prints time-to-next-goal per purchase.
+tags: [game-design, template]
 ---
 # Economy worksheet
 

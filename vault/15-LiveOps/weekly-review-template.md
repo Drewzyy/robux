@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8 and C5 (C5)
 verify: Template; no facts to verify.
+tags: [liveops, template]
 ---
 # Weekly review template
 

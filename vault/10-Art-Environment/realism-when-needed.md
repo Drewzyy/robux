@@ -6,6 +6,7 @@ last_checked: 2026-11-11
 keywords: realism, realistic, pbr, surfaceappearance, textures, materials, trim sheet, mobile performance
 sources: https://devforum.roblox.com/t/surfaceappearance-studio-beta-released/663449 ; https://create.roblox.com/docs/resources/the-mystery-of-duvall-drive/materialize-the-world (search summary)
 verify: UNVERIFIED: researched through web search summaries on 2026-11-11; Roblox docs could not be opened directly. Test numbers in Studio.
+tags: [art-environment, playbook]
 ---
 # Realism when needed
 

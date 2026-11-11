@@ -5,6 +5,7 @@ status: verified
 last_checked: 2026-11-09
 sources: Research report A3 and A5 (Anthropic Agent Skills progressive disclosure; LachlanCB "inject pointers, not content"; Slomka vault hygiene).
 verify: Phase 1 load logs (docs/evidence/phase1/) show agents reading only the router, one section index, and that section's notes.
+tags: [start-here, reference]
 ---
 # How to use this vault
 

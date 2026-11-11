@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-11
 sources: https://create.roblox.com/docs/scripting/security/client-server-boundary
 verify: UNVERIFIED: written from model knowledge; check against https://create.roblox.com/docs/scripting/security/client-server-boundary
+tags: [roblox-fundamentals, reference]
 ---
 # How Roblox works (the short version)
 

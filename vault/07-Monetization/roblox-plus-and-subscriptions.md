@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C4 and D1 (D1 item 5, C4); gamertagmythras.com RDC 2026; spawnblox.com
 verify: Secondary reporting; payout figures differ between sources (UNVERIFIED). Read the Creator Hub subscription docs before adding either.
+tags: [monetization, reference]
 ---
 # Roblox Plus and subscriptions
 

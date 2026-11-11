@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) B8d, B8e, C6
 verify: Checklist built from the report. Each item is checked against the live policy pages listed in policy-index on launch day.
+tags: [roblox-fundamentals, checklist]
 ---
 # Pre-launch policy checklist (one hour per launch)
 

@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) C8; c-s-labs luckbound toolchain; 3daistudio free MCP servers
 verify: Performance guidance from community references; verify each model in Studio Scene Analysis (triangles) and MicroProfiler.
+tags: [art-environment, checklist]
 ---
 # 3D model checklist
 

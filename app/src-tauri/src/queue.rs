@@ -181,7 +181,7 @@ pub fn remember(root: &Path, item: &QueueItem, d: &Decision) -> Result<(), Strin
     use std::io::Write;
     if !note.is_file() {
         let head = format!(
-            "---\ndescription: Decisions Andrew made on {game}, newest last. Read before planning work on this game.\ntype: project-memory\nstatus: verified\nlast_checked: {}\nverify: written by the app from the review queue (queue.rs remember); not edited by hand or by agents.\n---\n# {game}: decisions\n\n| Date | Decision | What | Note |\n|---|---|---|---|\n",
+            "---\ndescription: Decisions Andrew made on {game}, newest last. Read before planning work on this game.\ntype: project-memory\ntags: [project-memory]\nstatus: verified\nlast_checked: {}\nverify: written by the app from the review queue (queue.rs remember); not edited by hand or by agents.\n---\n# {game}: decisions\n\n| Date | Decision | What | Note |\n|---|---|---|---|\n",
             &d.at[..10.min(d.at.len())]
         );
         fs::write(&note, head).map_err(|e| e.to_string())?;

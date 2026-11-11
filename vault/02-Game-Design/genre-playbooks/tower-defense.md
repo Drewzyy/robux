@@ -5,6 +5,7 @@ status: draft
 last_checked: 2026-11-09
 sources: Research report (Nov 9 2026) Part B and C1; bloxplan.app/examples/tower-defense (Tower Defense Simulator practice)
 verify: Community guidance from one example source. Verify wave balance by playtest (quit-rate per wave) before launch.
+tags: [game-design, playbook]
 ---
 # Tower defense playbook
 
