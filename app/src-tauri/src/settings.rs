@@ -69,6 +69,10 @@ pub struct Settings {
     /// Optional path to the claude program when it is not found on its own.
     #[serde(default)]
     pub claude_path: String,
+    /// Where BrewixGames puts everything it downloads (Claude Code copy, uv,
+    /// Python packages, the Blender add-on). Empty means <studio>/tools.
+    #[serde(default)]
+    pub tools_dir: String,
 }
 fn default_studio_mcp() -> String {
     "off".into()
@@ -92,6 +96,7 @@ impl Default for Settings {
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
             claude_path: String::new(),
+            tools_dir: String::new(),
         }
     }
 }

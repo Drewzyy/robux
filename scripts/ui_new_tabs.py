@@ -113,6 +113,17 @@ try:
     check("switches back to an existing studio", "Switched to the studio in" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text[:100])
     _sh2.rmtree(newdir.parent, ignore_errors=True)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
+    import tempfile as _tf
+    tdir = Path(_tf.mkdtemp()) / "BrewixDownloads"
+    box = d.find_element(By.ID, "tools-dir"); box.clear(); box.send_keys(str(tdir))
+    d.find_element(By.ID, "tools-dir-save").click(); time.sleep(2)
+    d.find_element(By.ID, "claude-install").click()
+    WebDriverWait(d, 60).until(lambda x: "Claude Code is in" in x.find_element(By.ID, "toast").text or "could not" in x.find_element(By.ID, "toast").text)
+    copied = tdir / "claude" / "claude"
+    check("Claude Code copied into the Downloads folder", copied.is_file() and copied.stat().st_size > 1000000, d.find_element(By.ID, "toast").text[:100])
+    time.sleep(2)
+    box = d.find_element(By.ID, "tools-dir"); box.clear()
+    d.find_element(By.ID, "tools-dir-save").click(); time.sleep(2)
     check("Ollama detected with memory and version", "Ollama is ready" in view() and "GB memory" in view() and "v0.14.3" in view())
     Select(d.find_element(By.ID, "ollama-model")).select_by_value("qwen3:4b"); time.sleep(0.5)
     dl = d.find_element(By.ID, "ollama-download")

@@ -776,7 +776,7 @@ T.event.listen("ollama-done", (ev) => {
 
 async function viewSettings() {
   await refreshStatus();
-  const [s, info, o, sm, bm] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({}))]);
+  const [s, info, o, sm, bm, td] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({})), invoke("tools_dir_get").catch(() => "")]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
@@ -811,7 +811,7 @@ async function viewSettings() {
         el("div", { class: "inline" },
           el("input", { type: "text", id: "claude-path", style: "width:220px", placeholder: "claude location (optional)", value: s.claude_path || "" }),
           el("button", { class: "btn secondary", onclick: async () => { await save({ claude_path: $("claude-path").value.trim() }, "Saved. Checking Claude..."); await refreshStatus(); viewSettings(); } }, "Save"),
-          c.version ? null : el("button", { class: "btn primary", id: "claude-install", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Installing..."; try { toast(await invoke("claude_install")); } catch (e) { toast(String(e), true); } await refreshStatus(); viewSettings(); } }, "Install")))
+          el("button", { class: c.version ? "btn secondary" : "btn primary", id: "claude-install", title: "Puts BrewixGames' copy of Claude Code in the Downloads folder (installs it first if needed).", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = c.version ? "Copying..." : "Installing..."; try { toast(await invoke("claude_install")); } catch (e) { toast(String(e), true); } await refreshClaude(); viewSettings(); } }, c.version ? "Refresh Copy" : "Install")))
     ),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "AI engine"),
@@ -862,6 +862,10 @@ async function viewSettings() {
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Studio"),
       el("div", { class: "list" },
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Downloads folder"),
+            el("div", { class: "hint" }, `Everything BrewixGames downloads goes here: its copy of Claude Code, uv and its packages, and the Blender add-on. Now: ${td}`)),
+          el("div", { class: "inline", style: "width:430px" }, el("input", { type: "text", id: "tools-dir", placeholder: "Default: tools inside the studio folder", value: s.tools_dir || "" }),
+            el("button", { class: "btn secondary", id: "tools-dir-save", onclick: () => save({ tools_dir: $("tools-dir").value.trim() }, "Downloads folder saved. Press Install next to Claude Code and uv to put them there.") }, "Save"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio folder"), el("div", { class: "hint" }, `In use: ${info.root}. Vault: ${info.vault}.`)),
           el("div", { class: "inline", style: "width:430px" }, root, el("button", { class: "btn secondary", id: "studio-move", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Moving..."; try { toast(await invoke("studio_move", { dest: root.value.trim() })); viewSettings(); } catch (e) { toast(String(e), true); } ev.target.disabled = false; ev.target.textContent = "Move Here"; } }, "Move Here"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Import a game project"), el("div", { class: "hint" }, "Copies a Rojo project into projects/ so agents can work on it.")),

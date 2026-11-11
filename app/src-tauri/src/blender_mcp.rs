@@ -25,7 +25,8 @@ pub const TELEMETRY_OFF: &[&str] = &["DISABLE_TELEMETRY", "BLENDER_MCP_DISABLE_T
 /// `uvx` (from uv, free) runs the pinned server without a separate install.
 pub fn uvx() -> Option<std::path::PathBuf> {
     let name = if cfg!(windows) { "uvx.exe" } else { "uvx" };
-    let mut dirs: Vec<std::path::PathBuf> = std::env::var_os("PATH").map(|p| std::env::split_paths(&p).collect()).unwrap_or_default();
+    let mut dirs: Vec<std::path::PathBuf> = vec![crate::paths::tools_dir().join("uv")];
+    dirs.extend(std::env::var_os("PATH").map(|p| std::env::split_paths(&p).collect::<Vec<_>>()).unwrap_or_default());
     if let Some(h) = crate::paths::home() {
         dirs.push(h.join(".local/bin"));
         dirs.push(h.join(".cargo/bin"));
@@ -46,12 +47,16 @@ pub fn fetch_addon(root: &std::path::Path) -> Result<std::path::PathBuf, String>
     for k in TELEMETRY_OFF {
         cmd.env(k, "1");
     }
+    for (k, v) in uv_dirs() {
+        cmd.env(k, v);
+    }
     let o = cmd.output().map_err(|e| format!("could not run uvx: {e}"))?;
     let src = String::from_utf8_lossy(&o.stdout).trim().to_string();
     if !o.status.success() || src.is_empty() {
         return Err(format!("could not get the add-on: {}", String::from_utf8_lossy(&o.stderr).lines().last().unwrap_or("")));
     }
-    let dest = root.join("tools").join("mcp_for_blender_addon.py");
+    let _ = root;
+    let dest = crate::paths::tools_dir().join("blender").join("mcp_for_blender_addon.py");
     std::fs::create_dir_all(dest.parent().unwrap()).map_err(|e| e.to_string())?;
     std::fs::copy(&src, &dest).map_err(|e| format!("copy add-on: {e}"))?;
     Ok(dest)
@@ -66,8 +71,21 @@ pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<Stri
 }
 
 /// The mcpServers entry for this server (telemetry off).
+/// uv downloads (packages, Python) go into the Downloads folder.
+pub fn uv_dirs() -> Vec<(&'static str, String)> {
+    let t = crate::paths::tools_dir();
+    vec![
+        ("UV_CACHE_DIR", t.join("uv-cache").display().to_string()),
+        ("UV_PYTHON_INSTALL_DIR", t.join("uv-python").display().to_string()),
+        ("UV_TOOL_DIR", t.join("uv-tools").display().to_string()),
+    ]
+}
+
 pub fn config_entry(cmd: &(String, Vec<String>)) -> serde_json::Value {
-    let env: serde_json::Map<String, serde_json::Value> = TELEMETRY_OFF.iter().map(|k| (k.to_string(), serde_json::json!("1"))).collect();
+    let mut env: serde_json::Map<String, serde_json::Value> = TELEMETRY_OFF.iter().map(|k| (k.to_string(), serde_json::json!("1"))).collect();
+    for (k, v) in uv_dirs() {
+        env.insert(k.into(), serde_json::json!(v));
+    }
     serde_json::json!({ "type": "stdio", "command": cmd.0, "args": cmd.1, "env": env })
 }
 

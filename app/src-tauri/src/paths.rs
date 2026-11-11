@@ -81,7 +81,7 @@ pub fn claude_bin() -> Result<PathBuf, String> {
         }
         return Err(format!("The Claude Code location in Settings ({}) is not a file.", p.display()));
     }
-    let mut candidates: Vec<PathBuf> = vec![];
+    let mut candidates: Vec<PathBuf> = vec![tools_dir().join("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" })];
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
             candidates.push(dir.join("claude"));
@@ -180,4 +180,13 @@ pub fn open_url(url: &str) {
     } else {
         command("xdg-open").arg(url).status()
     };
+}
+
+/// The Downloads folder: Settings > Downloads folder, or <studio>/tools.
+pub fn tools_dir() -> PathBuf {
+    let custom = crate::settings::load().tools_dir;
+    if !custom.trim().is_empty() {
+        return expand_home(custom.trim());
+    }
+    studio_root().map(|r| r.join("tools")).unwrap_or_else(|_| home().unwrap_or_default().join("BrewixGames").join("tools"))
 }

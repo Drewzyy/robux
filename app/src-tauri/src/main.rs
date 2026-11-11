@@ -368,6 +368,11 @@ async fn studio_move(dest: String) -> Result<String, String> {
     studio::move_studio(&root()?, &dest)
 }
 
+#[tauri::command]
+async fn tools_dir_get() -> String {
+    paths::tools_dir().display().to_string()
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -475,6 +480,7 @@ fn main() {
             project_open_in_studio,
             studio_move,
             uv_install,
+            tools_dir_get,
             ollama_pull,
             chat_reset,
             chat_send,

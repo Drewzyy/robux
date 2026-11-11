@@ -64,16 +64,39 @@ pub fn status() -> Connection {
 /// Install Claude Code with Anthropic's official installer
 /// (`curl -fsSL https://claude.ai/install.sh | bash`, from the Claude Code
 /// setup docs). Runs in the background; macOS ships curl and bash.
+/// Install (or refresh) Claude Code, then keep BrewixGames' own copy in the
+/// Downloads folder (<tools>/claude). The official installer has no option
+/// to choose its folder, so it installs to its usual place and the program
+/// is copied from there. The copy does not update itself; Install refreshes it.
 pub fn install() -> Result<String, String> {
-    if crate::paths::claude_bin().is_ok() {
-        return Ok("Claude Code is already installed.".into());
+    let dest = crate::paths::tools_dir().join("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" });
+    let found = crate::paths::claude_bin().ok().filter(|p| p != &dest);
+    let source = match found {
+        Some(p) => p,
+        None => {
+            let out = official_installer("curl -fsSL https://claude.ai/install.sh | bash", "irm https://claude.ai/install.ps1 | iex")?;
+            if !out.status.success() {
+                let err = String::from_utf8_lossy(&out.stderr);
+                return Err(format!("installer failed: {}", err.lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
+            }
+            let home = crate::paths::home().ok_or("no home folder")?;
+            let p = home.join(".local/bin").join(if cfg!(windows) { "claude.exe" } else { "claude" });
+            if !p.is_file() {
+                return Err(format!("Claude Code installed, but not at {}. Paste its location in Settings.", p.display()));
+            }
+            p
+        }
+    };
+    // The launcher may be a link to a versioned file; copy the real program.
+    let real = std::fs::canonicalize(&source).unwrap_or(source);
+    std::fs::create_dir_all(dest.parent().unwrap()).map_err(|e| e.to_string())?;
+    std::fs::copy(&real, &dest).map_err(|e| format!("could not copy Claude Code into the Downloads folder: {e}"))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o755));
     }
-    let out = official_installer("curl -fsSL https://claude.ai/install.sh | bash", "irm https://claude.ai/install.ps1 | iex")?;
-    if !out.status.success() {
-        let err = String::from_utf8_lossy(&out.stderr);
-        return Err(format!("installer failed: {}", err.lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
-    }
-    crate::paths::claude_bin().map(|p| format!("Installed Claude Code at {}. Now press Sign In to Claude.", p.display()))
+    Ok(format!("Claude Code is in {}. Now press Sign In to Claude.", dest.display()))
 }
 
 /// Run an official one-line installer: bash on macOS and Linux, PowerShell
@@ -97,7 +120,13 @@ pub fn install_uv() -> Result<String, String> {
     if let Some(p) = crate::blender_mcp::uvx() {
         return Ok(format!("uv is already installed ({}).", p.display()));
     }
-    let out = official_installer("curl -LsSf https://astral.sh/uv/install.sh | sh", "irm https://astral.sh/uv/install.ps1 | iex")?;
+    // uv supports a chosen folder (UV_INSTALL_DIR) and leaving PATH alone.
+    let dir = crate::paths::tools_dir().join("uv");
+    let d = dir.display().to_string().replace('\'', "''");
+    let out = official_installer(
+        &format!("UV_INSTALL_DIR='{d}' UV_NO_MODIFY_PATH=1 INSTALLER_NO_MODIFY_PATH=1 sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'"),
+        &format!("$env:UV_INSTALL_DIR='{d}'; $env:UV_NO_MODIFY_PATH='1'; $env:INSTALLER_NO_MODIFY_PATH='1'; irm https://astral.sh/uv/install.ps1 | iex"),
+    )?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
         return Err(format!("uv installer failed: {}", err.lines().rev().take(3).collect::<Vec<_>>().join(" | ")));
