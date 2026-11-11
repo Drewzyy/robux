@@ -231,7 +231,7 @@ fn apply_release(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, 
         return Err(format!("You already have the newest version ({tag})."));
     }
     on_line(&format!("Downloading BrewixGames {tag}..."));
-    let tmp = std::env::temp_dir().join(format!("brewix-update-{tag}"));
+    let tmp = crate::paths::tools_dir().join("updates").join(format!("brewix-update-{tag}"));
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
     let zip = tmp.join(RELEASE_ASSET);
