@@ -68,6 +68,11 @@ try:
     check("simulation shows cost before running", "Usage before you run" in view())
     d.find_element(By.XPATH, "//button[text()='Cancel']").click(); time.sleep(0.5)
 
+    d.execute_script("location.hash='#simulator'"); time.sleep(2.5)
+    d.find_element(By.ID, "open-studio").click(); time.sleep(6)
+    place = ROOT / "projects/dawn-watch/build/dawn-watch.rbxl"
+    tt = d.find_element(By.ID, "toast").text
+    check("Open in Studio builds the place file", place.is_file() and place.stat().st_size > 1000, f"{place.stat().st_size if place.is_file() else 0} bytes · {tt[:90]}")
     d.execute_script("location.hash='#thumbnails'"); time.sleep(3)
     grades = [g.text for g in d.find_elements(By.CSS_SELECTOR, ".tcell .pill")]
     check("thumbnails listed with grades", len(grades) >= 10, ", ".join(grades))

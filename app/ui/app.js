@@ -898,6 +898,16 @@ T.event.listen("update-line", (ev) => {
 // Shared: project picker and a cost card for one-agent runs
 // =====================================================================
 state.project = "";
+function studioButton() {
+  return el("button", { class: "btn secondary", id: "open-studio", title: "Build this game into a place file and open it in Roblox Studio. Nothing is published.", onclick: async (ev) => {
+    if (!state.project) { toast("Choose a game first.", true); return; }
+    ev.target.disabled = true; ev.target.textContent = "Building...";
+    try { const p = await invoke("project_open_in_studio", { project: state.project }); toast(`Opened in Studio: ${p.split(/[\\/]/).pop()}. Nothing was published.`); }
+    catch (e) { toast(String(e), true); }
+    ev.target.disabled = false; ev.target.textContent = "Open in Studio";
+  } }, "Open in Studio");
+}
+
 async function projectPicker(onChange) {
   const projects = await invoke("projects_list").catch(() => []);
   if (!state.project || !projects.includes(state.project)) state.project = projects[0] || "";
@@ -1029,7 +1039,7 @@ async function viewSimulator() {
               el("button", { class: "link", style: "margin-top:8px", onclick: () => { state.composer = { ...state.composer, mode: "pipeline", pipeline: "improve-build", project: state.project, prompt: `${i.title}. ${i.how}` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Have the team build this")))))),
       el("p", { class: "note", style: "margin-top:14px" }, `${s.method} Simulated ${ago(s.at)} for ${usd(s.cost_usd, 2)}.`, el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + s.run_id) }, "Details")));
   }
-  show(page(head("Simulator", runningSubtitle(), el("div", { class: "inline" }, pick, run)), box, body));
+  show(page(head("Simulator", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), run)), box, body));
 }
 
 // =====================================================================
@@ -1066,7 +1076,7 @@ async function viewThumbnails() {
       el("div", { class: "tgrid big" }, cells),
       el("p", { class: "note", style: "margin-top:12px" }, `Grades check the rules a program can measure (size, 3 words or fewer, 3 colours or fewer, outlined text, real game capture). ${best && best.grade !== "A+" ? "None is A+ yet: add a real screenshot and make a new set. " : ""}The real test is your play-through rate after launch.`));
   }
-  show(page(head("Thumbnails", runningSubtitle(), el("div", { class: "inline" }, pick, make)), box, shots, grid));
+  show(page(head("Thumbnails", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), make)), box, shots, grid));
 }
 
 document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = ICONS[n.dataset.icon]));

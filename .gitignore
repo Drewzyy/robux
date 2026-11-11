@@ -14,3 +14,4 @@ app/src-tauri/studio-template.tar.gz
 app/src-tauri/tools/
 .cache/
 /tools/
+projects/*/build/

@@ -526,6 +526,24 @@ fn copy_dir_all(src: &Path, dst: &Path, n: &mut usize) -> Result<(), String> {
     Ok(())
 }
 
+/// Build the game into a place file and open it in Roblox Studio (the
+/// system's handler for .rbxl). Changes made in Studio stay in that file.
+pub fn open_in_studio(root: &Path, project: &str) -> Result<String, String> {
+    project_ok(root, project)?;
+    let place = crate::gates::build_place(root, project)?;
+    let st = if cfg!(target_os = "macos") {
+        std::process::Command::new("open").arg(&place).status()
+    } else if cfg!(windows) {
+        std::process::Command::new("cmd").args(["/C", "start", ""]).arg(&place).status()
+    } else {
+        std::process::Command::new("xdg-open").arg(&place).status()
+    };
+    match st {
+        Ok(s) if s.success() => Ok(place.display().to_string()),
+        _ => Err(format!("Built {} but could not open it. Install Roblox Studio, then open that file.", place.display())),
+    }
+}
+
 fn project_ok(root: &Path, project: &str) -> Result<PathBuf, String> {
     let ok = project.starts_with("projects/") && !project.contains("..") && project.len() > 9 && project[9..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if !ok || !root.join(project).is_dir() {

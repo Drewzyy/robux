@@ -353,6 +353,11 @@ fn blender_addon_get() -> Result<String, String> {
     studio_core::blender_mcp::fetch_addon(&root()?).map(|p| p.display().to_string())
 }
 
+#[tauri::command]
+fn project_open_in_studio(project: String) -> Result<String, String> {
+    studio::open_in_studio(&root()?, &project)
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -457,6 +462,7 @@ fn main() {
             studio_mcp_status,
             blender_mcp_status,
             blender_addon_get,
+            project_open_in_studio,
             ollama_pull,
             chat_reset,
             chat_send,

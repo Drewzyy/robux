@@ -103,6 +103,24 @@ fn tempdir(tag: &str) -> PathBuf {
     d
 }
 
+/// Build a project into a Studio place file at projects/<game>/build/<game>.rbxl
+/// with the bundled Rojo. Returns the file path.
+pub fn build_place(root: &Path, project: &str) -> Result<PathBuf, String> {
+    let proj = root.join(project);
+    let pj = proj.join("default.project.json");
+    if !pj.is_file() {
+        return Err(format!("{project} has no Rojo project yet. Run Builder on it first."));
+    }
+    let name = project.trim_start_matches("projects/");
+    let out_file = proj.join("build").join(format!("{name}.rbxl"));
+    fs::create_dir_all(out_file.parent().unwrap()).map_err(|e| e.to_string())?;
+    let (code, out) = run("rojo", &["build", &pj.to_string_lossy(), "-o", &out_file.to_string_lossy()], &proj);
+    if code != Some(0) {
+        return Err(format!("Rojo could not build it: {}", tail(&out, 400)));
+    }
+    Ok(out_file)
+}
+
 /// Rojo build, Selene, StyLua, Lune tests. A missing tool is a failed check.
 pub fn build_gate(root: &Path, project: &str) -> Vec<GateCheck> {
     let proj = if Path::new(project).is_absolute() { PathBuf::from(project) } else { root.join(project) };
