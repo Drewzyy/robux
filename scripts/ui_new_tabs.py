@@ -113,6 +113,18 @@ try:
     check("real Studio refused when not installed", "not installed" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text)
     d.find_element(By.CSS_SELECTOR, "[data-seg='off']").click(); time.sleep(2)
     check("Studio connection back off", "Agents only write files" in view())
+    segs = d.find_elements(By.CSS_SELECTOR, "[data-seg='blender']")
+    segs[0].click(); time.sleep(1.5)
+    import shutil as _sh
+    has_uv = bool(_sh.which("uvx")) or (Path.home() / ".local/bin/uvx").is_file()
+    tt = d.find_element(By.ID, "toast").text
+    check("Blender mode matches whether uv is installed", ("Connected to Blender" in tt) if has_uv else ("uv is not installed" in tt), tt)
+    d.find_elements(By.CSS_SELECTOR, "[data-seg='mock']")[-1].click(); time.sleep(2.5)
+    check("Blender test mode turns on", "pretend Blender" in view())
+    d.execute_script("document.getElementById('blender-addon').scrollIntoView({block:'center'})"); time.sleep(0.5)
+    d.save_screenshot(str(SHOTS / "ui-settings-blender.png"))
+    d.find_elements(By.CSS_SELECTOR, "[data-seg='off']")[-1].click(); time.sleep(2)
+    check("Blender back off", "Modeler writes Blender scripts" in view())
     d.execute_script("location.hash='#settings'"); time.sleep(2)
     d.execute_script("document.getElementById('view').scrollTop=260"); time.sleep(0.5)
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))

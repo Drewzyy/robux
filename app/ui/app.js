@@ -776,7 +776,7 @@ T.event.listen("ollama-done", (ev) => {
 
 async function viewSettings() {
   await refreshStatus();
-  const [s, info, o, sm] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({}))]);
+  const [s, info, o, sm, bm] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({}))]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
@@ -826,6 +826,17 @@ async function viewSettings() {
             el("div", { class: "hint" }, sm.found ? `Found: ${sm.found}` : "Not found. Install Roblox's Studio MCP server (github.com/Roblox/studio-rust-mcp-server), open Studio once, or paste its path. No Roblox login is stored.")),
           el("div", { class: "inline" }, el("input", { type: "text", id: "studio-mcp-path", style: "width:240px", placeholder: "custom path (optional)", value: s.studio_mcp_path }),
             el("button", { class: "btn secondary", onclick: () => save({ studio_mcp_path: $("studio-mcp-path").value.trim() }, "Path saved.") }, "Save"))))),
+
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Blender"),
+      el("div", { class: "list" },
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Connect Modeler to Blender"),
+            el("div", { class: "hint" }, s.blender_mcp === "blender" ? "Modeler and Ask Claude can build models in your open Blender and export FBX for Studio. Free: only Poly Haven (CC0) assets, no paid generators, telemetry off."
+              : s.blender_mcp === "mock" ? "Test mode: Modeler talks to a pretend Blender built into BrewixGames."
+              : "Off. Modeler writes Blender scripts you can run yourself.")),
+          segmented([["off", "Off"], ["blender", "Blender"], ["mock", "Test"]], s.blender_mcp, async (v) => { await save({ blender_mcp: v }, v === "off" ? "Blender connection off." : v === "mock" ? "Using the test Blender." : "Connected to Blender."); viewSettings(); })),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "What you need (all free)"),
+            el("div", { class: "hint" }, `Blender from blender.org, uv from astral.sh/uv${bm.uvx ? " (found)" : " (not found)"}, then press Get the Blender Add-on and in Blender choose Edit, Preferences, Add-ons, Install from Disk, pick that file, and click Connect in the add-on's panel. BrewixGames runs ${bm.package || "the server"} with telemetry off.`)),
+          el("button", { class: "btn secondary", id: "blender-addon", disabled: !bm.uvx, onclick: async (ev) => { ev.target.disabled = true; try { const p = await invoke("blender_addon_get"); toast(`Add-on saved to ${p}`); } catch (e) { toast(String(e), true); } ev.target.disabled = false; } }, "Get the Blender Add-on")))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
       el("div", { class: "list" },

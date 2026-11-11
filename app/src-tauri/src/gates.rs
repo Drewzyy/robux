@@ -28,6 +28,28 @@ fn has(text: &str, pattern: &str) -> bool {
     re(&format!("(?im){pattern}")).is_match(text)
 }
 
+/// Cells of one column in the first markdown table whose header names it.
+fn table_col(text: &str, col: &str) -> Vec<String> {
+    let rows: Vec<Vec<String>> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| l.starts_with('|'))
+        .map(|l| l.trim_matches('|').split('|').map(|c| c.trim().to_string()).collect())
+        .collect();
+    let col = col.to_lowercase();
+    for (i, r) in rows.iter().enumerate() {
+        if let Some(k) = r.iter().position(|c| c.to_lowercase().contains(&col)) {
+            return rows[i + 1..]
+                .iter()
+                .take_while(|x| x.len() > k)
+                .filter(|x| !x[0].starts_with("--") && !x[0].starts_with(":-"))
+                .map(|x| x[k].clone())
+                .collect();
+        }
+    }
+    vec![]
+}
+
 fn heading(text: &str, words: &str) -> bool {
     has(text, &format!(r"^#{{1,4}}\s*(\d+[.)]\s*)?.*({words})"))
 }
@@ -337,6 +359,19 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
         "liveops" => r.push(c("numbers come with dates", has(&text, r"\d{4}-\d{2}-\d{2}") || text.to_uppercase().contains("BLOCKED"), "")),
         "producer" => r.push(c("one named reason", heading(&text, "reason"), "")),
         "simulator" => r.extend(simulation_checks(out_path)),
+        "modeler" => {
+            r.push(c("models table with file, triangles, license", has(&text, r"^\|.*file.*\|.*triangles.*\|.*license.*\|"), ""));
+            let path_re = re(r"projects/[A-Za-z0-9_-]+/assets/models/[A-Za-z0-9_.-]+\.(?:fbx|obj|py)");
+            let files: Vec<String> = table_col(&text, "file").iter().filter_map(|cell| path_re.find(cell).map(|m| m.as_str().to_string())).collect();
+            let rows = table_col(&text, "file").len();
+            let missing: Vec<&String> = files.iter().filter(|f| !root.join(f).is_file()).collect();
+            let ok = rows > 0 && files.len() == rows && missing.is_empty();
+            r.push(c("every model file in the table exists", ok, &if rows == 0 { "no Models table".to_string() } else if files.len() < rows { format!("{} of {} rows name no file path under projects/<game>/assets/models/", rows - files.len(), rows) } else if missing.is_empty() { format!("{} file(s)", files.len()) } else { format!("missing: {}", missing.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")) }));
+            let lic = table_col(&text, "license");
+            let bad: Vec<&String> = lic.iter().filter(|l| !has(l, r"\bcc0\b|made (in blender )?for this game") || has(l, r"sketchfab|poly ?pizza|cc[- ]by|paid|purchased")).collect();
+            r.push(c("licenses are CC0 or made for this game", !lic.is_empty() && bad.is_empty(), &bad.iter().map(|s| s.as_str()).collect::<Vec<_>>().join("; ")));
+            r.push(c("import steps for Andrew", heading(&text, "import"), ""));
+        }
         "motion" => {
             r.push(c("action, trigger, effect table", has(&text, r"^\|.*action.*\|.*trigger.*\|"), ""));
             r.push(c("effects are cleaned up", has(&text, r"debris|:destroy|destroy\("), ""));
@@ -500,6 +535,12 @@ pub fn cli(args: &[String]) -> Option<i32> {
             Some(crate::studio_mcp::guard_hook(&s))
         }
         ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
+        ["blender-guard"] => {
+            let mut s = String::new();
+            let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
+            Some(crate::blender_mcp::guard_hook(&s))
+        }
+        ["mock-blender-mcp"] => Some(crate::blender_mcp::mock_server()),
         ["gate", ..] if crate::paths::studio_root().is_err() => {
             eprintln!("error: no studio folder found (open BrewixGames once to set it up)");
             Some(1)

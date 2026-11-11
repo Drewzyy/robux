@@ -35,6 +35,20 @@ if errorlevel 1 (
 )
 
 echo.
+where blender >nul 2>nul
+if errorlevel 1 (
+  echo  Optional: Blender ^(free^) lets the Modeler agent make 3D models.
+  choice /C YN /M "  Install Blender now"
+  if not errorlevel 2 winget install --id BlenderFoundation.Blender -e --accept-source-agreements --accept-package-agreements
+)
+where uvx >nul 2>nul
+if errorlevel 1 (
+  echo  Optional: uv ^(free^) runs the Blender connection.
+  choice /C YN /M "  Install uv now"
+  if not errorlevel 2 winget install --id astral-sh.uv -e --accept-source-agreements --accept-package-agreements
+)
+
+echo.
 echo  Done. Opening BrewixGames...
 call "%~dp0RUN_WINDOWS.bat"
 exit /b 0

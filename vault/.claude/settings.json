@@ -20,6 +20,15 @@
             "command": "brewix studio-guard"
           }
         ]
+      },
+      {
+        "matcher": "mcp__Blender__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "brewix blender-guard"
+          }
+        ]
       }
     ]
   },

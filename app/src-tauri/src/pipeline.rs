@@ -446,6 +446,7 @@ fn kind_for(agent: &str) -> &'static str {
         "pulse" => "pitch",
         "architect" => "design",
         "builder" | "scenic" | "frame" | "motion" | "crowd" | "tuner" => "build",
+        "modeler" => "asset",
         "librarian" => "asset",
         "splash" => "thumbnail",
         "playtest" => "playtest-report",

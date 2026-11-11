@@ -62,6 +62,10 @@ pub struct Settings {
     /// Optional custom path to Roblox's Studio MCP server.
     #[serde(default)]
     pub studio_mcp_path: String,
+    /// Blender connection: "off" (default), "blender" (MCP for Blender via
+    /// uvx), or "mock" (built-in stand-in).
+    #[serde(default = "default_studio_mcp")]
+    pub blender_mcp: String,
 }
 fn default_studio_mcp() -> String {
     "off".into()
@@ -83,6 +87,7 @@ impl Default for Settings {
             ollama_model: String::new(),
             studio_mcp: default_studio_mcp(),
             studio_mcp_path: String::new(),
+            blender_mcp: default_studio_mcp(),
         }
     }
 }
@@ -128,6 +133,12 @@ pub fn validate(s: &Settings) -> Result<(), String> {
     }
     if s.studio_mcp == "studio" && crate::studio_mcp::server_command(s).is_none() {
         return Err("Roblox's Studio MCP server is not installed. Install it from Roblox (see Settings), or give its path.".into());
+    }
+    if !["off", "blender", "mock"].contains(&s.blender_mcp.as_str()) {
+        return Err("Blender connection must be off, blender, or mock".into());
+    }
+    if s.blender_mcp == "blender" && crate::blender_mcp::uvx().is_none() {
+        return Err("uv is not installed. It is free: install it from astral.sh/uv (Windows setup can do it for you), then try again.".into());
     }
     if !s.discord_webhook_url.is_empty() {
         crate::notify::validate_url(&s.discord_webhook_url)?;

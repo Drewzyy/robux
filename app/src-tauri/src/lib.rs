@@ -3,6 +3,7 @@
 //! Nothing in this crate publishes, posts, or contacts anyone. Agent runs go
 //! through `bridge`, which refuses to start without an approved estimate.
 
+pub mod blender_mcp;
 pub mod bridge;
 pub mod budget;
 pub mod chat;

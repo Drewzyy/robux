@@ -41,14 +41,6 @@ pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<Stri
     }
 }
 
-/// Write the per-run MCP config. Returns its path and the tool names to allow.
-pub fn write_config(run_dir: &Path, cmd: &(String, Vec<String>)) -> Result<(PathBuf, Vec<String>), String> {
-    let cfg = serde_json::json!({ "mcpServers": { SERVER: { "type": "stdio", "command": cmd.0, "args": cmd.1 } } });
-    let p = run_dir.join("mcp.json");
-    std::fs::write(&p, serde_json::to_string_pretty(&cfg).unwrap()).map_err(|e| e.to_string())?;
-    Ok((p, TOOLS.iter().map(|t| format!("mcp__{SERVER}__{t}")).collect()))
-}
-
 /// Things Studio code must never do from an agent run.
 const DENY: &[(&str, &str)] = &[
     (r"(?i)\bpublish", "publishing"),

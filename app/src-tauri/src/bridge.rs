@@ -153,24 +153,34 @@ pub fn run_approved_with<F: FnMut(&str)>(
         .join("SKILL.md")
         .is_file();
     let mut tools = profile.allowed_tools.clone();
-    let mut args_extra: Vec<String> = vec![];
-    if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) && req.engine.as_deref() != Some("ollama") {
-        if let Some(cmd) = crate::studio_mcp::server_command(&crate::settings::load()) {
-            let (cfg, studio_tools) = crate::studio_mcp::write_config(&dir, &cmd)?;
-            tools.extend(studio_tools);
-            args_extra = vec![
-                "--mcp-config".into(),
-                cfg.display().to_string(),
-                " Roblox Studio is connected (mcp__Roblox_Studio__ tools). Use run_code to inspect or build in the open place and insert_model for models. Publishing, uploading, purchases, web requests, and DataStore writes are blocked; do not try them.".into(),
-            ];
+    let mut servers = serde_json::Map::new();
+    let mut notes = String::new();
+    if req.engine.as_deref() != Some("ollama") {
+        let st = crate::settings::load();
+        if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) {
+            if let Some(cmd) = crate::studio_mcp::server_command(&st) {
+                servers.insert(crate::studio_mcp::SERVER.into(), serde_json::json!({ "type": "stdio", "command": cmd.0, "args": cmd.1 }));
+                tools.extend(crate::studio_mcp::TOOLS.iter().map(|t| format!("mcp__{}__{t}", crate::studio_mcp::SERVER)));
+                notes.push_str(" Roblox Studio is connected (mcp__Roblox_Studio__ tools). Use run_code to inspect or build in the open place and insert_model for models. Publishing, uploading, purchases, web requests, and DataStore writes are blocked; do not try them.");
+            }
+        }
+        if crate::blender_mcp::AGENTS.contains(&req.agent.as_str()) {
+            if let Some(cmd) = crate::blender_mcp::server_command(&st) {
+                servers.insert(crate::blender_mcp::SERVER.into(), crate::blender_mcp::config_entry(&cmd));
+                tools.extend(crate::blender_mcp::tool_names());
+                notes.push_str(" Blender is connected (mcp__Blender__ tools). Model with execute_blender_code (bpy), check with look, and export FBX into the game's assets/models folder. Only Poly Haven (CC0) assets are allowed; paid generators, other asset sites, and network access are blocked.");
+            }
         }
     }
     let mut args = build_args(&req, &tools, &add_dirs, &dir, has_skill);
-    if let Some(note) = args_extra.pop() {
+    if !servers.is_empty() {
+        let cfg = dir.join("mcp.json");
+        fs::write(&cfg, serde_json::to_string_pretty(&serde_json::json!({ "mcpServers": servers })).unwrap()).map_err(|e| e.to_string())?;
         if let Some(i) = args.iter().position(|a| a == "--append-system-prompt") {
-            args[i + 1].push_str(&note);
+            args[i + 1].push_str(&notes);
         }
-        args.extend(args_extra);
+        args.push("--mcp-config".into());
+        args.push(cfg.display().to_string());
     }
     fs::write(
         dir.join("command.json"),

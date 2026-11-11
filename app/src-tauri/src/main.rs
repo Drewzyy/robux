@@ -343,6 +343,16 @@ fn studio_mcp_status() -> Value {
     json!({ "found": found.as_ref().map(|p| p.display().to_string()), "agents": studio_core::studio_mcp::AGENTS })
 }
 
+#[tauri::command]
+fn blender_mcp_status() -> Value {
+    json!({ "uvx": studio_core::blender_mcp::uvx().map(|p| p.display().to_string()), "package": studio_core::blender_mcp::PACKAGE })
+}
+
+#[tauri::command]
+fn blender_addon_get() -> Result<String, String> {
+    studio_core::blender_mcp::fetch_addon(&root()?).map(|p| p.display().to_string())
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -445,6 +455,8 @@ fn main() {
             chat_get,
             ollama_status,
             studio_mcp_status,
+            blender_mcp_status,
+            blender_addon_get,
             ollama_pull,
             chat_reset,
             chat_send,

@@ -516,6 +516,32 @@
       ],
       "output": "release.md",
       "role": "Release Manager"
+    },
+    "modeler": {
+      "description": "Makes low-poly 3D models in Blender or brings in free CC0 models from Poly Haven, and exports FBX for Studio.",
+      "model": "claude-sonnet-5-5",
+      "turns": 16,
+      "context_tokens": 12000,
+      "output_tokens_per_turn": 1500,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Bash(brewix search:*)",
+        "Bash(ls:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "10-Art-Environment",
+        "14-QA-Optimization",
+        "03-Game-Psychology",
+        "19-Project-Memory"
+      ],
+      "output": "models.md",
+      "role": "3D Modeler"
     }
   }
 }

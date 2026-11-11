@@ -20,7 +20,8 @@ verify: Studio MCP command and menu path are from secondary sources: UNVERIFIED 
 - Studio agent runs launched by this app use `--strict-mcp-config`, so they get no MCP servers unless the app passes one. Wiring Studio MCP into Playtest is Phase 4 work and needs Andrew's Studio.
 
 ## Blender MCP (free)
-`claude mcp add blender -- uvx blender-mcp`, then enable "Interface: Blender MCP" in Blender (reported). Pulls from Poly Haven, Sketchfab, Poly Pizza.
+BrewixGames runs it for you: Settings, Blender, choose Blender. The package was renamed from `blender-mcp` to `mcp-for-blender`; BrewixGames pins `mcp-for-blender==2.2.4` and runs it with `uvx` (free, from astral.sh/uv) with telemetry switched off. Get the Blender Add-on (Settings) saves the add-on file; install it in Blender with Edit, Preferences, Add-ons, Install from Disk, then click Connect.
+Allowed: scene info, Python in Blender (no network, no other programs, no deleting files), viewport look, Poly Haven search and import (CC0). Blocked: the paid 3D generators (Tripo, Hunyuan3D, Hyper3D, Meshy), Sketchfab and Poly Pizza (licenses vary), and the feedback upload tool. Only the Modeler agent and Ask Claude get Blender.
 
 ## Headless
 See [[13-Luau-Engineering/toolchain]]. Script Sync (built into Studio) syncs scripts only and is a fallback if Rojo breaks.

@@ -22,6 +22,7 @@ Targets: 60 fps desktop, 45 to 60 mobile, never under 30.
 ## World
 - About 500 parts max per model; visible scene under 10,000 parts desktop, 5,000 to 7,000 mobile.
 - Anchor every static part (unanchored parts enter the physics solver).
+- Per model (studio rule of thumb, UNVERIFIED against Roblox docs): small props under 2,000 triangles, hero props under 10,000. Roblox caps one imported mesh at about 20,000 triangles (UNVERIFIED). Reuse one mesh many times instead of many unique meshes.
 - MeshParts sharing a MeshId are instanced (cheap). Unions can be expensive: check triangles in Scene Analysis.
 - Particles: about 100/s mobile, 400 desktop in one reference; cap around 50 active emitters in another. Limit shadow-casting lights, beams, trails.
 - Load to playable under 10 s, 20 s at most.

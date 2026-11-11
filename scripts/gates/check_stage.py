@@ -25,6 +25,22 @@ def c(name, ok, detail=""):
     return {"name": name, "passed": bool(ok), "detail": detail}
 
 
+def table_col(text, col):
+    rows = [[c.strip() for c in l.strip().strip("|").split("|")] for l in text.splitlines() if l.strip().startswith("|")]
+    for i, r in enumerate(rows):
+        k = next((j for j, c in enumerate(r) if col.lower() in c.lower()), None)
+        if k is not None:
+            out = []
+            for x in rows[i + 1:]:
+                if len(x) <= k:
+                    break
+                if x[0].startswith("--") or x[0].startswith(":-"):
+                    continue
+                out.append(x[k])
+            return out
+    return []
+
+
 def heading(text, words):
     return has(text, r"^#{1,4}\s*(\d+[.)]\s*)?.*(" + words + r")")
 
@@ -202,6 +218,19 @@ def check(agent, text, project, out_path=None):
         r.extend(splash_checks(text, Path(out_path)))
     elif agent == "liveops":
         r.append(c("numbers come with dates", has(text, r"\d{4}-\d{2}-\d{2}") or "BLOCKED" in text.upper()))
+    elif agent == "modeler":
+        r.append(c("models table with file, triangles, license", has(text, r"^\|.*file.*\|.*triangles.*\|.*license.*\|")))
+        cells = table_col(text, "file")
+        files = [m.group(0) for m in (re.search(r"projects/[A-Za-z0-9_-]+/assets/models/[A-Za-z0-9_.-]+\.(?:fbx|obj|py)", x) for x in cells) if m]
+        missing = [f for f in files if not (ROOT / f).is_file()]
+        rows = len(cells)
+        ok = rows > 0 and len(files) == rows and not missing
+        detail = "no Models table" if rows == 0 else (f"{rows - len(files)} of {rows} rows name no file path under projects/<game>/assets/models/" if len(files) < rows else (f"{len(files)} file(s)" if not missing else "missing: " + ", ".join(missing)))
+        r.append(c("every model file in the table exists", ok, detail))
+        lic = table_col(text, "license")
+        bad = [l for l in lic if not has(l, r"\bcc0\b|made (in blender )?for this game") or has(l, r"sketchfab|poly ?pizza|cc[- ]by|paid|purchased")]
+        r.append(c("licenses are CC0 or made for this game", bool(lic) and not bad, "; ".join(bad)))
+        r.append(c("import steps for Andrew", heading(text, "import")))
     elif agent == "motion":
         r.append(c("action, trigger, effect table", has(text, r"^\|.*action.*\|.*trigger.*\|")))
         r.append(c("effects are cleaned up", has(text, r"debris|:destroy|destroy\(")))
