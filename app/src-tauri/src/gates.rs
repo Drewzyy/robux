@@ -470,6 +470,12 @@ pub fn cli(args: &[String]) -> Option<i32> {
             hook_log(&s);
             Some(0)
         }
+        ["studio-guard"] => {
+            let mut s = String::new();
+            let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
+            Some(crate::studio_mcp::guard_hook(&s))
+        }
+        ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
         ["gate", ..] if crate::paths::studio_root().is_err() => {
             eprintln!("error: no studio folder found (open BrewixGames once to set it up)");
             Some(1)

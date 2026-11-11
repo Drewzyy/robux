@@ -55,6 +55,16 @@ pub struct Settings {
     /// Local model name for the Ollama engine, e.g. "qwen3-coder".
     #[serde(default)]
     pub ollama_model: String,
+    /// Roblox Studio connection: "off" (default), "studio" (Roblox's Studio
+    /// MCP server on this computer), or "mock" (built-in stand-in).
+    #[serde(default = "default_studio_mcp")]
+    pub studio_mcp: String,
+    /// Optional custom path to Roblox's Studio MCP server.
+    #[serde(default)]
+    pub studio_mcp_path: String,
+}
+fn default_studio_mcp() -> String {
+    "off".into()
 }
 fn default_engine() -> String {
     "claude".into()
@@ -71,6 +81,8 @@ impl Default for Settings {
             notify: NotifyPrefs::default(),
             engine: default_engine(),
             ollama_model: String::new(),
+            studio_mcp: default_studio_mcp(),
+            studio_mcp_path: String::new(),
         }
     }
 }
@@ -110,6 +122,12 @@ pub fn validate(s: &Settings) -> Result<(), String> {
     }
     if s.engine == "ollama" && s.ollama_model.trim().is_empty() {
         return Err("Type the local model's name (for example qwen3-coder) before switching to Ollama.".into());
+    }
+    if !["off", "studio", "mock"].contains(&s.studio_mcp.as_str()) {
+        return Err("Studio connection must be off, studio, or mock".into());
+    }
+    if s.studio_mcp == "studio" && crate::studio_mcp::server_command(s).is_none() {
+        return Err("Roblox's Studio MCP server is not installed. Install it from Roblox (see Settings), or give its path.".into());
     }
     if !s.discord_webhook_url.is_empty() {
         crate::notify::validate_url(&s.discord_webhook_url)?;

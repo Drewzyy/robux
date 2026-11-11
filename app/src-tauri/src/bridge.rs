@@ -152,7 +152,26 @@ pub fn run_approved_with<F: FnMut(&str)>(
         .join(&req.agent)
         .join("SKILL.md")
         .is_file();
-    let args = build_args(&req, &profile.allowed_tools, &add_dirs, &dir, has_skill);
+    let mut tools = profile.allowed_tools.clone();
+    let mut args_extra: Vec<String> = vec![];
+    if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) && req.engine.as_deref() != Some("ollama") {
+        if let Some(cmd) = crate::studio_mcp::server_command(&crate::settings::load()) {
+            let (cfg, studio_tools) = crate::studio_mcp::write_config(&dir, &cmd)?;
+            tools.extend(studio_tools);
+            args_extra = vec![
+                "--mcp-config".into(),
+                cfg.display().to_string(),
+                " Roblox Studio is connected (mcp__Roblox_Studio__ tools). Use run_code to inspect or build in the open place and insert_model for models. Publishing, uploading, purchases, web requests, and DataStore writes are blocked; do not try them.".into(),
+            ];
+        }
+    }
+    let mut args = build_args(&req, &tools, &add_dirs, &dir, has_skill);
+    if let Some(note) = args_extra.pop() {
+        if let Some(i) = args.iter().position(|a| a == "--append-system-prompt") {
+            args[i + 1].push_str(&note);
+        }
+        args.extend(args_extra);
+    }
     fs::write(
         dir.join("command.json"),
         serde_json::to_string_pretty(&serde_json::json!({

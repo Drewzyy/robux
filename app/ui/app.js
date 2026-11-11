@@ -776,7 +776,7 @@ T.event.listen("ollama-done", (ev) => {
 
 async function viewSettings() {
   await refreshStatus();
-  const [s, info, o] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null)]);
+  const [s, info, o, sm] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({}))]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
@@ -814,6 +814,18 @@ async function viewSettings() {
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
           segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: $("ollama-model").value.trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
         localModelRows(s, o, save))),
+
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Roblox Studio"),
+      el("div", { class: "list" },
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Connect agents to Studio"),
+            el("div", { class: "hint" }, s.studio_mcp === "studio" ? "Builder, Scenic, Frame, Playtest and Ask Claude can work inside your open Studio place. Publishing, uploads, purchases, web requests and DataStore writes are blocked."
+              : s.studio_mcp === "mock" ? "Test mode: agents talk to a pretend Studio built into BrewixGames. Nothing touches Roblox."
+              : "Off. Agents only write files in your projects folder.")),
+          segmented([["off", "Off"], ["studio", "Roblox Studio"], ["mock", "Test"]], s.studio_mcp, async (v) => { await save({ studio_mcp: v, studio_mcp_path: ($("studio-mcp-path") || {}).value || s.studio_mcp_path }, v === "off" ? "Studio connection off." : v === "mock" ? "Using the test Studio." : "Connected to Roblox Studio."); viewSettings(); })),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio MCP server"),
+            el("div", { class: "hint" }, sm.found ? `Found: ${sm.found}` : "Not found. Install Roblox's Studio MCP server (github.com/Roblox/studio-rust-mcp-server), open Studio once, or paste its path. No Roblox login is stored.")),
+          el("div", { class: "inline" }, el("input", { type: "text", id: "studio-mcp-path", style: "width:240px", placeholder: "custom path (optional)", value: s.studio_mcp_path }),
+            el("button", { class: "btn secondary", onclick: () => save({ studio_mcp_path: $("studio-mcp-path").value.trim() }, "Path saved.") }, "Save"))))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
       el("div", { class: "list" },

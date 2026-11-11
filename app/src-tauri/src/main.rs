@@ -335,6 +335,14 @@ fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
     Ok(())
 }
 
+// ---------- Roblox Studio connection ----------
+
+#[tauri::command]
+fn studio_mcp_status() -> Value {
+    let found = studio_core::studio_mcp::default_path();
+    json!({ "found": found.as_ref().map(|p| p.display().to_string()), "agents": studio_core::studio_mcp::AGENTS })
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -436,6 +444,7 @@ fn main() {
             pipeline_approve_and_start,
             chat_get,
             ollama_status,
+            studio_mcp_status,
             ollama_pull,
             chat_reset,
             chat_send,
