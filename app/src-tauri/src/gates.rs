@@ -148,6 +148,36 @@ fn svg_words(svg: &str) -> usize {
         .sum()
 }
 
+/// Text lines that run past the 1920x1080 frame. Width is estimated from
+/// font size and character count (heavy display fonts run about 0.58 em
+/// per character), so it is a rule of thumb, not a renderer.
+fn svg_text_overflow(svg: &str) -> Vec<String> {
+    let tags = re(r"<[^>]+>");
+    let attr = |tag: &str, k: &str| -> Option<String> {
+        re(&format!(r#"\b{k}\s*=\s*"([^"]*)""#)).captures(tag).map(|m| m[1].to_string())
+    };
+    let mut bad = vec![];
+    for m in re(r"(?s)<text\b([^>]*)>(.*?)</text>").captures_iter(svg) {
+        let tag = &m[1];
+        let text = tags.replace_all(&m[2], "").trim().to_string();
+        if text.is_empty() {
+            continue;
+        }
+        let num = |k: &str, d: f64| attr(tag, k).and_then(|v| v.trim_end_matches("px").parse::<f64>().ok()).unwrap_or(d);
+        let (x, y, size) = (num("x", 0.0), num("y", 0.0), num("font-size", 16.0));
+        let w = text.chars().count() as f64 * size * 0.58;
+        let (left, right) = match attr(tag, "text-anchor").as_deref() {
+            Some("middle") => (x - w / 2.0, x + w / 2.0),
+            Some("end") => (x - w, x),
+            _ => (x, x + w),
+        };
+        if left < 0.0 || right > 1920.0 || y - size * 0.8 < 0.0 || y > 1080.0 {
+            bad.push(text);
+        }
+    }
+    bad
+}
+
 fn svg_colors(svg: &str) -> usize {
     let mut cols = std::collections::BTreeSet::new();
     for m in re(r#"(?:fill|stroke|stop-color)\s*[:=]\s*"?(#[0-9a-fA-F]{3,6})"#).captures_iter(svg) {
@@ -365,18 +395,19 @@ pub fn thumb_score(path: &Path) -> serde_json::Value {
         ("0 to 3 words", words <= 3),
         ("3 colours or fewer", (1..=3).contains(&cols)),
         ("text has a heavy outline", outlined),
+        ("text fits inside the frame", svg_text_overflow(&svg).is_empty()),
         ("uses a real game capture", capture),
     ];
     let pass = checks.iter().filter(|(_, ok)| *ok).count();
     let grade = match pass {
-        5 => "A+",
-        4 => "A",
-        3 => "B",
-        2 => "C",
+        6 => "A+",
+        5 => "A",
+        4 => "B",
+        3 => "C",
         _ => "D",
     };
     serde_json::json!({
-        "score": pass, "of": checks.len(), "grade": grade, "words": words, "colours": cols,
+        "score": pass, "of": checks.len(), "grade": grade, "words": words, "colours": cols, "overflow": svg_text_overflow(&svg),
         "checks": checks.iter().map(|(n, ok)| serde_json::json!({"name": n, "passed": ok})).collect::<Vec<_>>()
     })
 }
@@ -455,5 +486,18 @@ pub fn cli(args: &[String]) -> Option<i32> {
             Some(0)
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overflowing_text_is_caught() {
+        let off = r#"<svg width="1920" height="1080"><text x="1400" y="260" text-anchor="middle" font-size="210">9 MINUTES</text></svg>"#;
+        let fits = r#"<svg width="1920" height="1080"><text x="1430" y="960" text-anchor="middle" font-size="190">FUEL IT</text></svg>"#;
+        assert_eq!(svg_text_overflow(off), vec!["9 MINUTES".to_string()]);
+        assert!(svg_text_overflow(fits).is_empty());
     }
 }
