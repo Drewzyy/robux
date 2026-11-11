@@ -474,6 +474,44 @@ pub fn cli(args: &[String]) -> Option<i32> {
             eprintln!("error: no studio folder found (open BrewixGames once to set it up)");
             Some(1)
         }
+        ["search", rest @ ..] if !rest.is_empty() => {
+            let Ok(root) = crate::paths::studio_root() else {
+                eprintln!("error: no studio folder found (open BrewixGames once to set it up)");
+                return Some(1);
+            };
+            let mut words = vec![];
+            let (mut agent, mut limit) = (None, 5usize);
+            let mut i = 0;
+            while i < rest.len() {
+                match rest[i] {
+                    "--agent" => { agent = rest.get(i + 1).copied(); i += 1; }
+                    "--limit" => { limit = rest.get(i + 1).and_then(|x| x.parse().ok()).unwrap_or(5).min(20); i += 1; }
+                    w => words.push(w),
+                }
+                i += 1;
+            }
+            let sections: Vec<String> = agent
+                .and_then(|a| {
+                    let t = fs::read_to_string(root.join("studio/agents.json")).ok()?;
+                    let v: serde_json::Value = serde_json::from_str(&t).ok()?;
+                    let secs = v.get(a)?.get("allowed_sections")?.as_array()?.iter().filter_map(|x| x.as_str().map(String::from)).collect::<Vec<_>>();
+                    (!secs.is_empty()).then_some(secs)
+                })
+                .unwrap_or_default();
+            match crate::search::search(&root, &words.join(" "), &sections, limit) {
+                Ok(h) if h.is_empty() => println!("No vault notes match. Try fewer or different words."),
+                Ok(h) => {
+                    for x in h {
+                        println!("{}  ({})\n  {}\n", x.path, x.title, x.snippet);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return Some(1);
+                }
+            }
+            Some(0)
+        }
         ["gate", "build", project] => {
             let root = crate::paths::studio_root().ok()?;
             println!("{}", serde_json::to_string_pretty(&build_gate(&root, project)).unwrap());

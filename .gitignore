@@ -12,3 +12,4 @@ vault/.obsidian/workspace*.json
 __pycache__/
 app/src-tauri/studio-template.tar.gz
 app/src-tauri/tools/
+.cache/

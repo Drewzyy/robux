@@ -90,6 +90,11 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(0.5)
     else:
         check("request changes", True, "item already decided; skipped")
+    d.execute_script("location.hash='#vault'"); time.sleep(2)
+    d.find_element(By.ID, "vault-q").send_keys("datastore retry"); time.sleep(1.5)
+    rows = d.find_elements(By.CSS_SELECTOR, "#vault-results .row")
+    check("vault search finds notes with highlights", len(rows) >= 2 and "DataStore" in rows[0].text and d.find_elements(By.CSS_SELECTOR, "#vault-results mark"), rows[0].text.replace("\n", " ")[:90] if rows else "none")
+    d.save_screenshot(str(SHOTS / "ui-vault-search.png"))
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Ollama detected with memory and version", "Ollama is ready" in view() and "GB memory" in view() and "v0.14.3" in view())
     Select(d.find_element(By.ID, "ollama-model")).select_by_value("qwen3:4b"); time.sleep(0.5)

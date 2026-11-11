@@ -24,7 +24,8 @@
         "Skill",
         "Write",
         "WebSearch",
-        "WebFetch"
+        "WebFetch",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -44,7 +45,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -63,7 +65,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -93,7 +96,8 @@
         "Bash(stylua:*)",
         "Bash(mkdir:*)",
         "Bash(ls:*)",
-        "Bash(brewix gate build:*)"
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -115,7 +119,8 @@
         "Glob",
         "Skill",
         "Write",
-        "Edit"
+        "Edit",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -136,7 +141,8 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix gate stage:*)"
+        "Bash(brewix gate stage:*)",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -157,7 +163,8 @@
         "Glob",
         "Skill",
         "Write",
-        "Edit"
+        "Edit",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -182,7 +189,8 @@
         "Bash(rojo:*)",
         "Bash(lune:*)",
         "Bash(ls:*)",
-        "Bash(brewix gate build:*)"
+        "Bash(brewix gate build:*)",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -205,7 +213,8 @@
         "Skill",
         "Write",
         "WebSearch",
-        "WebFetch"
+        "WebFetch",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -227,7 +236,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -247,7 +257,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -266,7 +277,8 @@
         "Read",
         "Glob",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",
@@ -291,7 +303,8 @@
         "Bash(brewix gate build:*)",
         "Bash(brewix gate stage:*)",
         "Bash(stylua:*)",
-        "Bash(ls:*)"
+        "Bash(ls:*)",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [],
       "output": null
@@ -308,7 +321,8 @@
         "Glob",
         "Grep",
         "Skill",
-        "Write"
+        "Write",
+        "Bash(brewix search:*)"
       ],
       "allowed_sections": [
         "00-router",

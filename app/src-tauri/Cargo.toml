@@ -28,6 +28,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 ureq = { version = "2.12", features = ["json"] }
 base64 = "0.22"
 regex = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
 
 [profile.release]
 strip = true

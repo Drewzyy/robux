@@ -226,3 +226,10 @@ details[open] summary::before { transform: rotate(90deg); }
 /* thumbnails */
 .tgrid.big { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
 .tcell.icon img { width: 50%; margin: 0 auto; }
+
+/* vault search */
+input.search { width: 100%; margin: 0 0 18px; padding: 11px 14px 11px 38px; border-radius: 10px;
+  background: #1C1C1E url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 3.5 3.5'/%3E%3C/svg%3E") no-repeat 13px center; }
+#vault-results { margin-bottom: 18px; }
+.row-sub mark { background: rgba(255, 59, 48, 0.22); color: #fff; border-radius: 3px; padding: 0 2px; }
+input.search:focus { outline: none; border-color: #FF3B30; box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.25); }

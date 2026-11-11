@@ -153,6 +153,11 @@ fn vault_tree() -> Result<Vec<studio::VaultSection>, String> {
 }
 
 #[tauri::command]
+fn vault_search(q: String) -> Result<Vec<studio_core::search::Hit>, String> {
+    studio_core::search::search(&root()?, &q, &[], 25)
+}
+
+#[tauri::command]
 fn vault_note(path: String) -> Result<String, String> {
     studio::vault_note(&root()?, &path)
 }
@@ -414,6 +419,7 @@ fn main() {
             agents_status,
             agents_list,
             vault_tree,
+            vault_search,
             vault_note,
             runs_overview,
             run_detail,

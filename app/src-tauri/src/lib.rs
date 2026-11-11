@@ -18,6 +18,7 @@ pub mod paths;
 pub mod pipeline;
 pub mod queue;
 pub mod runs;
+pub mod search;
 
 pub fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)

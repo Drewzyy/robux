@@ -503,9 +503,30 @@ async function viewVault() {
   const sec = tree.find((s) => s.name === state.vaultSection) || tree[0];
   const total = tree.reduce((n, s) => n + s.notes.length, 0);
   const verified = tree.reduce((n, s) => n + s.notes.filter((x) => x.status === "verified").length, 0);
+  const results = el("div", { id: "vault-results" });
+  const q = el("input", { type: "search", id: "vault-q", class: "search", placeholder: "Search every note", value: state.vaultQ || "" });
+  let timer;
+  const run = async () => {
+    state.vaultQ = q.value;
+    const text = q.value.trim();
+    $("vault-browse").style.display = text ? "none" : "";
+    if (!text) { results.replaceChildren(); return; }
+    const hits = await invoke("vault_search", { q: text }).catch((e) => { toast(String(e), true); return []; });
+    const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+    results.replaceChildren(hits.length
+      ? el("div", { class: "list" }, hits.map((h) => el("div", { class: "row tap", onclick: () => openNote(h.path) },
+          el("div", { class: "grow" },
+            el("div", { class: "row-title" }, h.title || h.path),
+            el("div", { class: "row-sub", html: esc(h.snippet).replace(/\u0001/g, "<mark>").replace(/\u0002/g, "</mark>") })),
+          el("span", { class: "pill" }, h.section),
+          el("span", { class: "chev", html: ICONS.chev }))))
+      : el("div", { class: "empty", style: "padding:40px 20px" }, el("div", { class: "empty-title" }, "No notes match"), el("div", {}, "Try fewer or different words.")));
+  };
+  q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 160); });
   show(page(
     head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle())),
-    el("div", { class: "vault" },
+    q, results,
+    el("div", { class: "vault", id: "vault-browse" },
       el("div", { class: "vsecs" }, tree.map((s) => el("button", { class: s.name === sec.name ? "on" : "", onclick: () => { state.vaultSection = s.name; viewVault(); } }, s.name))),
       el("div", { class: "list" }, sec.notes.map((n) =>
         el("div", { class: "row tap", onclick: () => openNote(n.path) },
@@ -516,6 +537,7 @@ async function viewVault() {
       ))
     )
   ));
+  if (q.value.trim()) run();
 }
 
 // =====================================================================
