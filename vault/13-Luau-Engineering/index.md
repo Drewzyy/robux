@@ -25,3 +25,9 @@ Load only the note your task needs. Do not read every note in this section.
 | [[13-Luau-Engineering/headless-test-gate]] | The Builder's build gate: rojo build, Selene, StyLua check, Lune unit tests. What passing means. | verified |
 | [[13-Luau-Engineering/networking-hardening]] | Transport table, layered validation, yield race, token bucket, limits, Server Authority. | draft |
 | [[13-Luau-Engineering/smallest-complete-change]] | Least new code that fully works, reuse first, never cut safety, name what was skipped. Adapted from ponytail. | verified |
+| [[13-Luau-Engineering/cooldowns-and-rate-limits]] | Server-side cooldowns and per-player rate limits in Luau: timestamp cooldowns, token buckets, per-ability tables, cleanup on leave, and numbers for common actions. | draft |
+| [[13-Luau-Engineering/memory-leak-checklist]] | Find and prevent Roblox memory leaks in Luau: connections, tables keyed by Player, instances kept alive, threads, with a Maid helper and Developer Console steps to confirm growth. | draft |
+| [[13-Luau-Engineering/object-pooling]] | Reuse instances instead of Clone/Destroy: a typed pool for projectiles, hit effects, damage numbers and enemies, with prewarm, reset rules, max size and leak guards. | draft |
+| [[13-Luau-Engineering/remote-validation-cookbook]] | Copy-paste Luau validators for RemoteEvent arguments: type checks, number ranges, NaN, strings, enums, instances, distance and ownership checks, and a typed handler wrapper. | draft |
+| [[13-Luau-Engineering/state-machines]] | A small typed finite state machine in Luau for NPCs, rounds, abilities and UI: transition tables, enter/exit hooks, timeouts, and rules that prevent stuck or illegal states. | draft |
+| [[13-Luau-Engineering/tween-and-animation-cleanup]] | Clean tween and animation lifecycle in Luau: cancel old tweens, use Completed correctly, stop AnimationTracks, disconnect on respawn, and avoid tween fights and leaks. | draft |

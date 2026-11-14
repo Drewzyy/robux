@@ -16,3 +16,8 @@ Load only the note your task needs. Do not read every note in this section.
 |---|---|---|
 | [[04-Onboarding/first-60-seconds-checklist]] | FTUE checklist: 0-5s orient, 5-10s core verb, 10-30s first reward, 30-60s open loop. Teach by doing. | draft |
 | [[04-Onboarding/onboarding-flow]] | Spawn facing the objective, one action, instant reward, next goal, social later. | draft |
+| [[04-Onboarding/first-session-rewards]] | What to give a new player in session 1 and when: an early win in 30 s, a guaranteed upgrade by minute 3, a visible goal for next time, and no gating behind purchase. Zero-spend rewards only. | draft |
+| [[04-Onboarding/new-player-protection]] | How to shield new players from losing, griefing and overwhelm in their first sessions: safe zones, scaled difficulty, spawn protection, anti-grief, soft failure. Roblox-specific build tips. | draft |
+| [[04-Onboarding/onboarding-mistakes]] | Checklist of common onboarding failures on Roblox (text walls, early shop, slow first reward, locked camera, hard first level, forced signups) with a fix for each. Audit before launch. | draft |
+| [[04-Onboarding/returning-player-welcome-back]] | How to greet lapsed Roblox players: detect absence length, show what changed, give a catch-up boost, restore their goal, and avoid guilt or giant menus. Tiers by 3, 14 and 30+ days. | draft |
+| [[04-Onboarding/tutorial-patterns]] | Tutorial patterns for Roblox games that teach by doing: one verb at a time, contextual prompts, no text walls, fade-out hints, and skip paths. Use when designing the first 2 minutes. | draft |

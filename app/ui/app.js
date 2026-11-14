@@ -88,12 +88,18 @@ function page(...kids) {
 function head(title, subtitle, right, clamp = false) {
   return el("div", { class: "page-head" }, el("div", {}, el("h1", { class: clamp ? "clamp" : null, title: clamp ? title : null }, title), subtitle ? el("div", { class: "subtitle" }, subtitle) : null), right || null);
 }
+// Each navigation gets a number. A page that finishes loading after you have
+// moved on is dropped instead of drawing over the page you are on.
+let navSeq = 0, navTimer = null;
+function showIf(nav, node) { if (nav === navSeq) show(node); }
 function show(node) {
+  clearTimeout(navTimer);
   const cur = (location.hash.replace(/^#/, "") || "home").split("/")[0];
   const g = GROUPS[GROUP_OF[cur === "run" ? "runs" : cur]];
   if (g && node.classList && node.classList.contains("page")) {
     node.prepend(el("div", { class: "tabs-top" }, g.map(([r, label]) => el("a", { href: `#${r}`, class: r === cur || (cur === "run" && r === "runs") ? "active" : null }, label))));
   }
+  $("view").classList.remove("loading");
   $("view").replaceChildren(node);
   $("view").scrollTop = 0;
 }
@@ -147,7 +153,7 @@ async function refreshClaude() {
   $("claude-dot").className = "dot " + (c.logged_in && c.uses_subscription ? "ok" : "bad");
   $("claude-line").textContent = !c.installed ? "Claude Code not found" : c.logged_in ? (c.uses_subscription ? "Claude connected" : "Claude: not a subscription login") : "Claude not signed in";
 }
-setInterval(refreshStatus, 5000);
+setInterval(() => { if (state.live || (state.spend && state.spend.running.length) || Date.now() - (state.lastStatus || 0) > 20000) { state.lastStatus = Date.now(); refreshStatus(); } }, 5000);
 
 function runningSubtitle() {
   const sp = state.spend;
@@ -160,7 +166,7 @@ function runningSubtitle() {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -192,12 +198,12 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 // Six places in the sidebar; grouped pages get tabs along the top.
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
-  make: [["plans", "Game Plan"], ["references", "References"], ["runs", "Build"], ["agents", "Team"], ["chat", "Ask Claude"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
+  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["runs", "Build"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
   check: [["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -205,6 +211,9 @@ function route() {
   const navName = GROUP_OF[name === "run" ? "runs" : name] || (routes[name] ? name : "home");
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === navName));
   closeSheet();
+  navSeq += 1;
+  clearTimeout(navTimer);
+  navTimer = setTimeout(() => { const v = $("view"); if (v) v.classList.add("loading"); }, 250);
   Promise.resolve(fn(decodeURIComponent(rest.join("/")))).catch((e) => show(page(head("Something went wrong"), el("div", { class: "card" }, String(e)))));
 }
 window.addEventListener("hashchange", route);
@@ -214,6 +223,7 @@ window.addEventListener("hashchange", route);
 // =====================================================================
 const TREND_SCAN = "Trend scan: study the top 100 Roblox experiences right now and what is trending in pop culture in the last 30 days, then pitch 5 original game ideas. Write pitch.md and pitches.json.";
 async function viewHome() {
+  const nav = navSeq;
   await freshStatus();
   const p = await invoke("pitches_latest").catch(() => null);
   const box = el("div", { id: "pitch-cost" });
@@ -246,18 +256,20 @@ async function viewHome() {
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
-  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
+  showIf(nav, page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
 }
 
 // =====================================================================
 // Dashboard: one look at everything, each widget opens its page
 // =====================================================================
 async function viewDashboard() {
+  const nav = navSeq;
   await freshStatus();
-  const [p, money, plans, rev, queue, tune] = await Promise.all([
+  const [p, money, plans, rev, queue] = await Promise.all([
     invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
-    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []), invoke("tuneup_get", { force: false }).catch(() => null),
+    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
   ]);
+  invoke("tuneup_get", { force: false }).then((t) => { const n = $("tune-widget"); if (n && t) n.textContent = t.issues ? `${t.issues} to look at` : "All clean"; }).catch(() => {});
   const w = (title, href, ...body) => el("a", { class: "card widget", href }, el("div", { class: "k" }, title), ...body);
   const plan = plans[0];
   const last = rev && rev.reviews.find((r) => r.report);
@@ -275,7 +287,7 @@ async function viewDashboard() {
   const hero = el("div", { class: "card hero" }, el("div", {}, el("div", { class: "k" }, "Next step"), el("div", { class: "hero-title" }, next[0]), el("div", { class: "note" }, next[1])),
     el("a", { class: "btn primary cta", id: "next-step", href: next[3] }, next[2], el("span", { class: "cta-arrow" }, "→")));
   const earned = money && money.total_robux > 0;
-  show(page(head("Dashboard", runningSubtitle()),
+  showIf(nav, page(head("Dashboard", runningSubtitle()),
     hero,
     money ? (earned ? moneyStrip(money) : el("a", { class: "fold-line", id: "money-strip", href: "#money" }, "Made this month: $0.00 · add earnings in Money")) : null,
     el("div", { class: "widget-grid" },
@@ -286,19 +298,73 @@ async function viewDashboard() {
       w("Building now", "#runs", el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "Nothing running"), el("div", { class: "note" }, "Open to see runs and start one")),
       w("Waiting for you", "#queue", el("div", { class: "v" }, String(waiting)), el("div", { class: "note" }, waiting ? "Items to approve or send back" : "Nothing to review")),
       w("Double-check", "#review", el("div", { class: "v small" }, verdict || "Not checked yet"), el("div", { class: "note" }, last ? last.title : "Have another AI check the code")),
-      w("Tune-up", "#tuneup", el("div", { class: "v small" }, tune ? (tune.issues ? `${tune.issues} to look at` : "All clean") : "Not run yet"), el("div", { class: "note" }, tune ? `Bugs, lag and map check · ${String(tune.at).slice(0, 10)}` : "Free bug, lag and map check")))));
+      w("Tune-up", "#tuneup", el("div", { class: "v small", id: "tune-widget" }, "Checking..."), el("div", { class: "note" }, "Free bug, lag and map check")))));
+}
+
+// =====================================================================
+// Game Brief: your own answers and images for every part of an idea
+// =====================================================================
+async function viewBrief(arg) {
+  const nav = navSeq;
+  const briefs = await invoke("brief_list");
+  const slug = arg || state.briefSlug || (briefs[0] && briefs[0].slug);
+  const name = el("input", { id: "brief-name", placeholder: "Name your game idea" });
+  const start = el("button", { class: "btn primary", id: "brief-new", onclick: async () => { try { state.briefSlug = await invoke("brief_create", { title: name.value }); viewBrief(state.briefSlug); } catch (e) { toast(String(e), true); } } }, "Start a Brief");
+  const newRow = el("div", { class: "inline" }, name, start);
+  if (!slug) {
+    showIf(nav, page(head("Game Brief", "Write down everything you want in the game, with images, before the team plans it"),
+      el("div", { class: "card" }, el("p", { class: "note", style: "margin-top:0" }, "A checklist that covers every part of a game: the loop, graphics, animation, sound, systems. Fill in what you know and add reference images. The more you give, the closer the plan."), newRow)));
+    return;
+  }
+  state.briefSlug = slug;
+  const b = await invoke("brief_get", { slug });
+  const fill = el("div", { class: "plan-fill", style: `width:${Math.round((100 * b.done) / b.total)}%` });
+  const count = el("span", {}, `${b.done} of ${b.total} covered`);
+  const bump = async () => { const n = await invoke("brief_get", { slug }); fill.style.width = `${Math.round((100 * n.done) / n.total)}%`; count.textContent = `${n.done} of ${n.total} covered`; return n; };
+  const readFile = (f) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(f); });
+  const item = (it) => {
+    const tick = el("span", { class: "brief-tick" + (it.text.trim() || it.images.length ? " on" : "") }, "✓");
+    const ta = el("textarea", { class: "brief-text", rows: 2, placeholder: it.hint }, it.text);
+    ta.addEventListener("change", async () => { try { await invoke("brief_set", { slug, id: it.id, text: ta.value }); const n = await bump(); const me = n.items.find((x) => x.id === it.id); tick.classList.toggle("on", !!(me.text.trim() || me.images.length)); } catch (e) { toast(String(e), true); } });
+    const thumbs = el("div", { class: "brief-thumbs" });
+    const addThumb = (file) => { const img = el("img", { class: "brief-thumb", alt: file }); invoke("refs_image", { project: slug, file }).then((src) => (img.src = src)).catch(() => img.remove()); thumbs.append(img); };
+    it.images.forEach(addThumb);
+    const upload = async (f) => { try { await invoke("brief_add_image", { slug, id: it.id, name: f.name || "pasted.png", data: await readFile(f) }); const n = await bump(); const me = n.items.find((x) => x.id === it.id); thumbs.replaceChildren(); me.images.forEach(addThumb); tick.classList.add("on"); } catch (e) { toast(String(e), true); } };
+    const pick = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp", multiple: true, class: "hidden" });
+    pick.addEventListener("change", () => [...pick.files].forEach(upload));
+    ta.addEventListener("paste", (e) => { const f = [...(e.clipboardData || {}).items || []].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); upload(f.getAsFile()); } });
+    return el("div", { class: "plan-item brief-item", "data-id": it.id }, el("div", { class: "inline", style: "gap:10px" }, tick, el("strong", {}, it.title), el("button", { class: "link", style: "margin-left:auto", onclick: () => pick.click() }, "Add image"), pick), ta, thumbs);
+  };
+  const groups = [...new Set(b.items.map((i) => i.group))];
+  const plan = el("button", { class: "btn primary", id: "brief-plan", onclick: async () => {
+    try { const prompt = await invoke("brief_prompt", { slug }); state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt }; state.runsTab = "new"; location.hash = "#runs"; } catch (e) { toast(String(e), true); } } }, "Plan This Game");
+  const pickBrief = briefs.length > 1 ? el("select", { onchange: (e) => viewBrief(e.target.value) }, briefs.map((x) => el("option", { value: x.slug, selected: x.slug === slug }, `${x.title} · ${x.done}/${x.total}`))) : null;
+  showIf(nav, page(head(b.title, count, pickBrief),
+    el("div", { class: "card" }, el("div", { class: "plan-bar" }, fill),
+      el("p", { class: "note" }, "Answer what you can, in your own words. Paste or add images on any item (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
+      el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, plan, el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
+    ...groups.map((g) => el("div", { class: "card plan-sec" }, el("h2", {}, g), b.items.filter((i) => i.group === g).map(item)))));
+}
+
+// A Claude model picker: cheapest first, with a plain hint of size.
+const MODEL_NAMES = { "claude-haiku-5-5": "Haiku 5.5 · fastest, lightest", "claude-sonnet-5-5": "Sonnet 5.5 · balanced", "claude-opus-5-5": "Opus 5.5 · strongest, uses more", "claude-fable-5-1": "Fable 5.1 · most capable, uses the most" };
+function modelSelect(id, models, current, defLabel, onchange) {
+  const sel = el("select", { id, class: "model-select", title: "Which Claude model to use" }, el("option", { value: "" }, defLabel), models.map((m) => el("option", { value: m.id, selected: m.id === current }, MODEL_NAMES[m.id] || m.id)));
+  sel.addEventListener("change", () => onchange(sel.value));
+  return sel;
 }
 
 // =====================================================================
 // Tune-Up: free automatic bug, lag and map checks, plus temp-file cleanup
 // =====================================================================
 async function viewTuneup(arg) {
-  show(page(head("Tune-Up", "Checking your games..."), el("div", { class: "card" }, "Scanning code and maps. This is free and uses no AI.")));
+  const nav = navSeq;
+  showIf(nav, page(head("Tune-Up", "Checking your games..."), el("div", { class: "card" }, "Scanning code and maps. This is free and uses no AI.")));
   let rep;
-  try { rep = await invoke("tuneup_get", { force: arg === "now" }); } catch (e) { show(page(head("Tune-Up"), el("div", { class: "card" }, String(e)))); return; }
+  try { rep = await invoke("tuneup_get", { force: arg === "now" }); } catch (e) { showIf(nav, page(head("Tune-Up"), el("div", { class: "card" }, String(e)))); return; }
   if (arg === "now") { history.replaceState(null, "", "#tuneup"); }
   const s = await invoke("settings_get");
-  const every = el("select", { id: "tuneup-days", onchange: async () => { await invoke("settings_save", { value: { ...s, tuneup_days: parseInt(every.value, 10) } }).catch((e) => toast(String(e), true)); toast("Saved."); } },
+  const every = el("select", { id: "tuneup-days", onchange: async () => { await invoke("settings_patch", { patch: { tuneup_days: parseInt(every.value, 10) } }).catch((e) => toast(String(e), true)); toast("Saved."); } },
     [[0, "Never"], [1, "Every day"], [3, "Every 3 days"], [7, "Every week"], [30, "Every month"]].map(([v, l]) => el("option", { value: v, selected: v === s.tuneup_days }, l)));
   const runNow = el("button", { class: "btn primary", id: "tuneup-run", onclick: () => viewTuneup("now") }, "Run Tune-Up Now");
   const sev = { blocker: "pill red", major: "pill red-soft", minor: "pill" };
@@ -315,7 +381,7 @@ async function viewTuneup(arg) {
         : el("p", { style: "margin:10px 0 0" }, "Nothing found. Code and map look clean."));
   };
   const entries = rep && rep.projects ? Object.entries(rep.projects) : [];
-  show(page(head("Tune-Up", rep ? `Last run ${String(rep.at).slice(0, 16).replace("T", " ")} · ${rep.issues} thing${rep.issues === 1 ? "" : "s"} to look at` : "Not run yet", runNow),
+  showIf(nav, page(head("Tune-Up", rep ? `Last run ${String(rep.at).slice(0, 16).replace("T", " ")} · ${rep.issues} thing${rep.issues === 1 ? "" : "s"} to look at` : "Not run yet", runNow),
     el("div", { class: "card" }, el("p", { class: "note", style: "margin-top:0" }, "Free and automatic, no AI: looks for code that causes bugs or lag, reviews each map for heavy parts, lights and effects, and clears old temp files (raw run logs over 30 days, old update installers). Your games, plans and reports are never deleted."),
       el("div", { class: "inline" }, el("label", { for: "tuneup-days" }, "Run automatically"), every),
       rep && rep.cleaned_files ? el("div", { class: "note", style: "margin-top:8px" }, `Cleared ${rep.cleaned_files} old temp file(s), ${rep.cleaned_mb} MB.`) : null),
@@ -327,6 +393,7 @@ async function viewTuneup(arg) {
 // Second Opinion: a different AI (not Claude) reviews a game or this app
 // =====================================================================
 async function viewReview() {
+  const nav = navSeq;
   const d = await invoke("reviews_list");
   const target = el("select", { id: "review-target" }, d.projects.map((p) => el("option", { value: p }, `Game: ${p}`)), el("option", { value: "app" }, "The BrewixGames app itself"));
   const status = el("div", { class: "hint", id: "review-status" }, "");
@@ -350,7 +417,7 @@ async function viewReview() {
     })() : null;
     return el("details", { class: "card", open: r === d.reviews[0] }, el("summary", { class: "row-title" }, `${r.title} · ${r.engine} · ${r.files} files · ${String(r.at || "").slice(0, 16).replace("T", " ")}`), body, paste);
   };
-  show(page(head("Second Opinion", "A different AI checks the code, so Claude is not grading its own work"),
+  showIf(nav, page(head("Second Opinion", "A different AI checks the code, so Claude is not grading its own work"),
     el("div", { class: "card" }, el("div", { class: "field" }, el("label", { for: "review-target" }, "What to check"), target),
       el("p", { class: "note" }, "On This Computer is free and private (a local model in Ollama). ChatGPT uses your free ChatGPT account in the browser. Codex uses OpenAI's free Codex CLI if you installed it and signed in. No API keys."),
       engines, status),
@@ -366,9 +433,10 @@ T.event.listen("review-done", (ev) => {
 // Game Plan: Planner's checklist with mockups. Build only at 100%.
 // =====================================================================
 async function viewPlans(id) {
+  const nav = navSeq;
   const plans = await invoke("plans_list");
   if (!plans.length) {
-    show(page(head("Game Plan", "Every part of the game, mocked up, for you to check off before anything is built"),
+    showIf(nav, page(head("Game Plan", "Every part of the game, mocked up, for you to check off before anything is built"),
       el("div", { class: "card empty", style: "padding:56px 24px" }, el("div", { class: "empty-title" }, "No plans yet"),
         el("div", {}, "On Home, press Plan This Game on an idea. Planner writes the full plan with mockups of the map, HUD, shop and character effects. Nothing is built until you check every item."))));
     return;
@@ -392,10 +460,11 @@ async function viewPlans(id) {
     return el("div", { class: "plan-item" }, el("label", { class: "inline", style: "align-items:flex-start;gap:10px" }, cb, el("span", {}, it.text)), it.mock ? mockImg(it.mock) : null, note);
   };
   const others = plans.length > 1 ? el("select", { onchange: (e) => { location.hash = `#plans/${e.target.value}`; } }, plans.map((x) => el("option", { value: x.run_id, selected: x.run_id === p.run_id }, `${x.title} · ${String(x.at || "").slice(0, 10)}`))) : null;
-  show(page(head(p.title, `${p.one_liner} · ${p.done} of ${p.total} checked`, others),
+  showIf(nav, page(head(p.title, `${p.one_liner} · ${p.done} of ${p.total} checked`, others),
     el("div", { class: "card" }, bar, el("p", { class: "note" }, "Check each item you are happy with. Write a change request on anything you are not, then ask Planner for a new version from Runs. Building only unlocks at 100%."),
       el("div", { class: "inline" }, build, el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Revise the plan in runs/${p.run_id}/ (plan.json, plan.md, mockups/). Apply Andrew's change requests in runs/${p.run_id}/approvals.json under "notes". Keep everything else.` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Ask Planner for Changes"), el("button", { class: "btn secondary", id: "plan-figma", onclick: async () => { try { await invoke("plan_to_figma", { runId: p.run_id }); toast("Drag the SVG files from the folder into your Figma file. Each screen arrives with named layers."); } catch (e) { toast(String(e), true); } } }, "Edit in Figma")), box),
-    ...p.sections.map((s) => el("div", { class: "card plan-sec" }, el("h2", {}, s.title, el("span", { class: "note" }, `  ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`)), s.items.map(item)))));
+    el("div", { class: "chips", style: "margin:0 0 14px" }, p.sections.map((s) => el("a", { class: "chip", onclick: () => { const n = document.getElementById(`sec-${s.id}`); if (n) n.scrollIntoView({ behavior: "smooth" }); } }, `${s.title} ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`))),
+    ...p.sections.map((s) => el("div", { class: "card plan-sec", id: `sec-${s.id}` }, el("h2", {}, s.title, el("span", { class: "note" }, `  ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`)), s.items.map(item)))));
 }
 
 // =====================================================================
@@ -411,6 +480,7 @@ function moneyStrip(m) {
     el("div", {}, el("div", { class: "k" }, "Best game"), el("div", { class: "v small" }, m.per_game[0] ? m.per_game[0][0] : "None yet"), el("div", { class: "note" }, m.per_game[0] ? dollars(m.per_game[0][2]) : "")));
 }
 async function viewMoney() {
+  const nav = navSeq;
   await freshStatus();
   const m = await invoke("money_summary");
   const today = new Date().toISOString().slice(0, 10);
@@ -424,7 +494,7 @@ async function viewMoney() {
   const max = Math.max(1, ...m.per_month.map((x) => x[1]));
   const pct = Math.min(100, (m.total_robux / m.devex_minimum) * 100);
   const delEntry = async (i) => { await invoke("money_remove", { index: i }); viewMoney(); };
-  show(page(head("Money", el("span", {}, `Robux converted at $${m.rate} per Robux (Roblox's standard DevEx rate) · `, runningSubtitle())),
+  showIf(nav, page(head("Money", el("span", {}, `Robux converted at $${m.rate} per Robux (Roblox's standard DevEx rate) · `, runningSubtitle())),
     moneyStrip(m),
     el("div", { class: "card" }, el("div", { class: "row-title" }, "Cash-out progress"),
       el("div", { class: "hint" }, `Roblox pays out from ${m.devex_minimum.toLocaleString()} earned Robux (${dollars(m.devex_minimum * m.rate)}). You have ${robux(m.total_robux)} recorded.`),
@@ -450,6 +520,7 @@ async function viewMoney() {
 const REF_CATS = ["Character", "Model", "Environment", "UI", "Animation", "Effects", "Sound and music", "Other"];
 state.refCat = "Character";
 async function viewReferences() {
+  const nav = navSeq;
   await freshStatus();
   const pick = await projectPicker(viewReferences);
   const project = state.project;
@@ -497,7 +568,7 @@ async function viewReferences() {
       r.note ? el("div", { class: "hint", style: "margin-top:6px" }, r.note) : null,
       r.source ? el("div", { class: "note", style: "margin-top:4px" }, r.source) : null);
   }));
-  show(page(head("References", el("span", {}, `Images and video frames the team uses for look and ideas · ${refs.length} for this game · `, runningSubtitle()), pick),
+  showIf(nav, page(head("References", el("span", {}, `Images and video frames the team uses for look and ideas · ${refs.length} for this game · `, runningSubtitle()), pick),
     el("div", { class: "card", id: "ref-drop" },
       el("div", { class: "inline", style: "gap:12px;align-items:flex-start;flex-wrap:wrap" },
         el("div", { class: "field", style: "width:200px" }, el("label", { for: "ref-cat" }, "What it is for"), cat),
@@ -527,6 +598,7 @@ document.addEventListener("paste", async (e) => {
 // 1. Review queue
 // =====================================================================
 async function viewQueue() {
+  const nav = navSeq;
   await freshStatus();
   let items = [];
   let err = null;
@@ -550,7 +622,7 @@ async function viewQueue() {
       el("div", {}, f === "pending" ? "When an agent finishes something, it waits here for your yes or no." : "Decisions you make will show up here.")
     );
   else body = el("div", { class: "qcards" }, await Promise.all(shown.map(queueCard)));
-  show(page(head("Review Queue", runningSubtitle(), right), body));
+  showIf(nav, page(head("Review Queue", runningSubtitle(), right), body));
 }
 
 async function thumbFor(item) {
@@ -743,10 +815,11 @@ const AGENT_STATUS = {
   blocked: () => el("span", { class: "pill white" }, "Blocked"),
 };
 async function viewAgents() {
+  const nav = navSeq;
   await freshStatus();
   const agents = await invoke("agents_status");
   const working = agents.filter((a) => a.status === "working").length;
-  show(page(
+  showIf(nav, page(
     head("Agents", el("span", {}, `${agents.length} agents · ${working ? working + " working" : "none working"} · `, runningSubtitle())),
     el("div", { class: "list", id: "agent-list" }, agents.map((a) =>
       el("div", { class: "row tap" + (a.status === "working" ? " active-agent" : ""), "data-agent": a.name, onclick: () => agentSheet(a) },
@@ -876,6 +949,7 @@ T.event.listen("tex-done", (ev) => {
 });
 
 async function viewVault() {
+  const nav = navSeq;
   await freshStatus();
   const tree = await invoke("vault_tree");
   const tex = await invoke("textures_status").catch(() => ({ count: 0, groups: [] }));
@@ -903,7 +977,7 @@ async function viewVault() {
       : el("div", { class: "empty", style: "padding:40px 20px" }, el("div", { class: "empty-title" }, "No notes match"), el("div", {}, "Try fewer or different words.")));
   };
   q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 160); });
-  show(page(
+  showIf(nav, page(
     head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle()),
       el("button", { class: "btn secondary", id: "open-obsidian", onclick: () => invoke("app_open", { name: "obsidian" }).catch((e) => toast(String(e), true)) }, "Open in Obsidian")),
     texturePanel(tex),
@@ -926,11 +1000,12 @@ async function viewVault() {
 // 4. Runs: history, new run, run detail
 // =====================================================================
 async function viewRuns() {
+  const nav = navSeq;
   await freshStatus();
   const tabs = segmented([["history", "History"], ["new", "New Run"]], state.runsTab, (v) => { state.runsTab = v; viewRuns(); });
   if (state.runsTab === "new") return viewComposer(tabs);
   const list = await invoke("runs_overview");
-  show(page(
+  showIf(nav, page(
     head("Runs", runningSubtitle(), tabs),
     list.length
       ? el("div", { class: "list", id: "runs-list" }, list.map((r) =>
@@ -949,6 +1024,7 @@ function runPill(s) {
 }
 
 async function viewComposer(tabs) {
+  const nav = navSeq;
   const c = state.composer;
   const [agents, pipes, projects] = await Promise.all([invoke("agents_list"), invoke("pipelines_list"), invoke("projects_list").catch(() => [])]);
   const agentNames = Object.keys(agents);
@@ -968,6 +1044,8 @@ async function viewComposer(tabs) {
   projSel.addEventListener("change", () => (c.project = projSel.value));
   const pdef = pipes[c.pipeline];
   const estimateBox = el("div", { id: "estimate" });
+  const [models, st] = await Promise.all([invoke("models_list").catch(() => []), invoke("settings_get")]);
+  const runModel = st.engine === "ollama" ? null : modelSelect("run-model", models, st.run_model, "Each agent's own model", async (v) => { await invoke("settings_patch", { patch: { run_model: v } }).catch((e) => toast(String(e), true)); estimateBox.replaceChildren(); toast(v ? "Agents will use this model." : "Agents use their own models."); });
   const form = el("div", { class: "card" },
     el("div", { style: "margin-bottom:16px" }, segmented([["agent", "One Agent"], ["pipeline", "Pipeline"]], c.mode, (v) => { c.mode = v; viewRuns(); })),
     c.mode === "agent"
@@ -976,9 +1054,9 @@ async function viewComposer(tabs) {
           el("div", { class: "field" }, el("label", { for: "pipeline-select" }, "Pipeline"), pipeSel, el("div", { class: "note" }, pdef.description + " Stages: " + pdef.stages.map((s) => cap(s.agent)).join(", "))),
           pdef.needs_project ? el("div", { class: "field" }, el("label", { for: "project-select" }, "Game project"), projSel, projects.length ? null : el("div", { class: "note" }, "No projects yet. Import one in Settings.")) : null),
     el("div", { class: "field" }, el("label", { for: "prompt" }, "Instruction"), prompt),
-    el("div", { class: "inline" }, el("button", { class: "btn primary", id: "estimate-btn", onclick: () => estimate(estimateBox) }, "Estimate Usage"), el("span", { class: "note" }, "Nothing runs until you approve the cost."))
+    el("div", { class: "inline" }, runModel, el("button", { class: "btn primary", id: "estimate-btn", onclick: () => estimate(estimateBox) }, "Estimate Usage"), el("span", { class: "note" }, "Nothing runs until you approve the cost."))
   );
-  show(page(head("Runs", runningSubtitle(), tabs), form, estimateBox));
+  showIf(nav, page(head("Runs", runningSubtitle(), tabs), form, estimateBox));
 }
 
 async function estimate(box) {
@@ -1038,16 +1116,17 @@ async function approveRun(btn) {
 }
 
 async function viewRunDetail(id) {
+  const nav = navSeq;
   await freshStatus();
   let d;
   try {
     d = await invoke("run_detail", { id });
   } catch (e) {
-    return show(page(el("button", { class: "back", onclick: () => (location.hash = "#runs") }, "‹ Runs"), head("Run not found"), el("div", { class: "card" }, String(e))));
+    return showIf(nav, page(el("button", { class: "back", onclick: () => (location.hash = "#runs") }, "‹ Runs"), head("Run not found"), el("div", { class: "card" }, String(e))));
   }
   const live = state.live && state.live.id === id;
   const activeIdx = d.steps.findIndex((s) => s.status === "running" || s.status === "approved");
-  show(page(
+  showIf(nav, page(
     el("button", { class: "back", onclick: () => (location.hash = "#runs") }, "‹ Runs"),
     head(cap(d.title), el("span", {}, `${d.kind === "pipeline" ? "Pipeline" : "Single agent"} · started ${ago(d.created_at)}`), runPill(d.status), true),
     el("div", { class: "card" },
@@ -1164,7 +1243,7 @@ async function chooseAppFolder(id, label) {
   const f = await invoke("pick_folder");
   if (!f) return;
   const s = await invoke("settings_get");
-  await invoke("settings_save", { value: { ...s, app_dirs: { ...(s.app_dirs || {}), [id]: f } } });
+  Object.assign(s, await invoke("settings_patch", { patch: { app_dirs: { [id]: f } } }));
   toast(`${label} will install in ${f}.`);
   viewSettings();
 }
@@ -1185,12 +1264,13 @@ T.event.listen("app-done", (ev) => {
 });
 
 async function viewSettings() {
+  const nav = navSeq;
   await freshStatus();
   const [s, info, o, sm, bm, td, ap] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({})), invoke("tools_dir_get").catch(() => ""), invoke("apps_status").catch(() => ({}))]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
-      const next = await invoke("settings_save", { value: { ...s, ...patch, notify: { ...s.notify, ...(patch.notify || {}) } } });
+      const next = await invoke("settings_patch", { patch });
       Object.assign(s, next);
       toast(msg || "Saved.");
       refreshStatus();
@@ -1206,7 +1286,7 @@ async function viewSettings() {
   const updRow = el("div", { class: "srow", id: "update-row" }, el("div", { class: "grow" }, el("div", { class: "label", id: "build-label" }, `Build ${info.build}`), el("div", { class: "hint", id: "update-hint" }, "Downloads the newest BrewixGames, installs it, and restarts. Your projects and review queue are kept.")),
     el("button", { class: "btn secondary", id: "update-check", onclick: () => checkUpdates(updRow, updLog) }, "Check for Updates"));
   const sp = state.spend;
-  show(page(
+  showIf(nav, page(
     head("Settings", runningSubtitle()),
 
     el("div", { class: "section-label" }, "Claude"),
@@ -1386,8 +1466,10 @@ async function costCard(box, agent, prompt, label) {
 state.chatBusy = null; // run id while a reply is being written
 state.chatStatus = "";
 async function viewChat() {
+  const nav = navSeq;
   await freshStatus();
-  const { chat, cap_usd, engine } = await invoke("chat_get");
+  const [{ chat, cap_usd, engine }, models, st] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get")]);
+  const modelPick = engine === "ollama" ? null : modelSelect("chat-model", models, st.chat_model, "Default", async (v) => { await invoke("settings_patch", { patch: { chat_model: v } }).catch((e) => toast(String(e), true)); viewChat(); });
   const who = engine === "ollama" ? "Local model" : "Claude";
   const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
   const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: async () => {
@@ -1411,7 +1493,7 @@ async function viewChat() {
   show(el("div", { class: "page chat-page" },
     head("Ask Claude", runningSubtitle(), chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null),
     list,
-    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Send is your approval for that message. ⌘ Return to send."), send))));
+    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Send is your approval for that message. Ctrl+Enter to send."), el("div", { class: "inline" }, modelPick, send)))));
   list.scrollTop = list.scrollHeight;
   input.focus();
 }
@@ -1438,6 +1520,7 @@ function ring(score, grade) {
   return el("div", { class: "ring", html: `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#2C2C2E" stroke-width="9"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#FF3B30" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * v) / 100} ${c}" transform="rotate(-90 60 60)"/><text x="60" y="58" text-anchor="middle" fill="#fff" font-size="30" font-weight="600" font-family="-apple-system,Inter,sans-serif">${Math.round(v)}</text><text x="60" y="80" text-anchor="middle" fill="#8E8E93" font-size="13" font-family="-apple-system,Inter,sans-serif">Grade ${String(grade || "").replace(/[<>&]/g, "")}</text></svg>` });
 }
 async function viewSimulator() {
+  const nav = navSeq;
   await freshStatus();
   const pick = await projectPicker(viewSimulator);
   const box = el("div", {});
@@ -1474,13 +1557,14 @@ async function viewSimulator() {
               el("button", { class: "link", style: "margin-top:8px", onclick: () => { state.composer = { ...state.composer, mode: "pipeline", pipeline: "improve-build", project: state.project, prompt: `${i.title}. ${i.how}` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Have the team build this")))))),
       el("p", { class: "note", style: "margin-top:14px" }, `${s.method} Simulated ${ago(s.at)} for ${usd(s.cost_usd, 2)}.`, el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + s.run_id) }, "Details")));
   }
-  show(page(head("Simulator", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), run)), box, body));
+  showIf(nav, page(head("Simulator", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), run)), box, body));
 }
 
 // =====================================================================
 // Thumbnails
 // =====================================================================
 async function viewThumbnails() {
+  const nav = navSeq;
   await freshStatus();
   const pick = await projectPicker(viewThumbnails);
   const box = el("div", {});
@@ -1511,7 +1595,7 @@ async function viewThumbnails() {
       el("div", { class: "tgrid big" }, cells),
       el("p", { class: "note", style: "margin-top:12px" }, `Grades check the rules a program can measure (size, 3 words or fewer, 3 colours or fewer, outlined text, real game capture). ${best && best.grade !== "A+" ? "None is A+ yet: add a real screenshot and make a new set. " : ""}The real test is your play-through rate after launch.`));
   }
-  show(page(head("Thumbnails", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), make)), box, shots, grid));
+  showIf(nav, page(head("Thumbnails", runningSubtitle(), el("div", { class: "inline" }, pick, studioButton(), make)), box, shots, grid));
 }
 
 document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = ICONS[n.dataset.icon]));

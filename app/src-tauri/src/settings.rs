@@ -69,6 +69,11 @@ pub struct Settings {
     /// Days between automatic tune-ups (0 turns them off).
     #[serde(default = "default_tuneup_days")]
     pub tuneup_days: u32,
+    /// Model for Ask Claude (empty: the default) and for agent runs (empty: each agent's own).
+    #[serde(default)]
+    pub chat_model: String,
+    #[serde(default)]
+    pub run_model: String,
     /// Figma login connection for the UI agents (off by default).
     #[serde(default)]
     pub figma_mcp: bool,
@@ -115,6 +120,8 @@ impl Default for Settings {
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
             figma_mcp: false,
+            chat_model: String::new(),
+            run_model: String::new(),
             tuneup_days: default_tuneup_days(),
             claude_path: String::new(),
             tools_dir: String::new(),
@@ -184,7 +191,36 @@ pub fn validate(s: &Settings) -> Result<(), String> {
     Ok(())
 }
 
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn merge(a: &mut serde_json::Value, b: &serde_json::Value) {
+    match (a, b) {
+        (serde_json::Value::Object(x), serde_json::Value::Object(y)) => {
+            for (k, v) in y {
+                merge(x.entry(k.clone()).or_insert(serde_json::Value::Null), v);
+            }
+        }
+        (a, b) => *a = b.clone(),
+    }
+}
+
+/// Change only the given fields, on top of what is on disk right now, so a
+/// page holding an old copy can never undo someone else's save.
+pub fn patch(p: &serde_json::Value) -> Result<Settings, String> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut cur = serde_json::to_value(load()).map_err(|e| e.to_string())?;
+    merge(&mut cur, p);
+    let next: Settings = serde_json::from_value(cur).map_err(|e| format!("bad setting: {e}"))?;
+    save_unlocked(&next)?;
+    Ok(next)
+}
+
 pub fn save(s: &Settings) -> Result<(), String> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    save_unlocked(s)
+}
+
+fn save_unlocked(s: &Settings) -> Result<(), String> {
     validate(s)?;
     let d = config_dir();
     fs::create_dir_all(&d).map_err(|e| format!("create {}: {e}", d.display()))?;

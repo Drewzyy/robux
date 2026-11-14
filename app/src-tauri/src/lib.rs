@@ -22,6 +22,7 @@ pub mod plan;
 pub mod graph;
 pub mod review;
 pub mod tuneup;
+pub mod brief;
 pub mod update;
 pub mod paths;
 pub mod pipeline;

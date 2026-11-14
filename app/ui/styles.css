@@ -320,3 +320,14 @@ body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.
 .tune-list { margin-top: 10px; }
 .tune-row { display: flex; gap: 12px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--line); }
 .tune-row .pill { flex: none; min-width: 58px; text-align: center; }
+
+/* Loading and model picker */
+.view.loading > * { opacity: 0.45; transition: opacity .15s; }
+.model-select { max-width: 260px; }
+
+/* Game Brief */
+.brief-tick { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line); color: transparent; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; flex: none; }
+.brief-tick.on { background: #30D158; border-color: #30D158; color: #000; }
+.brief-text { width: 100%; margin-top: 8px; resize: vertical; }
+.brief-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.brief-thumb { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; background: #111; }

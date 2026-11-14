@@ -42,7 +42,7 @@ d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set
 view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
-    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 6, view()[:60])
+    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 7, view()[:60])
     check("Dashboard shows one next step", len(d.find_elements(By.ID, "next-step")) == 1 and "Next step" in view() or "NEXT STEP" in view())
     d.find_element(By.ID, "search-hint").click(); time.sleep(0.5)
     d.find_element(By.ID, "palette-input").send_keys("thumb"); time.sleep(0.5)
@@ -78,6 +78,32 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(1)
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: false, note: null}); done(); })();""")
+    d.execute_script("location.hash='#brief'"); time.sleep(2.5)
+    d.find_element(By.ID, "brief-name").send_keys("UI Test Idea"); d.find_element(By.ID, "brief-new").click(); time.sleep(2.5)
+    n_items = len(d.find_elements(By.CSS_SELECTOR, ".brief-item"))
+    box = d.find_element(By.CSS_SELECTOR, ".brief-item[data-id='loop'] textarea"); box.send_keys("Collect sugar, upgrade shop, repeat")
+    d.execute_script("arguments[0].dispatchEvent(new Event('change'))", box); time.sleep(2)
+    PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('brief_add_image', {slug: 'ui-test-idea', id: 'look', name: 'ref.png', data: arguments[0]}).then(() => done()).catch((e) => done(String(e)));", PNG)
+    d.execute_script("location.hash='#ideas'"); time.sleep(1); d.execute_script("location.hash='#brief'"); time.sleep(3)
+    saved_box = d.find_element(By.CSS_SELECTOR, ".brief-item[data-id='loop'] textarea").get_attribute("value")
+    check("Game Brief checklist saves answers and images", n_items == 19 and saved_box.startswith("Collect sugar") and "2 of 19 covered" in view() and len(d.find_elements(By.CSS_SELECTOR, ".brief-thumb")) == 1, f"{n_items} items · {saved_box[:20]}")
+    d.save_screenshot(str(SHOTS / "ui-brief.png"))
+    d.find_element(By.ID, "brief-plan").click(); time.sleep(2.5)
+    pr = d.find_element(By.ID, "prompt").get_attribute("value")
+    check("Plan This Game sends the brief to Planner", "Collect sugar, upgrade shop, repeat" in pr and "ui-test-idea" in pr and "(not answered)" in pr)
+    d.execute_script("location.hash='#chat'"); time.sleep(3)
+    Select(d.find_element(By.ID, "chat-model")).select_by_value("claude-haiku-5-5"); time.sleep(2.5)
+    saved = d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_get').then((s) => done(s.chat_model));")
+    check("Ask Claude lets you choose the model and it saves", saved == "claude-haiku-5-5" and Select(d.find_element(By.ID, "chat-model")).first_selected_option.get_attribute("value") == "claude-haiku-5-5", saved)
+    # a stale page copy must not undo another save
+    both = d.execute_async_script("""const done = arguments[arguments.length-1]; const inv = window.__TAURI__.core.invoke;
+      (async () => { await inv('settings_patch', {patch: {app_dirs: {blender: '/tmp/blender-x'}}}); await inv('settings_patch', {patch: {tuneup_days: 3}}); const s = await inv('settings_get');
+        await inv('settings_patch', {patch: {chat_model: '', tuneup_days: 7, app_dirs: {blender: ''}}}); done([s.app_dirs.blender, s.tuneup_days, s.chat_model]); })();""")
+    check("separate saves keep each other's changes", both == ["/tmp/blender-x", 3, "claude-haiku-5-5"], str(both))
+    # leave a slow page, land on the page you clicked last
+    d.execute_script("location.hash='#vault'; location.hash='#settings'; location.hash='#money'"); time.sleep(4)
+    check("fast clicking ends on the last page clicked", "Robux converted" in view(), view()[:60].replace("\n", " "))
     d.execute_script("location.hash='#tuneup/now'"); time.sleep(8)
     check("Tune-Up scans the game's code and map", "dawn-watch" in view() and "code files" in view() and "parts" in view() and len(d.find_elements(By.ID, "tuneup-run")) == 1, view()[:120].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-tuneup.png"))

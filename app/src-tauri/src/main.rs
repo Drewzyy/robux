@@ -67,6 +67,20 @@ async fn settings_save(value: settings::Settings) -> Result<settings::Settings, 
 }
 
 #[tauri::command]
+async fn settings_patch(patch: Value) -> Result<settings::Settings, String> {
+    settings::patch(&patch)
+}
+
+/// Claude models the app has prices for, cheapest first.
+#[tauri::command]
+async fn models_list() -> Result<Vec<Value>, String> {
+    let p = cost::load_pricing(&root()?)?;
+    let mut v: Vec<Value> = p.models.iter().map(|(k, m)| json!({ "id": k, "input": m.input, "output": m.output })).collect();
+    v.sort_by(|a, b| a["output"].as_f64().partial_cmp(&b["output"].as_f64()).unwrap_or(std::cmp::Ordering::Equal));
+    Ok(v)
+}
+
+#[tauri::command]
 async fn notify_test() -> Result<String, String> {
     let s = settings::load();
     if s.discord_webhook_url.is_empty() {
@@ -569,6 +583,32 @@ async fn tuneup_fix(project: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || studio_core::tuneup::fix(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
+// ---------- game brief (idea checklist) ----------
+#[tauri::command]
+async fn brief_list() -> Result<Vec<Value>, String> {
+    Ok(studio_core::brief::list(&root()?))
+}
+#[tauri::command]
+async fn brief_create(title: String) -> Result<String, String> {
+    studio_core::brief::create(&root()?, &title)
+}
+#[tauri::command]
+async fn brief_get(slug: String) -> Result<Value, String> {
+    studio_core::brief::get(&root()?, &slug)
+}
+#[tauri::command]
+async fn brief_set(slug: String, id: String, text: String) -> Result<(), String> {
+    studio_core::brief::set(&root()?, &slug, &id, &text)
+}
+#[tauri::command]
+async fn brief_add_image(slug: String, id: String, name: String, data: String) -> Result<(), String> {
+    studio_core::brief::add_image(&root()?, &slug, &id, &name, &data)
+}
+#[tauri::command]
+async fn brief_prompt(slug: String) -> Result<String, String> {
+    studio_core::brief::planner_prompt(&root()?, &slug)
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -692,6 +732,14 @@ fn main() {
             plan_to_figma,
             tuneup_get,
             tuneup_fix,
+            settings_patch,
+            brief_list,
+            brief_create,
+            brief_get,
+            brief_set,
+            brief_add_image,
+            brief_prompt,
+            models_list,
             reviews_list,
             review_start,
             review_answer,

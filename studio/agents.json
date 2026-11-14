@@ -94,7 +94,10 @@
         "10-Art-Environment",
         "11-Audio",
         "05-Progression",
-        "16-Market-Research"
+        "16-Market-Research",
+        "04-Onboarding",
+        "06-Retention",
+        "12-Multiplayer-NPCs"
       ],
       "output": "design.md",
       "role": "Game Designer"
@@ -333,7 +336,8 @@
         "00-Start-Here",
         "06-Retention",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "15-LiveOps"
       ],
       "output": "liveops.md",
       "role": "LiveOps Analyst (support)"
@@ -359,7 +363,8 @@
         "06-Retention",
         "17-Development-Templates",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "15-LiveOps"
       ],
       "output": "update-plan.md",
       "role": "Update Planner (support)"
@@ -506,7 +511,8 @@
         "00-Start-Here",
         "14-QA-Optimization",
         "13-Luau-Engineering",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "12-Multiplayer-NPCs"
       ],
       "output": "performance.md",
       "role": "Optimization Specialist"
@@ -634,7 +640,8 @@
         "16-Market-Research",
         "17-Development-Templates",
         "19-Project-Memory",
-        "05-Progression"
+        "05-Progression",
+        "15-LiveOps"
       ],
       "output": "plan.md",
       "role": "Game Plan Producer"

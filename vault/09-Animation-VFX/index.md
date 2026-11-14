@@ -23,3 +23,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[09-Animation-VFX/free-animation-library]] | Asset IDs of the 17 official Roblox animation packs, default emotes, free tools for custom moves. | verified |
 | [[09-Animation-VFX/character-effects-library]] | Movement, earning, buying, boost, reward, and status effects with how to build each and its sound. | draft |
 | [[09-Animation-VFX/game-feel-juice]] | Cross-game game feel rules with millisecond timings: screen shake, hit-stop, squash and stretch, particles, number popups, sound layering, for Roblox combat, collect and UI feedback. | draft |
+| [[09-Animation-VFX/combat-animation-and-hit-feedback]] | Hit feedback recipe for Roblox combat: windup, active and recovery frames, hit stop, camera shake, sound, particles and damage numbers, with durations and a layering checklist. | draft |
+| [[09-Animation-VFX/emotes-and-idle-personality]] | Emotes and idle animations for Roblox: emote wheel design, group emotes, idle quirks, walk styles and how they build character, flex and social play, with free-tool production tips. | draft |

@@ -92,7 +92,19 @@ pub fn load_pricing(root: &Path) -> Result<Pricing, String> {
 pub fn load_agents(root: &Path) -> Result<AgentsConfig, String> {
     let p = root.join("studio/agents.json");
     let t = std::fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
-    serde_json::from_str(&t).map_err(|e| format!("parse {}: {e}", p.display()))
+    let mut cfg: AgentsConfig = serde_json::from_str(&t).map_err(|e| format!("parse {}: {e}", p.display()))?;
+    // Andrew's model choice: one for Ask Claude, one for every other agent.
+    let st = crate::settings::load();
+    if !st.chat_model.is_empty() || !st.run_model.is_empty() {
+        let priced = load_pricing(root).map(|p| p.models).unwrap_or_default();
+        for (name, a) in cfg.agents.iter_mut() {
+            let pick = if name == "assistant" { &st.chat_model } else { &st.run_model };
+            if !pick.is_empty() && priced.contains_key(pick) {
+                a.model = pick.clone();
+            }
+        }
+    }
+    Ok(cfg)
 }
 
 pub fn estimate(
