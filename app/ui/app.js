@@ -159,6 +159,35 @@ function runningSubtitle() {
   );
 }
 
+// ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
+function openPalette() {
+  if ($("palette")) return;
+  const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
+  const list = el("div", { class: "palette-list" });
+  const close = () => wrap.remove();
+  let sel = 0, shown = PALETTE;
+  const draw = () => {
+    const q = input.value.trim().toLowerCase();
+    shown = PALETTE.filter(([n]) => n.toLowerCase().includes(q));
+    sel = Math.min(sel, Math.max(0, shown.length - 1));
+    list.replaceChildren(...shown.map(([n, r], i) => el("div", { class: "palette-item" + (i === sel ? " sel" : ""), onclick: () => { close(); location.hash = `#${r}`; } }, n)));
+  };
+  input.addEventListener("input", () => { sel = 0; draw(); });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+    else if (e.key === "ArrowDown") { sel = Math.min(sel + 1, shown.length - 1); draw(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { sel = Math.max(sel - 1, 0); draw(); e.preventDefault(); }
+    else if (e.key === "Enter" && shown[sel]) { close(); location.hash = `#${shown[sel][1]}`; }
+  });
+  const wrap = el("div", { id: "palette", class: "palette-wrap", onclick: (e) => { if (e.target === wrap) close(); } }, el("div", { class: "palette" }, input, list));
+  document.body.append(wrap);
+  draw();
+  input.focus();
+}
+$("search-hint").addEventListener("click", openPalette);
+window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); } });
+
 // ---------- router ----------
 // Six places in the sidebar; grouped pages get tabs along the top.
 const GROUPS = {
@@ -235,8 +264,20 @@ async function viewDashboard() {
   const verdict = last ? ((last.report.match(/NOT SOUND|SOUND WITH FIXES|SOUND/) || ["see report"])[0]) : null;
   const waiting = queue.filter((i) => i.status === "pending").length;
   const sp = state.spend;
+  // One clear next step, picked from where the game is right now.
+  const left = plan ? plan.total - plan.done : 0;
+  const next = waiting ? ["Review what the team made", `${waiting} item${waiting === 1 ? "" : "s"} waiting for your yes or no`, "Open Review Queue", "#queue"]
+    : !(p && p.pitches) ? ["Get game ideas", "Pulse studies the top Roblox games and trends, then pitches 5 ideas", "Go to Game Ideas", "#ideas"]
+    : !plan ? ["Pick an idea and plan it", "Planner mocks up the whole game before anything is built", "Choose an Idea", "#ideas"]
+    : left ? [`Finish checking ${plan.title}`, `${left} of ${plan.total} plan items left to check`, "Open Game Plan", `#plans/${plan.run_id}`]
+    : !last ? ["Get a second opinion", "Have another AI check the code before you publish", "Open Double-Check", "#review"]
+    : [`Build ${plan.title}`, "Every plan item is checked", "Open Game Plan", `#plans/${plan.run_id}`];
+  const hero = el("div", { class: "card hero" }, el("div", {}, el("div", { class: "k" }, "Next step"), el("div", { class: "hero-title" }, next[0]), el("div", { class: "note" }, next[1])),
+    el("a", { class: "btn primary cta", id: "next-step", href: next[3] }, next[2], el("span", { class: "cta-arrow" }, "→")));
+  const earned = money && money.total_robux > 0;
   show(page(head("Dashboard", runningSubtitle()),
-    money ? moneyStrip(money) : null,
+    hero,
+    money ? (earned ? moneyStrip(money) : el("a", { class: "fold-line", id: "money-strip", href: "#money" }, "Made this month: $0.00 · add earnings in Money")) : null,
     el("div", { class: "widget-grid" },
       w("Game ideas", "#ideas", p && p.pitches ? el("ol", { class: "widget-list" }, p.pitches.slice(0, 3).map((x) => el("li", {}, x.title))) : el("div", { class: "v small" }, "No ideas yet"), el("div", { class: "note" }, p && p.pitches ? "Open to plan one" : "Open to pitch ideas")),
       w("Game plan", plan ? `#plans/${plan.run_id}` : "#plans", el("div", { class: "v small" }, plan ? plan.title : "No plan yet"),

@@ -74,7 +74,7 @@ h2 { font-size: 18px; font-weight: 600; margin: 0 0 10px; }
 .segmented button.on { background: var(--card-2); color: #fff; }
 
 /* ---------- cards and grouped lists ---------- */
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.card { background: rgba(28, 28, 30, 0.78); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 .list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
 .row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 1px solid var(--line); }
 .row:first-child { border-top: 0; }
@@ -291,3 +291,27 @@ details.sources li { word-break: break-all; }
 .tabs-top { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid #2C2C2E; }
 .tabs-top a { padding: 8px 12px; color: #98989D; text-decoration: none; border-bottom: 2px solid transparent; }
 .tabs-top a.active { color: #fff; border-color: #FF453A; }
+
+/* Soft depth: a warm glow behind translucent panels (blur only on the sidebar and palette, to stay fast) */
+body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.13), transparent 60%), radial-gradient(700px 500px at 10% 110%, rgba(255, 59, 48, 0.08), transparent 60%), var(--bg); }
+.sidebar { background: rgba(20, 20, 22, 0.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+/* Next step */
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; border-color: rgba(255, 99, 60, 0.35); }
+.hero-title { font-size: 22px; font-weight: 600; margin: 4px 0; }
+.cta { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; transition: transform .15s ease, box-shadow .15s ease; }
+.cta:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(255, 59, 48, 0.35); }
+.cta-arrow { display: inline-block; }
+.cta:hover .cta-arrow { animation: nudge .8s ease-in-out infinite; }
+@keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+.fold-line { display: block; color: var(--text-2); font-size: 13px; padding: 2px 4px 0; }
+.fold-line:hover { color: var(--text); }
+/* Search and command palette */
+.search-hint { display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 0 0 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,0.04); color: var(--text-2); font-size: 13px; cursor: pointer; }
+.search-hint kbd { font: inherit; font-size: 11px; border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.palette-wrap { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; justify-content: center; align-items: flex-start; padding-top: 16vh; z-index: 50; }
+.palette { width: 460px; max-width: 90vw; background: rgba(28,28,30,0.92); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.palette input { width: 100%; padding: 14px 16px; background: none; border: 0; border-bottom: 1px solid var(--line); outline: none; font-size: 16px; }
+.palette-list { max-height: 320px; overflow: auto; padding: 6px; }
+.palette-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.palette-item.sel, .palette-item:hover { background: var(--red-soft); }
+@media (prefers-reduced-motion: reduce) { .cta:hover .cta-arrow { animation: none; } }

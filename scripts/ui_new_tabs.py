@@ -43,6 +43,12 @@ view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
     check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 6, view()[:60])
+    check("Dashboard shows one next step", len(d.find_elements(By.ID, "next-step")) == 1 and "Next step" in view() or "NEXT STEP" in view())
+    d.find_element(By.ID, "search-hint").click(); time.sleep(0.5)
+    d.find_element(By.ID, "palette-input").send_keys("thumb"); time.sleep(0.5)
+    from selenium.webdriver.common.keys import Keys
+    d.find_element(By.ID, "palette-input").send_keys(Keys.ENTER); time.sleep(2.5)
+    check("Search palette jumps to a page", "#thumbnails" in d.execute_script("return location.hash"))
     d.execute_script("location.hash='#ideas'"); time.sleep(2.5)
     check("Game Ideas page", "Game Ideas" in view(), view()[:60])
     cards = d.find_elements(By.CSS_SELECTOR, ".card.pitch")
