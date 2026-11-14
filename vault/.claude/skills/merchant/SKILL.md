@@ -51,3 +51,6 @@ Checks:
 - every developer product has an idempotent ProcessReceipt plan
 - no paid random items in game 1, and if any later: numeric odds summing to 100%, PolicyService gating
 - nothing created in Creator Dashboard; listed for Andrew
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-monetization.

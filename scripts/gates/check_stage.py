@@ -182,6 +182,31 @@ def simulation_checks(out_path):
     ]
 
 
+PLAN_REQUIRED = ["core-loop", "world", "ui", "characters", "cosmetics", "animations", "sounds", "style-kit", "monetization", "retention", "accessibility", "tech", "risks"]
+PLAN_MOCKS = ["map.svg", "ui-hud.svg", "ui-shop.svg", "character-effects.svg"]
+
+
+def plan_checks(out_path):
+    d = out_path.parent
+    try:
+        v = json.loads((d / "plan.json").read_text())
+    except Exception:
+        return [c("plan.json parses", False, "missing or not JSON")]
+    secs = v.get("sections") or []
+    thin = [i for i in PLAN_REQUIRED if not any(s.get("id") == i and len(s.get("items") or []) >= 2 for s in secs)]
+    bad = [it["mock"] for s in secs for it in (s.get("items") or []) if isinstance(it.get("mock"), str) and (".." in it["mock"] or not (d / it["mock"]).is_file())]
+    missing = [m for m in PLAN_MOCKS if not (d / "mockups" / m).is_file()]
+    slug = v.get("slug") if isinstance(v.get("slug"), str) else ""
+    slug_ok = bool(slug) and all(ch.islower() and ch.isascii() or ch.isdigit() or ch == "-" for ch in slug)
+    return [
+        c("plan.json parses", True, f"{len(secs)} sections"),
+        c("every required section with 2+ items", not thin, ", ".join(thin)),
+        c("slug is lowercase-with-dashes", slug_ok, slug),
+        c("every mock path exists", not bad, ", ".join(bad)),
+        c("map, HUD, shop and character-effects mockups present", not missing, ", ".join(missing)),
+    ]
+
+
 def pitches_checks(out_path):
     f = out_path.parent / "pitches.json"
     try:
@@ -256,6 +281,9 @@ def check(agent, text, project, out_path=None):
         r.extend(sounds_checks(text, project))
     elif agent == "frame":
         r.append(c("mobile checklist results present", has(text, r"mobile|phone")))
+    elif agent == "planner":
+        r.append(c("has a Loaded section", heading(text, "loaded")))
+        r.extend(plan_checks(Path(out_path)))
     elif agent == "splash":
         r.extend(splash_checks(text, Path(out_path)))
     elif agent == "liveops":

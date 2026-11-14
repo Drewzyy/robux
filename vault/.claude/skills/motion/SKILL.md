@@ -46,3 +46,6 @@ Checks:
 - every created effect is cleaned up (Debris or Destroy)
 - no animation asset ID that Andrew did not provide
 - the build gate passes after the change
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-animation-vfx, roblox-camera, roblox-performance.

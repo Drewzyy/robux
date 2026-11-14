@@ -63,3 +63,6 @@ Run what is installed and record the real result, never a guess:
 - every RemoteEvent handler validates its arguments (list them)
 - every DataStore path uses ProfileStore with BindToClose
 `passed` is true only if every check ran and passed. A check that could not run is a failed check with detail "NOT RUN: reason".
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-architecture, roblox-luau-core, roblox-luau-patterns, roblox-luau-types, roblox-networking, roblox-security, roblox-data, roblox-server-data, roblox-performance.

@@ -399,6 +399,10 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
         "liveops" => r.push(c("numbers come with dates", has(&text, r"\d{4}-\d{2}-\d{2}") || text.to_uppercase().contains("BLOCKED"), "")),
         "producer" => r.push(c("one named reason", heading(&text, "reason"), "")),
         "simulator" => r.extend(simulation_checks(out_path)),
+        "planner" => {
+            r.push(c("has a Loaded section", heading(&text, "loaded"), ""));
+            r.extend(crate::plan::checks(out_path));
+        }
         "modeler" => {
             r.push(c("models table with file, triangles, license", has(&text, r"^\|.*file.*\|.*triangles.*\|.*license.*\|"), ""));
             let path_re = re(r"projects/[A-Za-z0-9_-]+/assets/models/[A-Za-z0-9_.-]+\.(?:fbx|obj|py)");
@@ -611,6 +615,13 @@ pub fn cli(args: &[String]) -> Option<i32> {
             let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);
             Some(crate::studio_mcp::guard_hook(&s))
         }
+        ["write-texture-note"] => Some(match crate::paths::studio_root().and_then(|r| crate::textures::write_note(&r, &crate::textures::library(&r))) {
+            Ok(()) => 0,
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
         ["selftest-handoff", ..] | ["selftest-ping", ..] => crate::update::selftest_cli(&a),
         ["selftest-install", app] => Some(match crate::apps::install(app, &mut |l| println!("{l}")) {

@@ -554,6 +554,43 @@
       ],
       "output": "models.md",
       "role": "3D Modeler"
+    },
+    "planner": {
+      "description": "Turns a game idea into a full plan with SVG mockups that Andrew checks off item by item before anything is built.",
+      "model": "claude-sonnet-5-5",
+      "turns": 24,
+      "context_tokens": 30000,
+      "output_tokens_per_turn": 2000,
+      "base_tokens": 9000,
+      "allowed_tools": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Skill",
+        "Write",
+        "Bash(brewix search:*)"
+      ],
+      "allowed_sections": [
+        "00-Start-Here",
+        "01-Roblox-Fundamentals",
+        "02-Game-Design",
+        "03-Game-Psychology",
+        "04-Onboarding",
+        "06-Retention",
+        "07-Monetization",
+        "08-UI-UX",
+        "09-Animation-VFX",
+        "10-Art-Environment",
+        "11-Audio",
+        "12-Multiplayer-NPCs",
+        "13-Luau-Engineering",
+        "14-QA-Optimization",
+        "16-Market-Research",
+        "17-Development-Templates",
+        "19-Project-Memory"
+      ],
+      "output": "plan.md",
+      "role": "Game Plan Producer"
     }
   }
 }

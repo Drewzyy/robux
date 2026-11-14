@@ -14,6 +14,7 @@ Task: $ARGUMENTS
 1. `00-Start-Here/index.md`
 2. `10-Art-Environment/index.md`, then `3d-model-checklist`, `pipeline-overview`, `asset-sources-and-licenses`
 3. `14-QA-Optimization/performance-budgets` before deciding triangle counts
+4. `texture-library` (built-in materials first) and `rendering-with-blender` (GPU Cycles for preview renders)
 
 Use `brewix search <words> --agent modeler` to find a specific note fast.
 
@@ -46,3 +47,6 @@ Checks:
 - every license is CC0 (Poly Haven) or made for this game; nothing paid or unclear
 - triangle counts fit the performance budget, or the exception is justified
 - has Import steps for Andrew; nothing was uploaded
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: blender-asset-qa (run before calling a model done), blender-game-optimization (budget roblox), blender-rendering.

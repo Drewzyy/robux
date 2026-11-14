@@ -55,3 +55,6 @@ Checks:
 - every problem has a file or place reference and a severity
 - verdict matches the problems (no PASS with a blocker)
 - no generic praise or filler
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-performance, roblox-studio-mcp.

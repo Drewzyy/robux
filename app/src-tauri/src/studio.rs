@@ -25,7 +25,7 @@ pub fn agent_statuses(root: &Path) -> Result<Vec<AgentStatus>, String> {
     let all = runs::list(root)?; // newest first
     let items = queue::list(root)?;
     let mut out = vec![];
-    const TEAM: [&str; 19] = ["lead", "pulse", "architect", "simulator", "merchant", "frame", "scenic", "modeler", "motion", "librarian", "builder", "crowd", "playtest", "tuner", "director", "release", "splash", "liveops", "producer"];
+    const TEAM: [&str; 20] = ["lead", "pulse", "planner", "architect", "simulator", "merchant", "frame", "scenic", "modeler", "motion", "librarian", "builder", "crowd", "playtest", "tuner", "director", "release", "splash", "liveops", "producer"];
     let mut names: Vec<&String> = cfg.agents.keys().filter(|n| n.as_str() != "bridge-test" && n.as_str() != "assistant").collect();
     names.sort_by_key(|n| TEAM.iter().position(|t| t == n).unwrap_or(99));
     for name in names {

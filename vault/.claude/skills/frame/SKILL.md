@@ -48,3 +48,6 @@ Checks:
 - any core action reachable in 3 taps or fewer
 - no shop pop-up on join, on death, or in the first 5 minutes
 - prices shown in Robux before the purchase prompt
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-gui, roblox-input, roblox-localization.

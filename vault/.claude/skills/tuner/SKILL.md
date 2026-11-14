@@ -45,3 +45,6 @@ Checks:
 - phone or low-end device impact is stated
 - says whether numbers were measured in Studio or estimated from code
 - the build gate passes after the change
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-analytics, roblox-player-psychology.

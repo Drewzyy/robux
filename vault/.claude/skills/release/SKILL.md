@@ -45,3 +45,6 @@ Checks:
 - says plainly that nothing was published and Andrew publishes
 - the build gate result is recorded
 - no paid promotion or ads suggested
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-publish-checklist.

@@ -46,3 +46,6 @@ Checks:
 - the game works with one player (solo goal or bots) and says how
 - NPC logic runs at a low tick rate, not every frame
 - the build gate passes after the change
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-networking, roblox-security, roblox-npc-ai.

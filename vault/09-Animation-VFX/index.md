@@ -20,3 +20,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[09-Animation-VFX/character-movement-animations]] | Keep defaults first, Animate script IDs, speed matching, priorities, free tools. | draft |
 | [[09-Animation-VFX/combat-animation]] | Anticipation/active/recovery, short player wind-ups, hitstop values, hit feedback stack, markers. | draft |
 | [[09-Animation-VFX/building-and-world-animation]] | Place/remove/collect animations, ghost preview, cheap living-world effects table. | draft |
+| [[09-Animation-VFX/free-animation-library]] | Asset IDs of the 17 official Roblox animation packs, default emotes, free tools for custom moves. | verified |
+| [[09-Animation-VFX/character-effects-library]] | Movement, earning, buying, boost, reward, and status effects with how to build each and its sound. | draft |

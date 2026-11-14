@@ -15,6 +15,7 @@ Task: $ARGUMENTS
 2. `10-Art-Environment/index.md`, then `thumbnail-mrbeast-logic` (the rule sheet) and `thumbnail-pipeline`
 3. `08-UI-UX/thumbnail-icon-spec` (sizes and moderation)
 4. `01-Roblox-Fundamentals/ip-and-toolbox-rules` (no logos, catalog items, real people, or recognizable characters)
+5. `10-Art-Environment/rendering-with-blender` when rendering the thumbnail in Blender (GPU Cycles, render settings)
 5. Only if needed: `06-Retention/discovery-signals` (play-through rate is how a thumbnail is judged)
 
 If a note you need is a stub, write "STUB: <note>" in your output and fall back to this skill's rules. Do not search other sections for a substitute.
@@ -54,3 +55,6 @@ Checks:
 - no platform logos, catalog items, real people, or recognizable characters
 - ranking names a launch pick and a test-next pick
 - nothing is uploaded or posted; Andrew exports and uploads
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: blender-rendering.

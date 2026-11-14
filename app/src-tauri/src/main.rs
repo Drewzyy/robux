@@ -448,6 +448,49 @@ async fn money_import(text: String, game: String) -> Result<usize, String> {
     studio_core::earnings::import_csv(&root()?, &text, &game)
 }
 
+#[tauri::command]
+async fn textures_status() -> Result<Value, String> {
+    let lib = studio_core::textures::library(&root()?);
+    Ok(json!({ "count": lib.len(), "groups": studio_core::textures::GROUPS.iter().map(|(g, _)| *g).collect::<Vec<_>>() }))
+}
+
+/// Download CC0 textures from Poly Haven into the vault (progress events).
+#[tauri::command]
+async fn textures_download(app: AppHandle, groups: Vec<String>, per_group: usize) -> Result<(), String> {
+    let r = root()?;
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let res = studio_core::textures::download(&r, &groups, per_group.clamp(1, 20), "1k", &mut |l| {
+            let _ = app2.emit("tex-line", json!({ "line": l }));
+        });
+        let _ = app.emit("tex-done", json!({ "message": res.as_ref().ok(), "error": res.err() }));
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn plans_list() -> Result<Vec<Value>, String> {
+    Ok(studio_core::plan::list(&root()?))
+}
+
+#[tauri::command]
+async fn plan_set(run_id: String, item: String, checked: Option<bool>, note: Option<String>) -> Result<(), String> {
+    studio_core::plan::set(&root()?, &run_id, &item, checked, note)
+}
+
+#[tauri::command]
+async fn plan_mock(run_id: String, path: String) -> Result<String, String> {
+    studio_core::plan::mock(&root()?, &run_id, &path)
+}
+
+/// Prepare the build pipeline for a fully approved plan (cost card follows).
+#[tauri::command]
+async fn plan_build_prepare(run_id: String) -> Result<pipeline::PipelineRun, String> {
+    let r = root()?;
+    let input = studio_core::plan::build_input(&r, &run_id)?;
+    pipeline::prepare(&r, "plan-to-build", &input, None)
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -562,6 +605,12 @@ fn main() {
             pick_folder,
             refs_list,
             money_summary,
+            textures_status,
+            textures_download,
+            plans_list,
+            plan_set,
+            plan_mock,
+            plan_build_prepare,
             money_add,
             money_remove,
             money_import,

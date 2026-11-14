@@ -47,3 +47,6 @@ Checks:
 - hazards and goals stay readable (contrast notes per zone)
 - no shadow-heavy settings that break the mobile performance budget
 - values live in a Rojo module, not only in Studio
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-building, roblox-lighting, roblox-physics.

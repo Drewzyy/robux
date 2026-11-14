@@ -19,3 +19,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[11-Audio/audio-design-rules]] | Which actions need sound, SoundGroups and mixing, free and licensed audio only. | draft |
 | [[11-Audio/audio-settings-menu]] | SoundGroup tree, sliders, saving, defaults, personalisation extras. | draft |
 | [[11-Audio/satisfying-sfx]] | Layering, pitch variation, rising combos, timing, ducking for reveals. | draft |
+| [[11-Audio/free-sound-sources]] | Kenney CC0 first, Sonniss, Freesound CC0 only; ElevenLabs free plan is not commercial. | draft |

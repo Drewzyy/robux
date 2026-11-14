@@ -26,3 +26,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[10-Art-Environment/no-toolbox-rule]] | No Toolbox free models: hidden malicious scripts. | draft |
 | [[10-Art-Environment/lighting-presets]] | Rojo lighting module, bloom and colour correction cautions, mood presets table. | draft |
 | [[10-Art-Environment/realism-when-needed]] | Stylised by default, PBR via SurfaceAppearance, tint and reuse, trim sheets, mobile tests. | draft |
+| [[10-Art-Environment/rendering-with-blender]] | Cycles with the GPU for icons, thumbnails, and shop previews; EEVEE for quick looks. | draft |
+| [[10-Art-Environment/texture-library]] | Roblox built-in materials plus CC0 Poly Haven textures (colour, normal, roughness, metalness) saved in the vault. | verified |

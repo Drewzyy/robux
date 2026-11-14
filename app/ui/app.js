@@ -153,7 +153,7 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { plans: viewPlans, money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -177,7 +177,7 @@ async function viewHome() {
   const go = el("button", { class: "btn primary", id: "pitch-new", onclick: () => { costCard(box, "pulse", TREND_SCAN, "Pitch Ideas"); setTimeout(() => box.scrollIntoView({ behavior: "smooth" }), 50); } }, "Pitch New Ideas");
   const risk = { low: "pill white", medium: "pill red-soft", high: "pill red" };
   const design = (x) => {
-    state.composer = { ...state.composer, mode: "agent", agent: "architect", prompt: `Design this pitch from Pulse (run ${p.run_id}): ${x.title}. ${x.one_liner} Core verb: ${x.core_verb}. Twist: ${x.twist}. Trend: ${x.trend}. Audience: ${x.audience}. First 60 seconds: ${x.first_60_seconds}. Keep it original: ${x.originality}` };
+    state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Plan this pitch from Pulse (run ${p.run_id}): ${x.title}. ${x.one_liner} Core verb: ${x.core_verb}. Twist: ${x.twist}. Trend: ${x.trend}. Audience: ${x.audience}. First 60 seconds: ${x.first_60_seconds}. Keep it original: ${x.originality}` };
     state.runsTab = "new";
     location.hash = "#runs";
   };
@@ -199,11 +199,47 @@ async function viewHome() {
         el("span", { class: risk[x.policy_risk] || "pill" }, `Policy risk: ${x.policy_risk}`)),
       field("Core verb", x.core_verb), field("Twist", x.twist), field("Why now", x.why_now), field("First 60 seconds", x.first_60_seconds),
       field("Like", x.comps), field("Money", x.monetization), field("Stays original", x.originality),
-      el("div", { class: "inline", style: "margin-top:12px" }, el("button", { class: "btn primary design-this", onclick: () => design(x) }, "Design This"))))),
+      el("div", { class: "inline", style: "margin-top:12px" }, el("button", { class: "btn primary design-this", onclick: () => design(x) }, "Plan This Game"))))),
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
   show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), money ? moneyStrip(money) : null, ...body, box));
+}
+
+// =====================================================================
+// Game Plan: Planner's checklist with mockups. Build only at 100%.
+// =====================================================================
+async function viewPlans(id) {
+  const plans = await invoke("plans_list");
+  if (!plans.length) {
+    show(page(head("Game Plan", "Every part of the game, mocked up, for you to check off before anything is built"),
+      el("div", { class: "card empty", style: "padding:56px 24px" }, el("div", { class: "empty-title" }, "No plans yet"),
+        el("div", {}, "On Home, press Plan This Game on an idea. Planner writes the full plan with mockups of the map, HUD, shop and character effects. Nothing is built until you check every item."))));
+    return;
+  }
+  const p = plans.find((x) => x.run_id === id) || plans[0];
+  const ap = p.approvals || {};
+  const checked = (ap.checked || {}), notes = (ap.notes || {});
+  const bar = el("div", { class: "plan-bar" }, el("div", { class: "plan-fill", style: `width:${p.total ? Math.round((100 * p.done) / p.total) : 0}%` }));
+  const box = el("div", {});
+  const all = p.total > 0 && p.done === p.total;
+  const build = el("button", { class: "btn primary", id: "plan-build", disabled: !all, onclick: () => { state.composer = { ...state.composer, mode: "plan", planRun: p.run_id }; estimate(box); } }, all ? "Build This Game" : `Build This Game · ${p.total - p.done} left to check`);
+  const mockImg = (path) => {
+    const img = el("img", { class: "plan-mock", alt: path });
+    invoke("plan_mock", { runId: p.run_id, path }).then((svg) => { img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }).catch(() => img.replaceWith(el("div", { class: "note" }, `Mockup missing: ${path}`)));
+    return img;
+  };
+  const item = (it) => {
+    const cb = el("input", { type: "checkbox", class: "plan-check", checked: !!checked[it.id], onchange: async () => { await invoke("plan_set", { runId: p.run_id, item: it.id, checked: cb.checked, note: null }).catch((e) => toast(String(e), true)); viewPlans(p.run_id); } });
+    const note = el("textarea", { class: "plan-note", rows: 1, placeholder: "Change request (optional)" }, notes[it.id] || "");
+    note.addEventListener("change", () => invoke("plan_set", { runId: p.run_id, item: it.id, checked: null, note: note.value }).catch((e) => toast(String(e), true)));
+    return el("div", { class: "plan-item" }, el("label", { class: "inline", style: "align-items:flex-start;gap:10px" }, cb, el("span", {}, it.text)), it.mock ? mockImg(it.mock) : null, note);
+  };
+  const others = plans.length > 1 ? el("select", { onchange: (e) => { location.hash = `#plans/${e.target.value}`; } }, plans.map((x) => el("option", { value: x.run_id, selected: x.run_id === p.run_id }, `${x.title} · ${String(x.at || "").slice(0, 10)}`))) : null;
+  show(page(head(p.title, `${p.one_liner} · ${p.done} of ${p.total} checked`, others),
+    el("div", { class: "card" }, bar, el("p", { class: "note" }, "Check each item you are happy with. Write a change request on anything you are not, then ask Planner for a new version from Runs. Building only unlocks at 100%."),
+      el("div", { class: "inline" }, build, el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Revise the plan in runs/${p.run_id}/ (plan.json, plan.md, mockups/). Apply Andrew's change requests in runs/${p.run_id}/approvals.json under "notes". Keep everything else.` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Ask Planner for Changes")), box),
+    ...p.sections.map((s) => el("div", { class: "card plan-sec" }, el("h2", {}, s.title, el("span", { class: "note" }, `  ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`)), s.items.map(item)))));
 }
 
 // =====================================================================
@@ -662,9 +698,31 @@ async function openNote(path) {
     toast(String(e), true);
   }
 }
+// Free CC0 textures from Poly Haven into the vault.
+function texturePanel(tex) {
+  const boxes = tex.groups.map((g) => el("label", { class: "chip" }, el("input", { type: "checkbox", value: g, checked: true }), ` ${g}`));
+  const per = el("select", { id: "tex-per" }, [3, 5, 8, 12].map((n) => el("option", { value: n }, `${n} each`)));
+  per.value = "5";
+  const status = el("div", { class: "hint", id: "tex-status" }, `${tex.count} textures in the vault (10-Art-Environment/texture-library). Free CC0 colour, normal, roughness and metalness maps.`);
+  const go = el("button", { class: "btn primary", id: "tex-download", onclick: async () => {
+    const groups = boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
+    if (!groups.length) { toast("Pick at least one kind.", true); return; }
+    go.disabled = true; status.textContent = "Starting...";
+    try { await invoke("textures_download", { groups, perGroup: parseInt(per.value, 10) }); } catch (e) { go.disabled = false; toast(String(e), true); }
+  } }, "Download Textures");
+  return el("details", { class: "card tex-panel" }, el("summary", { class: "row-title" }, `Texture library · ${tex.count} textures · Powered by Poly Haven`),
+    status, el("div", { class: "chips" }, boxes), el("div", { class: "inline", style: "margin-top:10px" }, per, go));
+}
+T.event.listen("tex-line", (ev) => { const n = $("tex-status"); if (n) n.textContent = `Downloading ${ev.payload.line}`; });
+T.event.listen("tex-done", (ev) => {
+  if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.message);
+  if ((location.hash || "") === "#vault") viewVault();
+});
+
 async function viewVault() {
   await refreshStatus();
   const tree = await invoke("vault_tree");
+  const tex = await invoke("textures_status").catch(() => ({ count: 0, groups: [] }));
   if (!state.vaultSection) state.vaultSection = tree[0] && tree[0].name;
   const sec = tree.find((s) => s.name === state.vaultSection) || tree[0];
   const total = tree.reduce((n, s) => n + s.notes.length, 0);
@@ -692,6 +750,7 @@ async function viewVault() {
   show(page(
     head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle()),
       el("button", { class: "btn secondary", id: "open-obsidian", onclick: () => invoke("app_open", { name: "obsidian" }).catch((e) => toast(String(e), true)) }, "Open in Obsidian")),
+    texturePanel(tex),
     q, results,
     el("div", { class: "vault", id: "vault-browse" },
       el("div", { class: "vsecs" }, tree.map((s) => el("button", { class: s.name === sec.name ? "on" : "", onclick: () => { state.vaultSection = s.name; viewVault(); } }, s.name))),
@@ -770,7 +829,10 @@ async function estimate(box) {
   const c = state.composer;
   box.replaceChildren();
   try {
-    if (c.mode === "agent") {
+    if (c.mode === "plan") {
+      const p = await invoke("plan_build_prepare", { runId: c.planRun });
+      state.prepared = { kind: "pipeline", id: p.pipeline_id, expected: p.expected_usd, low: null, high: p.high_usd, cap: p.cap_usd, assumptions: p.stages.map((s) => `${cap(s.agent)} writes ${s.output}`), note: "Nothing was spent on building until now. Each stage runs under its own cap." };
+    } else if (c.mode === "agent") {
       const r = await invoke("run_prepare", { agent: c.agent, prompt: c.prompt });
       state.prepared = { kind: "run", id: r.run_id, expected: r.estimate.expected_usd, low: r.estimate.low_usd, high: r.estimate.high_usd, cap: r.estimate.cap_usd, assumptions: r.estimate.assumptions, note: `Prices checked ${r.estimate.pricing_checked}. ${r.estimate.subscription_note}` };
     } else {

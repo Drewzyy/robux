@@ -40,6 +40,28 @@
           "instruction": "Test the change described in {out:architect} and built per {out:builder} in {project}. Focus on the first 60 seconds. Report specific problems."
         }
       ]
+    },
+    "plan-to-build": {
+      "description": "Builds a game plan Andrew approved item by item: Builder builds it, Frame does the UI from the mockups, Motion does the character effects, Playtest reports. Lands in the review queue.",
+      "queue_kind": "build",
+      "stages": [
+        {
+          "agent": "builder",
+          "instruction": "{input}\\nBuild it as a Rojo project. Follow the plan's tech section in build order. First line of build.md: Project: projects/<slug from plan.json>"
+        },
+        {
+          "agent": "frame",
+          "instruction": "{input}\\nBuilder's report is at {out:builder} (its first line names the project). Build every UI screen to match the plan's ui mockups and style kit."
+        },
+        {
+          "agent": "motion",
+          "instruction": "{input}\\nBuilder's report is at {out:builder}. Add the animations and character effects the plan lists, matching mockups/character-effects.svg."
+        },
+        {
+          "agent": "playtest",
+          "instruction": "{input}\\nBuilder's report is at {out:builder}. Test the first 60 seconds against the plan. Report specific problems and any plan item that was not built."
+        }
+      ]
     }
   }
 }

@@ -17,6 +17,8 @@ pub mod ollama;
 pub mod settings;
 pub mod studio;
 pub mod studio_mcp;
+pub mod textures;
+pub mod plan;
 pub mod update;
 pub mod paths;
 pub mod pipeline;

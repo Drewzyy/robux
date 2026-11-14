@@ -445,6 +445,7 @@ fn kind_for(agent: &str) -> &'static str {
     match agent {
         "pulse" => "pitch",
         "architect" => "design",
+        "planner" => "plan",
         "builder" | "scenic" | "frame" | "motion" | "crowd" | "tuner" => "build",
         "modeler" => "asset",
         "librarian" => "asset",

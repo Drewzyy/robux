@@ -60,3 +60,6 @@ Checks:
 - no Toolbox free models
 - no trademarked or look-alike characters
 - anything needing Andrew's Studio session is listed under Needs Andrew
+
+## Reference skills
+For engine detail, load these with the Skill tool only when the task needs them: roblox-audio.
