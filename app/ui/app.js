@@ -160,7 +160,7 @@ function runningSubtitle() {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -193,11 +193,11 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
   make: [["plans", "Game Plan"], ["references", "References"], ["runs", "Build"], ["agents", "Team"], ["chat", "Ask Claude"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
-  check: [["review", "Second Opinion"], ["queue", "Review Queue"]],
+  check: [["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -254,9 +254,9 @@ async function viewHome() {
 // =====================================================================
 async function viewDashboard() {
   await freshStatus();
-  const [p, money, plans, rev, queue] = await Promise.all([
+  const [p, money, plans, rev, queue, tune] = await Promise.all([
     invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
-    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
+    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []), invoke("tuneup_get", { force: false }).catch(() => null),
   ]);
   const w = (title, href, ...body) => el("a", { class: "card widget", href }, el("div", { class: "k" }, title), ...body);
   const plan = plans[0];
@@ -286,7 +286,41 @@ async function viewDashboard() {
       w("Building now", "#runs", el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "Nothing running"), el("div", { class: "note" }, "Open to see runs and start one")),
       w("Waiting for you", "#queue", el("div", { class: "v" }, String(waiting)), el("div", { class: "note" }, waiting ? "Items to approve or send back" : "Nothing to review")),
       w("Double-check", "#review", el("div", { class: "v small" }, verdict || "Not checked yet"), el("div", { class: "note" }, last ? last.title : "Have another AI check the code")),
-      w("Thumbnails", "#thumbnails", el("div", { class: "v small" }, "Grade and improve"), el("div", { class: "note" }, "Icons and thumbnails, scored")))));
+      w("Tune-up", "#tuneup", el("div", { class: "v small" }, tune ? (tune.issues ? `${tune.issues} to look at` : "All clean") : "Not run yet"), el("div", { class: "note" }, tune ? `Bugs, lag and map check · ${String(tune.at).slice(0, 10)}` : "Free bug, lag and map check")))));
+}
+
+// =====================================================================
+// Tune-Up: free automatic bug, lag and map checks, plus temp-file cleanup
+// =====================================================================
+async function viewTuneup(arg) {
+  show(page(head("Tune-Up", "Checking your games..."), el("div", { class: "card" }, "Scanning code and maps. This is free and uses no AI.")));
+  let rep;
+  try { rep = await invoke("tuneup_get", { force: arg === "now" }); } catch (e) { show(page(head("Tune-Up"), el("div", { class: "card" }, String(e)))); return; }
+  if (arg === "now") { history.replaceState(null, "", "#tuneup"); }
+  const s = await invoke("settings_get");
+  const every = el("select", { id: "tuneup-days", onchange: async () => { await invoke("settings_save", { value: { ...s, tuneup_days: parseInt(every.value, 10) } }).catch((e) => toast(String(e), true)); toast("Saved."); } },
+    [[0, "Never"], [1, "Every day"], [3, "Every 3 days"], [7, "Every week"], [30, "Every month"]].map(([v, l]) => el("option", { value: v, selected: v === s.tuneup_days }, l)));
+  const runNow = el("button", { class: "btn primary", id: "tuneup-run", onclick: () => viewTuneup("now") }, "Run Tune-Up Now");
+  const sev = { blocker: "pill red", major: "pill red-soft", minor: "pill" };
+  const proj = ([name, p]) => {
+    const m = p.map || {};
+    const fixable = p.findings.some((x) => /Fix Safe Items/.test(x.fix));
+    return el("div", { class: "card" }, el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, name),
+        el("div", { class: "inline" },
+          fixable ? el("button", { class: "btn secondary", onclick: async (e) => { e.target.disabled = true; try { toast(await invoke("tuneup_fix", { project: name })); } catch (err) { toast(String(err), true); } viewTuneup("now"); } }, "Fix Safe Items") : null,
+          p.findings.length ? el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "pipeline", pipeline: "improve-build", project: `projects/${name}`, prompt: "Fix these tune-up findings without changing how the game plays:\n" + p.findings.slice(0, 25).map((x) => `- [${x.severity}] ${x.file}:${x.line} ${x.what}. ${x.fix}`).join("\n") }; state.runsTab = "new"; location.hash = "#runs"; } }, "Have the Team Fix These") : null)),
+      el("div", { class: "note" }, `${p.code.files} code files, ${p.code.lines} lines` + (m.parts !== undefined ? ` · map: ${m.instances} objects, ${m.parts} parts, ${m.lights} lights, ${m.emitters} particle emitters, ${m.scripts} scripts` : "")),
+      p.findings.length ? el("div", { class: "tune-list" }, p.findings.map((x) => el("div", { class: "tune-row" }, el("span", { class: sev[x.severity] || "pill" }, x.severity),
+        el("div", {}, el("div", {}, x.what, el("span", { class: "note" }, x.line ? `  ${x.file}:${x.line}` : `  ${x.file}`)), el("div", { class: "note" }, x.fix)))))
+        : el("p", { style: "margin:10px 0 0" }, "Nothing found. Code and map look clean."));
+  };
+  const entries = rep && rep.projects ? Object.entries(rep.projects) : [];
+  show(page(head("Tune-Up", rep ? `Last run ${String(rep.at).slice(0, 16).replace("T", " ")} · ${rep.issues} thing${rep.issues === 1 ? "" : "s"} to look at` : "Not run yet", runNow),
+    el("div", { class: "card" }, el("p", { class: "note", style: "margin-top:0" }, "Free and automatic, no AI: looks for code that causes bugs or lag, reviews each map for heavy parts, lights and effects, and clears old temp files (raw run logs over 30 days, old update installers). Your games, plans and reports are never deleted."),
+      el("div", { class: "inline" }, el("label", { for: "tuneup-days" }, "Run automatically"), every),
+      rep && rep.cleaned_files ? el("div", { class: "note", style: "margin-top:8px" }, `Cleared ${rep.cleaned_files} old temp file(s), ${rep.cleaned_mb} MB.`) : null),
+    ...entries.map(proj),
+    rep && !entries.length ? el("div", { class: "card" }, "No game projects yet.") : null));
 }
 
 // =====================================================================

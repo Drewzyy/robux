@@ -622,6 +622,26 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 1
             }
         }),
+        ["tuneup"] => Some(match crate::paths::studio_root().and_then(|r| crate::tuneup::run(&r)) {
+            Ok(v) => {
+                println!("{}", serde_json::to_string_pretty(&v).unwrap());
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
+        ["tuneup-fix", project] => Some(match crate::paths::studio_root().and_then(|r| crate::tuneup::fix(&r, project)) {
+            Ok(m) => {
+                println!("{m}");
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
         ["selftest-handoff", ..] | ["selftest-ping", ..] => crate::update::selftest_cli(&a),
         ["selftest-install", app] => Some(match crate::apps::install(app, &mut |l| println!("{l}")) {

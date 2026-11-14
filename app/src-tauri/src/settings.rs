@@ -66,6 +66,9 @@ pub struct Settings {
     /// uvx), or "mock" (built-in stand-in).
     #[serde(default = "default_studio_mcp")]
     pub blender_mcp: String,
+    /// Days between automatic tune-ups (0 turns them off).
+    #[serde(default = "default_tuneup_days")]
+    pub tuneup_days: u32,
     /// Figma login connection for the UI agents (off by default).
     #[serde(default)]
     pub figma_mcp: bool,
@@ -86,6 +89,9 @@ pub struct Settings {
 }
 fn default_rate() -> f64 {
     crate::earnings::STANDARD_RATE
+}
+fn default_tuneup_days() -> u32 {
+    7
 }
 fn default_studio_mcp() -> String {
     "off".into()
@@ -109,6 +115,7 @@ impl Default for Settings {
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
             figma_mcp: false,
+            tuneup_days: default_tuneup_days(),
             claude_path: String::new(),
             tools_dir: String::new(),
             app_dirs: Default::default(),

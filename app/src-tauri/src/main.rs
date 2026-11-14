@@ -548,6 +548,27 @@ async fn review_reveal(id: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Latest tune-up report; runs one first when it is due (free, no AI).
+#[tauri::command]
+async fn tuneup_get(force: bool) -> Result<Value, String> {
+    let r = root()?;
+    let days = settings::load().tuneup_days;
+    tauri::async_runtime::spawn_blocking(move || {
+        if force {
+            return studio_core::tuneup::run(&r);
+        }
+        Ok(studio_core::tuneup::run_if_due(&r, days).unwrap_or_else(|| studio_core::tuneup::latest(&r)))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn tuneup_fix(project: String) -> Result<String, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::tuneup::fix(&r, &project)).await.map_err(|e| e.to_string())?
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -669,6 +690,8 @@ fn main() {
             plan_mock,
             plan_build_prepare,
             plan_to_figma,
+            tuneup_get,
+            tuneup_fix,
             reviews_list,
             review_start,
             review_answer,

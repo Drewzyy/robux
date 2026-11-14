@@ -42,7 +42,7 @@ d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set
 view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
-    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 6, view()[:60])
+    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 6, view()[:60])
     check("Dashboard shows one next step", len(d.find_elements(By.ID, "next-step")) == 1 and "Next step" in view() or "NEXT STEP" in view())
     d.find_element(By.ID, "search-hint").click(); time.sleep(0.5)
     d.find_element(By.ID, "palette-input").send_keys("thumb"); time.sleep(0.5)
@@ -78,6 +78,9 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(1)
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: false, note: null}); done(); })();""")
+    d.execute_script("location.hash='#tuneup/now'"); time.sleep(8)
+    check("Tune-Up scans the game's code and map", "dawn-watch" in view() and "code files" in view() and "parts" in view() and len(d.find_elements(By.ID, "tuneup-run")) == 1, view()[:120].replace("\n", " "))
+    d.save_screenshot(str(SHOTS / "ui-tuneup.png"))
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Settings offers the optional Figma login", "Figma (optional login)" in view() and "no login, no limits" in view())
     d.execute_script("location.hash='#review'"); time.sleep(2.5)
