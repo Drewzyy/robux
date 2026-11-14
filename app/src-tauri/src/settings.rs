@@ -73,6 +73,16 @@ pub struct Settings {
     /// Python packages, the Blender add-on). Empty means <studio>/tools.
     #[serde(default)]
     pub tools_dir: String,
+    /// Chosen install folders per app ("claude", "blender", "obsidian").
+    /// Empty or missing means a folder inside the Downloads folder.
+    #[serde(default)]
+    pub app_dirs: std::collections::BTreeMap<String, String>,
+    /// US dollars per Earned Robux for the Money page (DevEx standard rate).
+    #[serde(default = "default_rate")]
+    pub devex_rate: f64,
+}
+fn default_rate() -> f64 {
+    crate::earnings::STANDARD_RATE
 }
 fn default_studio_mcp() -> String {
     "off".into()
@@ -97,6 +107,8 @@ impl Default for Settings {
             blender_mcp: default_studio_mcp(),
             claude_path: String::new(),
             tools_dir: String::new(),
+            app_dirs: Default::default(),
+            devex_rate: default_rate(),
         }
     }
 }
@@ -136,6 +148,9 @@ pub fn validate(s: &Settings) -> Result<(), String> {
     }
     if s.engine == "ollama" && s.ollama_model.trim().is_empty() {
         return Err("Type the local model's name (for example qwen3-coder) before switching to Ollama.".into());
+    }
+    if !(s.devex_rate.is_finite() && s.devex_rate > 0.0 && s.devex_rate < 1.0) {
+        return Err("the Robux rate must be a small positive number, like 0.0038".into());
     }
     if !["off", "studio", "mock"].contains(&s.studio_mcp.as_str()) {
         return Err("Studio connection must be off, studio, or mock".into());

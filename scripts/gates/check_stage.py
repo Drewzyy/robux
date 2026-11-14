@@ -107,6 +107,16 @@ def splash_checks(text, out_path):
     return r
 
 
+UI_SOUNDS = [
+    ("press", r"click|press|tap|button"),
+    ("open", r"open|whoosh.?up|panel.?in"),
+    ("close", r"close|whoosh.?down|panel.?out"),
+    ("purchase", r"purchase|buy|bought"),
+    ("reward", r"reward|level.?up|unlock|win"),
+    ("error", r"error|deny|denied|not.?enough|fail"),
+]
+
+
 def sounds_checks(text, project):
     """Validate projects/<game>/sounds.json (the ForgeGUI request sheet)."""
     proj = project or (re.search(r"projects/[A-Za-z0-9_-]+", text) or [None])[0]
@@ -130,6 +140,9 @@ def sounds_checks(text, project):
     out.append(c("every sound has id, event, prompt", not bad_shape, ", ".join(bad_shape) or "all"))
     out.append(c("asset ids are null or rbxassetid://<number>", not bad_id, ", ".join(bad_id) or "all valid"))
     out.append(c("sound ids are unique", not dup, ", ".join(dup) or "unique"))
+    text_of = lambda v: f"{v.get('id') or ''} {v.get('event') or ''}".lower() if isinstance(v, dict) else ""
+    missing = [name for name, pat in UI_SOUNDS if not any(re.search(pat, text_of(v)) for v in sounds)]
+    out.append(c("UI sound set covered (press, open, close, purchase, reward, error)", not missing, "all six" if not missing else "missing: " + ", ".join(missing)))
     out.append(c("first 60 seconds has sounds requested", any(s.get("first_60_seconds") for s in sounds if isinstance(s, dict))))
     return out
 
@@ -208,6 +221,7 @@ def check(agent, text, project, out_path=None):
         r.append(c("has a Blocked section", heading(text, "blocked")))
         r.append(c("ends in the review queue", has(text, r"review queue")))
     elif agent == "architect":
+        r.append(c("style kit section", heading(text, "style kit")))
         r.append(c("core loop section", heading(text, "core loop")))
         r.append(c("first 60 seconds section", heading(text, "first 60")))
         windows = all(has(text, w) for w in [r"0\s*[-–]\s*5", r"5\s*[-–]\s*10", r"10\s*[-–]\s*30", r"30\s*[-–]\s*(45|60)"])
@@ -235,6 +249,7 @@ def check(agent, text, project, out_path=None):
         # live play cannot be true until Studio is wired in. Fail it.
         r.append(c("does not claim live play it could not do", not claims, "claims live play in Studio" if claims else "headless or code walk (says so)"))
     elif agent == "merchant":
+        r.append(c("prompt budget section", heading(text, "prompt budget")))
         r.append(c("catalog present", heading(text, "catalog")))
         r.append(c("do-not-sell check present", heading(text, "do-not-sell|do not sell")))
     elif agent == "librarian":

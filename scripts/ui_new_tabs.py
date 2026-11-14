@@ -50,6 +50,37 @@ try:
     d.find_elements(By.CSS_SELECTOR, ".design-this")[0].click(); time.sleep(2.5)
     pr = d.find_element(By.ID, "prompt").get_attribute("value")
     check("Design This opens Architect with the pitch", "Design this pitch from Pulse" in pr, pr[:80])
+    d.execute_script("location.hash='#money'"); time.sleep(2.5)
+    d.find_element(By.ID, "money-game").send_keys("Test Game")
+    d.find_element(By.ID, "money-robux").send_keys("30000")
+    d.find_element(By.ID, "money-add").click(); time.sleep(2.5)
+    check("Money converts 30,000 Robux to $114.00", "$114.00" in view() and "Test Game" in view(), view()[:160].replace("\n", " "))
+    d.save_screenshot(str(SHOTS / "ui-money.png"))
+    d.execute_script("location.hash='#home'"); time.sleep(2.5)
+    check("Home shows the money strip", len(d.find_elements(By.ID, "money-strip")) == 1 and "made this month" in view().lower())
+    d.execute_script("location.hash='#money'"); time.sleep(2.5)
+    d.execute_script("document.querySelector('details.sources').open = true"); time.sleep(0.5)
+    for b in d.find_elements(By.XPATH, "//details[contains(@class,'sources')]//button[text()='Delete']"):
+        b.click(); time.sleep(2); break
+    check("deleting an earnings entry works", "Test Game" not in view())
+    d.execute_script("location.hash='#references'"); time.sleep(2.5)
+    n0 = len(d.find_elements(By.CSS_SELECTOR, ".card.ref"))
+    d.find_element(By.ID, "ref-note").send_keys("round friendly eyes")
+    err = d.execute_async_script("""
+      const done = arguments[0];
+      const c = document.createElement('canvas'); c.width = 64; c.height = 40;
+      const g = c.getContext('2d'); g.fillStyle = '#FF3B30'; g.fillRect(0, 0, 64, 40);
+      window.__TAURI__.core.invoke('refs_add', { project: document.getElementById('project-pick').value, name: 'test-ref.png', data: c.toDataURL('image/png'), category: 'Character', note: document.getElementById('ref-note').value, source: 'ui test' })
+        .then(() => done('')).catch((e) => done(String(e)));
+    """)
+    d.execute_script("location.hash='#home'"); time.sleep(1); d.execute_script("location.hash='#references'"); time.sleep(2.5)
+    cards = d.find_elements(By.CSS_SELECTOR, ".card.ref")
+    notefile = ROOT / "vault/19-Project-Memory/dawn-watch-references.md"
+    check("reference image lands in the vault note and the grid", not err and len(cards) == n0 + 1 and notefile.is_file() and "Use: round friendly eyes" in notefile.read_text(), err or f"{n0}->{len(cards)}")
+    d.save_screenshot(str(SHOTS / "ui-references.png"))
+    rm = d.find_elements(By.XPATH, "//div[contains(@class,'ref')]//button[text()='Remove']")
+    if rm: rm[0].click(); time.sleep(2)
+    check("removing a reference works", len(d.find_elements(By.CSS_SELECTOR, ".card.ref")) == n0)
     d.execute_script("location.hash='#chat'"); time.sleep(2)
     for b in d.find_elements(By.XPATH, "//button[text()='New Chat']"): b.click(); time.sleep(1.5)
     d.save_screenshot(str(SHOTS / "ui-chat-empty.png"))

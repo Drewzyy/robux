@@ -8,6 +8,7 @@ pub mod blender_mcp;
 pub mod bridge;
 pub mod budget;
 pub mod chat;
+pub mod earnings;
 pub mod claude;
 pub mod cost;
 pub mod gates;
@@ -20,6 +21,7 @@ pub mod update;
 pub mod paths;
 pub mod pipeline;
 pub mod queue;
+pub mod references;
 pub mod runs;
 pub mod search;
 

@@ -378,6 +378,13 @@ async fn pitches_latest() -> Result<Value, String> {
     Ok(studio::latest_pitches(&root()?))
 }
 
+/// The system's folder picker; returns the chosen folder or nothing.
+#[tauri::command]
+async fn pick_folder(app: AppHandle) -> Option<String> {
+    use tauri_plugin_dialog::DialogExt;
+    app.dialog().file().blocking_pick_folder().map(|f| f.to_string())
+}
+
 #[tauri::command]
 async fn apps_status() -> studio_core::apps::Status {
     studio_core::apps::status()
@@ -399,6 +406,46 @@ async fn app_install(app: AppHandle, name: String) -> Result<(), String> {
 #[tauri::command]
 async fn app_open(name: String) -> Result<(), String> {
     studio_core::apps::open(&name, &root()?.join("vault"))
+}
+
+#[tauri::command]
+async fn refs_list(project: String) -> Result<Vec<studio_core::references::Reference>, String> {
+    studio_core::references::list(&root()?, &project)
+}
+
+#[tauri::command]
+async fn refs_add(project: String, name: String, data: String, category: String, note: String, source: String) -> Result<studio_core::references::Reference, String> {
+    studio_core::references::add(&root()?, &project, &name, &data, &category, &note, &source)
+}
+
+#[tauri::command]
+async fn refs_remove(project: String, file: String) -> Result<(), String> {
+    studio_core::references::remove(&root()?, &project, &file)
+}
+
+#[tauri::command]
+async fn refs_image(project: String, file: String) -> Result<String, String> {
+    studio_core::references::image(&root()?, &project, &file)
+}
+
+#[tauri::command]
+async fn money_summary() -> Result<studio_core::earnings::Summary, String> {
+    Ok(studio_core::earnings::summary(&root()?, settings::load().devex_rate, chrono::Local::now().date_naive()))
+}
+
+#[tauri::command]
+async fn money_add(date: String, game: String, robux: i64, note: String) -> Result<(), String> {
+    studio_core::earnings::add(&root()?, studio_core::earnings::Entry { date, game, robux, note })
+}
+
+#[tauri::command]
+async fn money_remove(index: usize) -> Result<(), String> {
+    studio_core::earnings::remove(&root()?, index)
+}
+
+#[tauri::command]
+async fn money_import(text: String, game: String) -> Result<usize, String> {
+    studio_core::earnings::import_csv(&root()?, &text, &game)
 }
 
 // ---------- simulator and thumbnails ----------
@@ -467,6 +514,7 @@ fn main() {
         }
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             studio_info,
             claude_status,
@@ -511,6 +559,15 @@ fn main() {
             tools_dir_get,
             pitches_latest,
             apps_status,
+            pick_folder,
+            refs_list,
+            money_summary,
+            money_add,
+            money_remove,
+            money_import,
+            refs_add,
+            refs_remove,
+            refs_image,
             app_install,
             app_open,
             ollama_pull,

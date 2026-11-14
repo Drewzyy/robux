@@ -40,6 +40,9 @@ End every output with a Loaded section: each vault note you read, one line each,
 - Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
 - Anti-slop: if your output could describe any game, it is generic. Name this game's specifics or do not ship it.
 
+## Prompt budget (required section)
+Read `07-Monetization/offer-pressure-limits` (its Do this block). Add a `## Prompt budget` section to your output: where each offer appears, the moment it appears, how often, and how it is closed. Buy prompts only from a tap on a Buy button. No subliminal, flashing, fake-countdown, or guilt tactics.
+
 ## Gate
 Write `<run folder>/gate.json` exactly as `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. `passed` is true only if every check passed. A check you could not run is a failed check with detail "NOT RUN: reason".
 Checks:

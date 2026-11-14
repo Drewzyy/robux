@@ -22,3 +22,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[17-Development-Templates/pitch-template]] | Pulse's pitch format: idea, evidence, rising-game comps, risk, score. | draft |
 | [[17-Development-Templates/agent-output-format]] | Every agent output: header, what was loaded, the work, gate results, open questions. | verified |
 | [[17-Development-Templates/mvp-build-order]] | Build order for a new game and for the vault itself. | draft |
+| [[17-Development-Templates/style-kit-template]] | Style kit every design doc fills: palette, fonts, motion, UI sounds, lighting, accessibility, offers. | verified |

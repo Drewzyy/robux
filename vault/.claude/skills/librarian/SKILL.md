@@ -49,6 +49,9 @@ End every output with a Loaded section: each vault note you read, one line each,
 - Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
 - Anti-slop: if your output could describe any game, it is generic. Name this game's specifics or do not ship it.
 
+## UI sound set (required)
+sounds.json must include the UI set from `08-UI-UX/ui-sound-pairing`: button press, panel open, panel close, purchase success, reward, and error, plus a sound for every animation moment the design names (hits, pickups, level ups). Follow `11-Audio/satisfying-sfx` for each prompt.
+
 ## Gate
 Write `<run folder>/gate.json` exactly as `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. `passed` is true only if every check passed. A check you could not run is a failed check with detail "NOT RUN: reason".
 Checks:

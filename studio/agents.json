@@ -80,7 +80,12 @@
         "07-Monetization",
         "01-Roblox-Fundamentals",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "17-Development-Templates",
+        "08-UI-UX",
+        "09-Animation-VFX",
+        "10-Art-Environment",
+        "11-Audio"
       ],
       "output": "design.md",
       "role": "Game Designer"

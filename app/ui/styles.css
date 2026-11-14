@@ -251,3 +251,16 @@ input.search:focus { outline: none; border-color: #FF3B30; box-shadow: 0 0 0 3px
 details.sources { margin-top: 16px; color: #8E8E93; font-size: 13px; }
 details.sources li { word-break: break-all; }
 .warn-card { border-color: rgba(255, 59, 48, .45); background: rgba(255, 59, 48, .08); margin-bottom: 14px; color: #E5E5EA; }
+
+/* References */
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+.card.ref img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 8px; background: #111; display: block; }
+
+/* Money */
+.money-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 14px; padding: 16px 18px; margin-bottom: 16px; cursor: pointer; }
+.money-strip .k { color: #8E8E93; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.money-strip .v { font-size: 22px; font-weight: 600; margin: 2px 0; }
+.money-strip .v.small { font-size: 16px; }
+.month-bars { display: flex; align-items: flex-end; gap: 8px; height: 140px; margin-top: 12px; }
+.mbar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.mbar .fill { width: 100%; max-width: 46px; background: #FF3B30; border-radius: 6px 6px 2px 2px; min-height: 2px; }

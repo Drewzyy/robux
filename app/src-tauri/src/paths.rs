@@ -81,7 +81,7 @@ pub fn claude_bin() -> Result<PathBuf, String> {
         }
         return Err(format!("The Claude Code location in Settings ({}) is not a file.", p.display()));
     }
-    let mut candidates: Vec<PathBuf> = vec![tools_dir().join("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" })];
+    let mut candidates: Vec<PathBuf> = vec![app_dir("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" })];
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
             candidates.push(dir.join("claude"));
@@ -189,4 +189,19 @@ pub fn tools_dir() -> PathBuf {
         return expand_home(custom.trim());
     }
     studio_root().map(|r| r.join("tools")).unwrap_or_else(|_| home().unwrap_or_default().join("BrewixGames").join("tools"))
+}
+
+/// Install folder for one app: the folder chosen for it in Settings, or
+/// <Downloads folder>/<default name>.
+pub fn app_dir(app: &str) -> PathBuf {
+    let chosen = crate::settings::load().app_dirs.get(app).cloned().unwrap_or_default();
+    if !chosen.trim().is_empty() {
+        return expand_home(chosen.trim());
+    }
+    let default = match app {
+        "blender" => "blender-app",
+        "obsidian" => "obsidian-app",
+        other => other,
+    };
+    tools_dir().join(default)
 }

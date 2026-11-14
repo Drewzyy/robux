@@ -153,7 +153,7 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -172,6 +172,7 @@ const TREND_SCAN = "Trend scan: study the top 100 Roblox experiences right now a
 async function viewHome() {
   await refreshStatus();
   const p = await invoke("pitches_latest").catch(() => null);
+  const money = await invoke("money_summary").catch(() => null);
   const box = el("div", { id: "pitch-cost" });
   const go = el("button", { class: "btn primary", id: "pitch-new", onclick: () => { costCard(box, "pulse", TREND_SCAN, "Pitch Ideas"); setTimeout(() => box.scrollIntoView({ behavior: "smooth" }), 50); } }, "Pitch New Ideas");
   const risk = { low: "pill white", medium: "pill red-soft", high: "pill red" };
@@ -202,8 +203,133 @@ async function viewHome() {
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
-  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
+  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), money ? moneyStrip(money) : null, ...body, box));
 }
+
+// =====================================================================
+// Money: Robux earned, converted to dollars at the DevEx rate
+// =====================================================================
+const robux = (n) => `${Math.round(n).toLocaleString()} R$`;
+const dollars = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function moneyStrip(m) {
+  return el("div", { class: "money-strip", id: "money-strip", onclick: () => (location.hash = "#money") },
+    el("div", {}, el("div", { class: "k" }, "Made this month"), el("div", { class: "v" }, dollars(m.this_month_usd)), el("div", { class: "note" }, robux(m.this_month_robux))),
+    el("div", {}, el("div", { class: "k" }, "All time"), el("div", { class: "v" }, dollars(m.total_usd)), el("div", { class: "note" }, robux(m.total_robux))),
+    el("div", {}, el("div", { class: "k" }, "Last 30 days"), el("div", { class: "v" }, dollars(m.last_30_robux * m.rate)), el("div", { class: "note" }, robux(m.last_30_robux))),
+    el("div", {}, el("div", { class: "k" }, "Best game"), el("div", { class: "v small" }, m.per_game[0] ? m.per_game[0][0] : "None yet"), el("div", { class: "note" }, m.per_game[0] ? dollars(m.per_game[0][2]) : "")));
+}
+async function viewMoney() {
+  await refreshStatus();
+  const m = await invoke("money_summary");
+  const today = new Date().toISOString().slice(0, 10);
+  const date = el("input", { type: "date", id: "money-date", value: today });
+  const game = el("input", { type: "text", id: "money-game", placeholder: "Game name" });
+  const amt = el("input", { type: "number", id: "money-robux", placeholder: "Robux earned", min: "0" });
+  const csv = el("input", { type: "file", accept: ".csv,text/csv", style: "display:none", onchange: async () => {
+    const f = csv.files[0]; if (!f) return;
+    try { const n = await invoke("money_import", { text: await f.text(), game: game.value.trim() || "My game" }); toast(`Imported ${n} new rows.`); viewMoney(); } catch (e) { toast(String(e), true); }
+  } });
+  const max = Math.max(1, ...m.per_month.map((x) => x[1]));
+  const pct = Math.min(100, (m.total_robux / m.devex_minimum) * 100);
+  const delEntry = async (i) => { await invoke("money_remove", { index: i }); viewMoney(); };
+  show(page(head("Money", el("span", {}, `Robux converted at $${m.rate} per Robux (Roblox's standard DevEx rate) · `, runningSubtitle())),
+    moneyStrip(m),
+    el("div", { class: "card" }, el("div", { class: "row-title" }, "Cash-out progress"),
+      el("div", { class: "hint" }, `Roblox pays out from ${m.devex_minimum.toLocaleString()} earned Robux (${dollars(m.devex_minimum * m.rate)}). You have ${robux(m.total_robux)} recorded.`),
+      el("div", { class: "bar", style: "margin-top:10px" }, el("div", { style: `width:${pct}%` }))),
+    m.per_month.length ? el("div", { class: "card" }, el("div", { class: "row-title" }, "By month"),
+      el("div", { class: "month-bars" }, m.per_month.map(([mo, r, u]) => el("div", { class: "mbar", title: `${robux(r)} · ${dollars(u)}` }, el("div", { class: "fill", style: `height:${(r / max) * 100}%` }), el("div", { class: "note" }, mo.slice(2)))))) : null,
+    m.per_game.length ? el("div", { class: "list" }, m.per_game.map(([g, r, u]) => el("div", { class: "srow" }, el("div", { class: "grow label" }, g), el("span", { class: "note" }, robux(r)), el("span", { class: "v small", style: "margin-left:16px" }, dollars(u))))) : null,
+    el("div", { class: "card" }, el("div", { class: "row-title" }, "Add earnings"),
+      el("div", { class: "hint" }, "Type what Roblox's Creator Dashboard shows, or import its CSV export. BrewixGames never signs in to Roblox."),
+      el("div", { class: "inline", style: "gap:8px;margin-top:10px;flex-wrap:wrap" }, date, game, amt,
+        el("button", { class: "btn primary", id: "money-add", onclick: async () => {
+          try { await invoke("money_add", { date: date.value, game: game.value, robux: parseInt(amt.value || "0", 10), note: "" }); toast("Added."); viewMoney(); } catch (e) { toast(String(e), true); }
+        } }, "Add"),
+        el("button", { class: "btn secondary", onclick: () => csv.click() }, "Import CSV"), csv)),
+    m.entries.length ? el("details", { class: "sources" }, el("summary", {}, `All entries (${m.entries.length})`),
+      el("div", { class: "list" }, m.entries.map((e, i) => el("div", { class: "srow" }, el("div", { class: "grow" }, `${e.date} · ${e.game}`), el("span", { class: "note" }, robux(e.robux)),
+        el("button", { class: "link", style: "margin-left:12px", onclick: () => delEntry(i) }, "Delete"))).reverse())) : null));
+}
+
+// =====================================================================
+// References: images and video frames for a game, filed into the vault
+// =====================================================================
+const REF_CATS = ["Character", "Model", "Environment", "UI", "Animation", "Effects", "Sound and music", "Other"];
+state.refCat = "Character";
+async function viewReferences() {
+  await refreshStatus();
+  const pick = await projectPicker(viewReferences);
+  const project = state.project;
+  const refs = project ? await invoke("refs_list", { project }).catch(() => []) : [];
+  const cat = el("select", { id: "ref-cat" }, REF_CATS.map((c) => el("option", { value: c }, c)));
+  cat.value = state.refCat; cat.addEventListener("change", () => (state.refCat = cat.value));
+  const note = el("textarea", { id: "ref-note", placeholder: "What should the team take from this? (for example: the round friendly eyes, the glowing trim, this camera angle)", style: "min-height:56px" });
+  const add = async (name, data, source) => {
+    if (!project) { toast("Choose a game first.", true); return; }
+    try { await invoke("refs_add", { project, name, data, category: cat.value, note: note.value, source }); toast("Added to the vault and the game folder."); }
+    catch (e) { toast(String(e), true); }
+  };
+  const readFile = (f) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
+  const files = el("input", { type: "file", id: "ref-files", accept: "image/png,image/jpeg,image/webp", multiple: true, style: "display:none", onchange: async () => {
+    for (const f of files.files) await add(f.name, await readFile(f), `added from ${f.name}`);
+    viewReferences();
+  } });
+  // Video: play it here and grab frames; frames are what agents can look at.
+  const video = el("video", { id: "ref-video", controls: true, style: "width:100%;max-height:300px;display:none;border-radius:10px;background:#000" });
+  let videoName = "";
+  const vfile = el("input", { type: "file", id: "ref-video-file", accept: "video/*", style: "display:none", onchange: () => {
+    const f = vfile.files[0]; if (!f) return;
+    videoName = f.name; video.src = URL.createObjectURL(f); video.style.display = ""; grabRow.style.display = "";
+  } });
+  const grab = async () => {
+    const c = document.createElement("canvas"); c.width = video.videoWidth; c.height = video.videoHeight;
+    c.getContext("2d").drawImage(video, 0, 0);
+    const t = video.currentTime, mm = String(Math.floor(t / 60)).padStart(2, "0"), ss = String(Math.floor(t % 60)).padStart(2, "0");
+    await add(`${videoName}-${mm}${ss}.png`, c.toDataURL("image/png"), `frame ${mm}:${ss} of ${videoName}`);
+  };
+  const seek = (t) => new Promise((ok) => { video.onseeked = () => ok(); video.currentTime = t; });
+  const grabRow = el("div", { class: "inline", style: "display:none;margin-top:10px" },
+    el("button", { class: "btn secondary", id: "ref-grab", onclick: async () => { await grab(); viewReferences(); } }, "Grab This Frame"),
+    el("button", { class: "btn secondary", id: "ref-grab8", onclick: async (ev) => {
+      ev.target.disabled = true; video.pause();
+      for (let i = 1; i <= 8; i++) { await seek((video.duration * i) / 9); await grab(); }
+      viewReferences();
+    } }, "Grab 8 Frames Across the Video"));
+  const grid = el("div", { class: "ref-grid" }, refs.slice().reverse().map((r) => {
+    const img = el("img", { alt: r.note || r.file });
+    invoke("refs_image", { project, file: r.file }).then((d) => (img.src = d)).catch(() => {});
+    return el("div", { class: "card ref" }, img,
+      el("div", { class: "inline", style: "justify-content:space-between;margin-top:8px" }, el("span", { class: "pill" }, r.category),
+        el("button", { class: "link", onclick: async () => { await invoke("refs_remove", { project, file: r.file }); viewReferences(); } }, "Remove")),
+      r.note ? el("div", { class: "hint", style: "margin-top:6px" }, r.note) : null,
+      r.source ? el("div", { class: "note", style: "margin-top:4px" }, r.source) : null);
+  }));
+  show(page(head("References", el("span", {}, `Images and video frames the team uses for look and ideas · ${refs.length} for this game · `, runningSubtitle()), pick),
+    el("div", { class: "card", id: "ref-drop" },
+      el("div", { class: "inline", style: "gap:12px;align-items:flex-start;flex-wrap:wrap" },
+        el("div", { class: "field", style: "width:200px" }, el("label", { for: "ref-cat" }, "What it is for"), cat),
+        el("div", { class: "field grow" }, el("label", { for: "ref-note" }, "What to take from it"), note)),
+      el("div", { class: "inline", style: "gap:10px;flex-wrap:wrap" },
+        el("button", { class: "btn primary", onclick: () => files.click() }, "Add Images"),
+        el("button", { class: "btn secondary", onclick: () => vfile.click() }, "Add a Video"),
+        el("span", { class: "note" }, "Or paste an image anywhere on this page (Ctrl+V). Everything goes into the vault (19-Project-Memory) and the game's references folder.")),
+      files, vfile, el("div", { style: "margin-top:12px" }, video, grabRow)),
+    refs.length ? grid : el("div", { class: "empty", style: "padding:40px 20px" }, el("div", { class: "empty-title" }, "No references yet"), el("div", {}, "Paste a screenshot, add images, or grab frames from a video. Modeler, Architect, Frame, Scenic, Motion and Director look at them before they work."))));
+}
+document.addEventListener("paste", async (e) => {
+  if ((location.hash || "") !== "#references") return;
+  const items = [...(e.clipboardData || {}).items || []].filter((i) => i.type.startsWith("image/"));
+  if (!items.length) return;
+  e.preventDefault();
+  for (const it of items) {
+    const f = it.getAsFile();
+    const data = await new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
+    try { await invoke("refs_add", { project: state.project, name: "pasted.png", data, category: ($("ref-cat") || {}).value || "Other", note: ($("ref-note") || {}).value || "", source: "pasted" }); toast("Pasted image added to the vault."); }
+    catch (err) { toast(String(err), true); }
+  }
+  viewReferences();
+});
 
 // =====================================================================
 // 1. Review queue
@@ -816,14 +942,23 @@ T.event.listen("ollama-done", (ev) => {
 });
 
 // One app (Blender or Obsidian) living in the Downloads folder.
-function appRow(id, name, path, canInstall, hint) {
-  const status = el("div", { class: "hint", id: `app-${id}-status` }, path ? `Installed: ${path}` : hint);
+async function chooseAppFolder(id, label) {
+  const f = await invoke("pick_folder");
+  if (!f) return;
+  const s = await invoke("settings_get");
+  await invoke("settings_save", { value: { ...s, app_dirs: { ...(s.app_dirs || {}), [id]: f } } });
+  toast(`${label} will install in ${f}.`);
+  viewSettings();
+}
+function appRow(id, name, path, canInstall, hint, dir) {
+  const status = el("div", { class: "hint", id: `app-${id}-status` }, path ? `Installed: ${path}` : `${hint} Folder: ${dir || ""}`);
   const install = canInstall ? el("button", { class: path ? "btn secondary" : "btn primary", id: `app-${id}-install`, onclick: async (ev) => {
     ev.target.disabled = true; status.textContent = "Starting...";
     try { await invoke("app_install", { name: id }); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
   } }, path ? "Reinstall" : "Install Here") : null;
   const open = path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
-  return el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, name), status), el("div", { class: "inline" }, install, open));
+  const pick = el("button", { class: "btn secondary", id: `app-${id}-pick`, onclick: () => chooseAppFolder(id, name) }, "Choose Folder");
+  return el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, name), status), el("div", { class: "inline" }, pick, install, open));
 }
 T.event.listen("app-line", (ev) => { const n = $(`app-${ev.payload.app}-status`); if (n) n.textContent = ev.payload.line; });
 T.event.listen("app-done", (ev) => {
@@ -868,6 +1003,7 @@ async function viewSettings() {
         el("div", { class: "inline" },
           el("input", { type: "text", id: "claude-path", style: "width:220px", placeholder: "claude location (optional)", value: s.claude_path || "" }),
           el("button", { class: "btn secondary", onclick: async () => { await save({ claude_path: $("claude-path").value.trim() }, "Saved. Checking Claude..."); await refreshStatus(); viewSettings(); } }, "Save"),
+          el("button", { class: "btn secondary", id: "app-claude-pick", title: (ap.dirs || {}).claude || "", onclick: () => chooseAppFolder("claude", "Claude Code") }, "Choose Folder"),
           el("button", { class: c.version ? "btn secondary" : "btn primary", id: "claude-install", title: "Puts BrewixGames' copy of Claude Code in the Downloads folder (installs it first if needed).", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = c.version ? "Copying..." : "Installing..."; try { toast(await invoke("claude_install")); } catch (e) { toast(String(e), true); } await refreshClaude(); viewSettings(); } }, c.version ? "Refresh Copy" : "Install")))
     ),
 
@@ -879,8 +1015,8 @@ async function viewSettings() {
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Apps in your Downloads folder"),
       el("div", { class: "list" },
-        appRow("blender", "Blender", ap.blender, ap.can_install, "Portable Blender 5.2 LTS: the program, its settings and the MCP for Blender add-on all stay in the Downloads folder."),
-        appRow("obsidian", "Obsidian", ap.obsidian, ap.can_install, "Obsidian for browsing the vault. Installed into the Downloads folder if its installer accepts it (BrewixGames checks)."),
+        appRow("blender", "Blender", ap.blender, ap.can_install, "Portable Blender 5.2 LTS: the program, its settings and the MCP for Blender add-on all stay in its folder.", (ap.dirs || {}).blender),
+        appRow("obsidian", "Obsidian", ap.obsidian, ap.can_install, "Obsidian for browsing the vault. Installed into its folder if its installer accepts it (BrewixGames checks).", (ap.dirs || {}).obsidian),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Roblox Studio"),
           el("div", { class: "hint" }, "Roblox always installs Studio in your user folder on C:, with no option to choose. Moving it with folder tricks is reported to break Studio on updates, so BrewixGames leaves it where Roblox puts it."))))),
 
@@ -929,6 +1065,7 @@ async function viewSettings() {
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Downloads folder"),
             el("div", { class: "hint" }, `Everything BrewixGames downloads goes here: its copy of Claude Code, uv and its packages, and the Blender add-on. Now: ${td}`)),
           el("div", { class: "inline", style: "width:430px" }, el("input", { type: "text", id: "tools-dir", placeholder: "Default: tools inside the studio folder", value: s.tools_dir || "" }),
+            el("button", { class: "btn secondary", id: "tools-dir-pick", onclick: async () => { const f = await invoke("pick_folder"); if (f) { $("tools-dir").value = f; await save({ tools_dir: f }, "Downloads folder set."); viewSettings(); } } }, "Choose Folder"),
             el("button", { class: "btn secondary", id: "tools-dir-save", onclick: () => save({ tools_dir: $("tools-dir").value.trim() }, "Downloads folder saved. Press Install next to Claude Code and uv to put them there.") }, "Save"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio folder"), el("div", { class: "hint" }, `In use: ${info.root}. Vault: ${info.vault}.`)),
           el("div", { class: "inline", style: "width:430px" }, root, el("button", { class: "btn secondary", id: "studio-move", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Moving..."; try { toast(await invoke("studio_move", { dest: root.value.trim() })); viewSettings(); } catch (e) { toast(String(e), true); } ev.target.disabled = false; ev.target.textContent = "Move Here"; } }, "Move Here"))),

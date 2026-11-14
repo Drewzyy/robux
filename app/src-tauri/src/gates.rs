@@ -283,6 +283,16 @@ fn splash_checks(text: &str, out_path: &Path) -> Vec<GateCheck> {
     r
 }
 
+/// The UI sounds every game needs (08-UI-UX/ui-sound-pairing).
+const UI_SOUNDS: &[(&str, &str)] = &[
+    ("press", r"click|press|tap|button"),
+    ("open", r"open|whoosh.?up|panel.?in"),
+    ("close", r"close|whoosh.?down|panel.?out"),
+    ("purchase", r"purchase|buy|bought"),
+    ("reward", r"reward|level.?up|unlock|win"),
+    ("error", r"error|deny|denied|not.?enough|fail"),
+];
+
 fn sounds_checks(root: &Path, text: &str, project: Option<&str>) -> Vec<GateCheck> {
     let proj = project.map(|s| s.to_string()).or_else(|| re(r"projects/[A-Za-z0-9_-]+").find(text).map(|m| m.as_str().to_string()));
     let Some(proj) = proj else { return vec![c("sounds.json found", false, "no project named in the output")] };
@@ -312,6 +322,13 @@ fn sounds_checks(root: &Path, text: &str, project: Option<&str>) -> Vec<GateChec
     out.push(c("every sound has id, event, prompt", bad_shape.is_empty(), &join(&bad_shape, "all")));
     out.push(c("asset ids are null or rbxassetid://<number>", bad_id.is_empty(), &join(&bad_id, "all valid")));
     out.push(c("sound ids are unique", dup.is_empty(), &join(&dup, "unique")));
+    let text_of = |v: &serde_json::Value| format!("{} {}", s(v, "id"), s(v, "event")).to_lowercase();
+    let missing: Vec<&str> = UI_SOUNDS
+        .iter()
+        .filter(|(_, pat)| !sounds.iter().any(|v| re(pat).is_match(&text_of(v))))
+        .map(|(name, _)| *name)
+        .collect();
+    out.push(c("UI sound set covered (press, open, close, purchase, reward, error)", missing.is_empty(), &if missing.is_empty() { "all six".to_string() } else { format!("missing: {}", missing.join(", ")) }));
     out.push(c("first 60 seconds has sounds requested", sounds.iter().any(|v| v.get("first_60_seconds").and_then(|b| b.as_bool()).unwrap_or(false)), ""));
     out
 }
@@ -339,6 +356,7 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
             r.push(c("ends in the review queue", has(&text, "review queue"), ""));
         }
         "architect" => {
+            r.push(c("style kit section", heading(&text, "style kit"), ""));
             r.push(c("core loop section", heading(&text, "core loop"), ""));
             r.push(c("first 60 seconds section", heading(&text, "first 60"), ""));
             let windows = [r"0\s*[-–]\s*5", r"5\s*[-–]\s*10", r"10\s*[-–]\s*30", r"30\s*[-–]\s*(45|60)"].iter().all(|w| has(&text, w));
@@ -371,6 +389,7 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
             r.push(c("does not claim live play it could not do", !claims, if claims { "claims live play in Studio" } else { "headless or code walk (says so)" }));
         }
         "merchant" => {
+            r.push(c("prompt budget section", heading(&text, "prompt budget"), ""));
             r.push(c("catalog present", heading(&text, "catalog"), ""));
             r.push(c("do-not-sell check present", heading(&text, "do-not-sell|do not sell"), ""));
         }

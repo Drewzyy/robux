@@ -48,6 +48,9 @@ Sections, in this order:
 - Flow is a lens, not a law: a 2023 preregistered study (Cutting et al., n=311) found no effect of challenge-skill balance on enjoyment.
 - Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
 
+## Style kit (required section)
+Fill `17-Development-Templates/style-kit-template` under a `## Style kit` heading in the design doc, line by line, citing the vault note for each part. Use the game's references note if it exists.
+
 ## Gate (write results to `<run folder>/gate.json`)
 `{"passed": bool, "checks": [{"name": "...", "passed": bool, "detail": "..."}]}`. Checks:
 - all 11 sections present

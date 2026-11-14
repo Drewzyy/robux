@@ -69,7 +69,7 @@ pub fn status() -> Connection {
 /// to choose its folder, so it installs to its usual place and the program
 /// is copied from there. The copy does not update itself; Install refreshes it.
 pub fn install() -> Result<String, String> {
-    let dest = crate::paths::tools_dir().join("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" });
+    let dest = crate::paths::app_dir("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" });
     let found = crate::paths::claude_bin().ok().filter(|p| p != &dest);
     let source = match found {
         Some(p) => p,

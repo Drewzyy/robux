@@ -18,6 +18,7 @@ pub const BLENDER_SERIES: &str = "5.2";
 
 #[derive(Serialize, Debug, Default)]
 pub struct Status {
+    pub dirs: std::collections::BTreeMap<String, String>,
     pub blender: Option<String>,
     pub obsidian: Option<String>,
     pub can_install: bool,
@@ -25,10 +26,10 @@ pub struct Status {
 }
 
 fn blender_dir() -> PathBuf {
-    crate::paths::tools_dir().join("blender-app")
+    crate::paths::app_dir("blender")
 }
 fn obsidian_dir() -> PathBuf {
-    crate::paths::tools_dir().join("obsidian-app")
+    crate::paths::app_dir("obsidian")
 }
 
 /// blender.exe inside the Downloads folder, if installed.
@@ -50,6 +51,7 @@ pub fn obsidian_exe() -> Option<PathBuf> {
 
 pub fn status() -> Status {
     Status {
+        dirs: ["claude", "blender", "obsidian"].iter().map(|a| (a.to_string(), crate::paths::app_dir(a).display().to_string())).collect(),
         blender: blender_exe().map(|p| p.display().to_string()),
         obsidian: obsidian_exe().map(|p| p.display().to_string()),
         can_install: cfg!(windows),
