@@ -53,3 +53,4 @@ Checks:
 For engine detail, load these with the Skill tool only when the task needs them: roblox-gui, roblox-input, roblox-localization.
 
 Also `brewix node 08-UI-UX/nintendo-ui-and-feel 08-UI-UX/game-ui-patterns-from-hits` before laying out screens.
+Follow `08-UI-UX/figma-handoff` for layer names whenever you draw a mockup or work with Figma.

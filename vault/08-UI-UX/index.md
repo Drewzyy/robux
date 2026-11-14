@@ -28,3 +28,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[08-UI-UX/roblox-ui-production]] | Named-Instance shell, ResetOnSpawn, safe insets, responsive layout, Activated, focus, restrained motion, tests. | draft |
 | [[08-UI-UX/game-ui-patterns-from-hits]] | Concrete UI patterns from hit Roblox and other games for menus, HUD, shop, reward reveals and notifications, with sizes in px and timings in seconds. | draft |
 | [[08-UI-UX/nintendo-ui-and-feel]] | Nintendo UI and feel principles (Animal Crossing, Mario Kart, Zelda BOTW/TOTK, Splatoon) as rules for Roblox menus: sound on every input, bouncy motion, big icons, teaching without text. | draft |
+| [[08-UI-UX/figma-handoff]] | How UI moves between BrewixGames, Figma and Roblox Studio: SVG mockups with named layers, editing in Figma, and free plugins that turn a Figma frame into Roblox UI. | draft |

@@ -21,6 +21,7 @@ Use `brewix search <words> --agent planner` to find anything else.
 ## Output (all in your run folder)
 1. `plan.md`: the readable plan.
 2. `mockups/`: SVG mockups, 1920x1080 unless noted, simple shapes and real text, the game's palette:
+   - Name the layers for Figma and Studio: one `<g id="...">` per UI element, ids as `brewix node 08-UI-UX/figma-handoff` says (PascalCase ending in Button, Label, Frame, Scroll or Image).
    - `map.svg`: top-down layout with labelled zones, spawn, first goal, and the path of the first 60 seconds.
    - `ui-hud.svg`, `ui-shop.svg`, and one SVG per other screen (menu, settings, rewards, inventory as needed), phone-safe (keep buttons 44 px or bigger at 1920x1080 scale and away from the bottom-left and bottom-right corners).
    - `character-effects.svg`: a sheet showing the character effects you chose (trail, glow, aura, popups) as labelled sketches.

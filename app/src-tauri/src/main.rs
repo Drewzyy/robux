@@ -488,6 +488,21 @@ async fn plan_mock(run_id: String, path: String) -> Result<String, String> {
     studio_core::plan::mock(&root()?, &run_id, &path)
 }
 
+/// Figma handoff: show the plan's mockups folder and open Figma in the browser.
+#[tauri::command]
+async fn plan_to_figma(run_id: String) -> Result<String, String> {
+    if !paths::valid_id(&run_id) {
+        return Err("bad run id".into());
+    }
+    let d = root()?.join("runs").join(&run_id).join("mockups");
+    if !d.is_dir() {
+        return Err("this plan has no mockups folder".into());
+    }
+    paths::open_url(&d.to_string_lossy());
+    paths::open_url("https://www.figma.com/files");
+    Ok(d.to_string_lossy().to_string())
+}
+
 /// Prepare the build pipeline for a fully approved plan (cost card follows).
 #[tauri::command]
 async fn plan_build_prepare(run_id: String) -> Result<pipeline::PipelineRun, String> {
@@ -653,6 +668,7 @@ fn main() {
             plan_set,
             plan_mock,
             plan_build_prepare,
+            plan_to_figma,
             reviews_list,
             review_start,
             review_answer,

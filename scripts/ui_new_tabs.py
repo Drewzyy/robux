@@ -60,6 +60,7 @@ try:
     if boxes:
         btn = d.find_element(By.ID, "plan-build")
         check("Game Plan lists every item with mockups, build locked", len(boxes) >= 26 and btn.get_attribute("disabled") is not None and len(d.find_elements(By.CSS_SELECTOR, ".plan-mock")) >= 4, f"{len(boxes)} items")
+        check("Game Plan has Edit in Figma", len(d.find_elements(By.ID, "plan-figma")) == 1)
         time.sleep(1.5); d.save_screenshot(str(SHOTS / "ui-plan.png"))
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const ps = await window.__TAURI__.core.invoke('plans_list'); const p = ps[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: true, note: null}); done(); })();""")
@@ -71,6 +72,8 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(1)
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: false, note: null}); done(); })();""")
+    d.execute_script("location.hash='#settings'"); time.sleep(3)
+    check("Settings offers the optional Figma login", "Figma (optional login)" in view() and "no login, no limits" in view())
     d.execute_script("location.hash='#review'"); time.sleep(2.5)
     Select(d.find_element(By.ID, "review-target")).select_by_value("dawn-watch")
     d.find_element(By.ID, "review-local").click()

@@ -319,7 +319,7 @@ async function viewPlans(id) {
   const others = plans.length > 1 ? el("select", { onchange: (e) => { location.hash = `#plans/${e.target.value}`; } }, plans.map((x) => el("option", { value: x.run_id, selected: x.run_id === p.run_id }, `${x.title} · ${String(x.at || "").slice(0, 10)}`))) : null;
   show(page(head(p.title, `${p.one_liner} · ${p.done} of ${p.total} checked`, others),
     el("div", { class: "card" }, bar, el("p", { class: "note" }, "Check each item you are happy with. Write a change request on anything you are not, then ask Planner for a new version from Runs. Building only unlocks at 100%."),
-      el("div", { class: "inline" }, build, el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Revise the plan in runs/${p.run_id}/ (plan.json, plan.md, mockups/). Apply Andrew's change requests in runs/${p.run_id}/approvals.json under "notes". Keep everything else.` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Ask Planner for Changes")), box),
+      el("div", { class: "inline" }, build, el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Revise the plan in runs/${p.run_id}/ (plan.json, plan.md, mockups/). Apply Andrew's change requests in runs/${p.run_id}/approvals.json under "notes". Keep everything else.` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Ask Planner for Changes"), el("button", { class: "btn secondary", id: "plan-figma", onclick: async () => { try { await invoke("plan_to_figma", { runId: p.run_id }); toast("Drag the SVG files from the folder into your Figma file. Each screen arrives with named layers."); } catch (e) { toast(String(e), true); } } }, "Edit in Figma")), box),
     ...p.sections.map((s) => el("div", { class: "card plan-sec" }, el("h2", {}, s.title, el("span", { class: "note" }, `  ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`)), s.items.map(item)))));
 }
 
@@ -1175,6 +1175,12 @@ async function viewSettings() {
           el("div", { class: "inline" }, el("input", { type: "text", id: "studio-mcp-path", style: "width:240px", placeholder: "custom path (optional)", value: s.studio_mcp_path }),
             el("button", { class: "btn secondary", onclick: () => save({ studio_mcp_path: $("studio-mcp-path").value.trim() }, "Path saved.") }, "Save"))))),
 
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Figma"),
+      el("div", { class: "list" },
+        el("div", { class: "srow" },
+          el("div", { class: "grow" }, el("div", { class: "label" }, "Figma (optional login)"),
+            el("div", { class: "hint" }, s.figma_mcp ? "Frame and Planner can draw screens straight into your Figma file. One-time setup: open a terminal, run: claude mcp add --transport http Figma https://mcp.figma.com/mcp, then start claude, type /mcp and sign in to Figma. No API key. Figma's free plan allows only a few reads a month." : "Off: agents make SVG mockups and you drag them into Figma with Edit in Figma on the Game Plan page (no login, no limits). Turn on to let agents draw in Figma directly with your Figma login.")),
+          segmented([["off", "Off"], ["on", "On"]], s.figma_mcp ? "on" : "off", async (v) => { await save({ figma_mcp: v === "on" }, v === "on" ? "Figma login connection on." : "Figma connection off."); viewSettings(); })))),
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Blender"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Connect Modeler to Blender"),

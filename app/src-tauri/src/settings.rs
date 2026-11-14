@@ -66,6 +66,9 @@ pub struct Settings {
     /// uvx), or "mock" (built-in stand-in).
     #[serde(default = "default_studio_mcp")]
     pub blender_mcp: String,
+    /// Figma login connection for the UI agents (off by default).
+    #[serde(default)]
+    pub figma_mcp: bool,
     /// Optional path to the claude program when it is not found on its own.
     #[serde(default)]
     pub claude_path: String,
@@ -105,6 +108,7 @@ impl Default for Settings {
             studio_mcp: default_studio_mcp(),
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
+            figma_mcp: false,
             claude_path: String::new(),
             tools_dir: String::new(),
             app_dirs: Default::default(),

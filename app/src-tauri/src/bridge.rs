@@ -172,6 +172,11 @@ pub fn run_approved_with<F: FnMut(&str)>(
             }
         }
     }
+    if req.engine.as_deref() != Some("ollama") && crate::settings::load().figma_mcp && ["frame", "planner"].contains(&req.agent.as_str()) {
+        servers.insert("Figma".into(), serde_json::json!({ "type": "http", "url": "https://mcp.figma.com/mcp" }));
+        tools.push("mcp__Figma".into());
+        notes.push_str(" Figma is connected (mcp__Figma__ tools) through Andrew's own Figma login. Draw each screen as a frame in the Figma file Andrew names, with layers named as 08-UI-UX/figma-handoff says. Reads are limited on Figma's free plan: read a file at most once per run, and never read when you can write from the plan. If the tools are missing or refuse, fall back to the SVG handoff.");
+    }
     let mut args = build_args(&req, &tools, &add_dirs, &dir, has_skill);
     if !servers.is_empty() {
         let cfg = dir.join("mcp.json");
