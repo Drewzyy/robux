@@ -235,3 +235,19 @@ input.search { width: 100%; margin: 0 0 18px; padding: 11px 14px 11px 38px; bord
 input.search:focus { outline: none; border-color: #FF3B30; box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.25); }
 .row-title .role { margin-left: 8px; color: #8E8E93; font-weight: 400; font-size: 13px; }
 .app-version { color: #8E8E93; font-weight: 400; font-size: 11px; margin-left: 4px; }
+
+/* Home: pitches */
+.trend-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 18px; }
+.trend-row .k, .pfield .k { color: #8E8E93; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; }
+.pitch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.card.pitch { display: flex; flex-direction: column; }
+.pitch-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.pitch .rank { background: #FF3B30; color: #fff; border-radius: 8px; padding: 2px 8px; font-weight: 700; font-size: 13px; }
+.pitch .score { color: #8E8E93; font-size: 13px; }
+.pitch .one-liner { color: #E5E5EA; margin: 0 0 10px; }
+.pfield { margin: 6px 0; font-size: 13.5px; color: #D1D1D6; }
+.pfield .k { display: block; margin-bottom: 2px; }
+.pitch .inline:last-child { margin-top: auto !important; padding-top: 10px; }
+details.sources { margin-top: 16px; color: #8E8E93; font-size: 13px; }
+details.sources li { word-break: break-all; }
+.warn-card { border-color: rgba(255, 59, 48, .45); background: rgba(255, 59, 48, .08); margin-bottom: 14px; color: #E5E5EA; }

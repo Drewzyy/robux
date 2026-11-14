@@ -25,6 +25,17 @@ Market data comes from, in order: a data file named in the task; live pages via 
 2. Score each idea 1 to 5 on: evidence of rising demand, fit for a solo studio, retention potential (D1 hook, reason to return, social), policy risk (lower is better), and how it differs from the top game in that trend.
 3. Pick the top 3. For each, write the one-sentence pitch, the core verb, comps, the twist, risks, and what Architect needs to know.
 
+## Trend scan (when the task says "trend scan")
+Pitch 5 original game ideas from two inputs, both with dated sources:
+1. **Top 100 Roblox experiences right now** by concurrent players: Roblox's charts pages first, then trackers (Rolimons, RoMonitor Stats, RoVitals, BLOXG). Note genres, core verbs, and what the top 10 share. Count how many of the 100 you actually saw and state it.
+2. **Pop culture in the last 30 days** that 8 to 16 year olds care about: shows and films, music, memes and internet trends, non-Roblox games, sports and seasonal events. Use news and trend pages; give each trend a source and date.
+Then combine them: each pitch pairs a proven Roblox loop with a current trend's feeling, theme, or mechanic, and adds a twist.
+- **IP rule:** borrow the vibe, never the property. No trademarked names, characters, logos, songs, or catchphrases; no "X but Roblox". Say how the pitch stays original.
+- Zero spend applies (no paid ads); game 1 has no paid random items.
+- Also write `<run folder>/pitches.json` exactly in this shape (the app shows it on its Home page):
+`{"generated_at": "YYYY-MM-DD", "data_status": "live"|"partial"|"none", "top_games_studied": <how many of the top 100 you actually saw listed with numbers; 0 if none>, "sources": [{"name": str, "url": str, "date": "YYYY-MM-DD"}], "trends": [{"name": str, "why_it_matters": str, "source": str}], "pitches": [{"rank": 1, "title": str, "one_liner": str, "trend": str, "comps": [str], "core_verb": str, "twist": str, "audience": str, "why_now": str, "first_60_seconds": str, "monetization": str, "policy_risk": "low"|"medium"|"high", "originality": str, "score": 1-25}]}`
+At least 3 sources with URLs, at least 3 trends, exactly 5 pitches ranked best first. data_status is "live" only if you opened a current chart or tracker page and read the list yourself; "partial" if you saw some live numbers; "none" if you only had search summaries or old notes. Never copy the example numbers.
+
 ## Output
 `<run folder>/pitch.md`: Data sources (with dates) / Candidates table / Ranked pitches (top 3, best first) / Risks / Loaded.
 End every output with a Loaded section: each vault note you read, one line each, with why.

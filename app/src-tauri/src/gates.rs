@@ -328,6 +328,9 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
             r.push(c("names its data sources", heading(&text, "data sources|sources"), ""));
             r.push(c("ranked pitches present", heading(&text, "rank"), ""));
             r.push(c("numbers are sourced or marked UNVERIFIED", has(&text, r"https?://") || text.contains("UNVERIFIED"), ""));
+            if out_path.parent().map(|d| d.join("pitches.json").is_file()).unwrap_or(false) {
+                r.extend(pitches_checks(out_path));
+            }
         }
         "lead" => {
             let rows = text.lines().filter(|l| l.trim().starts_with('|')).count();
@@ -421,6 +424,45 @@ pub fn check_stage(root: &Path, agent: &str, out_path: &Path, project: Option<&s
 
 /// The simulator's structured result must be complete and honest about
 /// what it is (an estimate from reading the game, not real players).
+/// Trend-scan pitches shown on the Home page.
+fn pitches_checks(out_path: &Path) -> Vec<GateCheck> {
+    let f = out_path.parent().unwrap_or(Path::new(".")).join("pitches.json");
+    let v: serde_json::Value = match fs::read_to_string(&f).ok().map(|t| serde_json::from_str(&t)) {
+        Some(Ok(v)) => v,
+        Some(Err(e)) => return vec![c("pitches.json parses", false, &e.to_string().chars().take(120).collect::<String>())],
+        None => return vec![c("pitches.json parses", false, "missing")],
+    };
+    let arr = |k: &str| v.get(k).and_then(|x| x.as_array()).cloned().unwrap_or_default();
+    let s = |x: &serde_json::Value, k: &str| x.get(k).and_then(|y| y.as_str()).unwrap_or("").trim().to_string();
+    let sources = arr("sources");
+    let sourced = sources.iter().filter(|x| s(x, "url").starts_with("http")).count();
+    let trends = arr("trends");
+    let pitches = arr("pitches");
+    let fields = ["title", "one_liner", "trend", "core_verb", "twist", "why_now", "first_60_seconds", "originality"];
+    let incomplete: Vec<String> = pitches
+        .iter()
+        .filter(|p| fields.iter().any(|f| s(p, f).is_empty()) || !["low", "medium", "high"].contains(&s(p, "policy_risk").as_str()))
+        .map(|p| s(p, "title"))
+        .collect();
+    vec![
+        c("pitches.json parses", true, &format!("{} pitches", pitches.len())),
+        c("3 or more sources with links", sourced >= 3, &format!("{sourced} with links")),
+        c("3 or more current trends", trends.len() >= 3, &format!("{}", trends.len())),
+        c("5 pitches, each complete with a policy risk", pitches.len() == 5 && incomplete.is_empty(), &incomplete.join(", ")),
+        {
+            let status = s(&v, "data_status");
+            let n = v.get("top_games_studied").and_then(|x| x.as_u64());
+            let ok = match (status.as_str(), n) {
+                ("live", Some(n)) => n > 0,
+                ("partial", Some(_)) => true,
+                ("none", Some(n)) => n == 0,
+                _ => false,
+            };
+            c("data status matches how many top games it saw", ok, &format!("{status}, {} seen", n.map(|x| x.to_string()).unwrap_or("?".into())))
+        },
+    ]
+}
+
 fn simulation_checks(out_path: &Path) -> Vec<GateCheck> {
     let f = out_path.parent().unwrap_or(Path::new(".")).join("simulation.json");
     let Ok(t) = fs::read_to_string(&f) else { return vec![c("simulation.json written", false, "missing")] };

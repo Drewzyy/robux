@@ -589,6 +589,22 @@ pub fn move_studio(current: &Path, dest: &str) -> Result<String, String> {
     })
 }
 
+/// The newest trend-scan pitches (Pulse runs that wrote pitches.json).
+pub fn latest_pitches(root: &Path) -> serde_json::Value {
+    for r in runs::list(root).unwrap_or_default() {
+        if r.agent != "pulse" || r.status != "done" {
+            continue;
+        }
+        let f = root.join("runs").join(&r.run_id).join("pitches.json");
+        if let Some(mut v) = fs::read_to_string(&f).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) {
+            v["run_id"] = serde_json::json!(r.run_id);
+            v["at"] = serde_json::json!(r.finished_at);
+            return v;
+        }
+    }
+    serde_json::Value::Null
+}
+
 fn project_ok(root: &Path, project: &str) -> Result<PathBuf, String> {
     let ok = project.starts_with("projects/") && !project.contains("..") && project.len() > 9 && project[9..].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
     if !ok || !root.join(project).is_dir() {

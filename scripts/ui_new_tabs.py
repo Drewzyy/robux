@@ -38,6 +38,18 @@ o = webdriver.ChromeOptions(); o.set_capability("browserName", "wry"); o.set_cap
 d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set_window_size(1280, 820); time.sleep(3)
 view = lambda: d.find_element(By.ID, "view").text
 try:
+    time.sleep(1)
+    check("app opens on Home", "Game Ideas" in view(), view()[:60])
+    cards = d.find_elements(By.CSS_SELECTOR, ".card.pitch")
+    check("Home shows 5 pitch cards", len(cards) == 5, f"{len(cards)} cards")
+    check("Home warns when the scan had no live data", "No live chart data" in view() or "Partly live" in view() or "live" not in view().lower(), "")
+    d.save_screenshot(str(SHOTS / "ui-home.png"))
+    d.find_element(By.ID, "pitch-new").click(); time.sleep(2.5)
+    check("Pitch New Ideas shows usage before running", "Usage before you run" in view())
+    d.find_element(By.ID, "cost-cancel").click(); time.sleep(1)
+    d.find_elements(By.CSS_SELECTOR, ".design-this")[0].click(); time.sleep(2.5)
+    pr = d.find_element(By.ID, "prompt").get_attribute("value")
+    check("Design This opens Architect with the pitch", "Design this pitch from Pulse" in pr, pr[:80])
     d.execute_script("location.hash='#chat'"); time.sleep(2)
     for b in d.find_elements(By.XPATH, "//button[text()='New Chat']"): b.click(); time.sleep(1.5)
     d.save_screenshot(str(SHOTS / "ui-chat-empty.png"))

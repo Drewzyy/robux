@@ -14,8 +14,8 @@
     "pulse": {
       "description": "Reads charts and market data, pitches ranked ideas with evidence.",
       "model": "claude-sonnet-5-5",
-      "turns": 10,
-      "context_tokens": 20000,
+      "turns": 20,
+      "context_tokens": 45000,
       "output_tokens_per_turn": 1200,
       "base_tokens": 9000,
       "allowed_tools": [

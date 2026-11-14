@@ -153,17 +153,57 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
-  const h = location.hash.replace(/^#/, "") || "queue";
+  const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
-  const fn = routes[name] || viewQueue;
-  const navName = name === "run" ? "runs" : routes[name] ? name : "queue";
+  const fn = routes[name] || viewHome;
+  const navName = name === "run" ? "runs" : routes[name] ? name : "home";
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === navName));
   closeSheet();
   Promise.resolve(fn(decodeURIComponent(rest.join("/")))).catch((e) => show(page(head("Something went wrong"), el("div", { class: "card" }, String(e)))));
 }
 window.addEventListener("hashchange", route);
+
+// =====================================================================
+// 0. Home: game ideas from the top 100 Roblox games and current trends
+// =====================================================================
+const TREND_SCAN = "Trend scan: study the top 100 Roblox experiences right now and what is trending in pop culture in the last 30 days, then pitch 5 original game ideas. Write pitch.md and pitches.json.";
+async function viewHome() {
+  await refreshStatus();
+  const p = await invoke("pitches_latest").catch(() => null);
+  const box = el("div", { id: "pitch-cost" });
+  const go = el("button", { class: "btn primary", id: "pitch-new", onclick: () => { costCard(box, "pulse", TREND_SCAN, "Pitch Ideas"); setTimeout(() => box.scrollIntoView({ behavior: "smooth" }), 50); } }, "Pitch New Ideas");
+  const risk = { low: "pill white", medium: "pill red-soft", high: "pill red" };
+  const design = (x) => {
+    state.composer = { ...state.composer, mode: "agent", agent: "architect", prompt: `Design this pitch from Pulse (run ${p.run_id}): ${x.title}. ${x.one_liner} Core verb: ${x.core_verb}. Twist: ${x.twist}. Trend: ${x.trend}. Audience: ${x.audience}. First 60 seconds: ${x.first_60_seconds}. Keep it original: ${x.originality}` };
+    state.runsTab = "new";
+    location.hash = "#runs";
+  };
+  const field = (k, v) => v ? el("div", { class: "pfield" }, el("div", { class: "k" }, k), el("div", {}, Array.isArray(v) ? v.join(", ") : String(v))) : null;
+  const body = !p || !Array.isArray(p.pitches) ? [
+    el("div", { class: "card empty", style: "padding:56px 24px" }, el("div", { class: "ic-big", html: ICONS.spark }),
+      el("div", { class: "empty-title" }, "No ideas yet"),
+      el("div", {}, "Pulse studies the 100 most popular Roblox games and what is trending in pop culture right now, then pitches 5 original ideas with sources."),
+      el("div", { style: "margin-top:16px" }, go)),
+  ] : [
+    p.data_status !== "live" ? el("div", { class: "card warn-card" }, el("strong", {}, p.data_status === "partial" ? "Partly live data. " : "No live chart data in this scan. "),
+      `Pulse saw ${p.top_games_studied || 0} of the top 100 games listed with numbers, so treat these ideas as a starting point. Pitch again to refresh.`) : null,
+    p.trends && p.trends.length ? el("div", { class: "trend-row" }, el("span", { class: "k" }, "Trending now"), p.trends.map((t) => el("span", { class: "pill", title: t.why_it_matters || "" }, t.name))) : null,
+    el("div", { class: "pitch-grid" }, p.pitches.map((x) => el("div", { class: "card pitch" },
+      el("div", { class: "pitch-top" }, el("span", { class: "rank" }, `#${x.rank}`), el("h2", { style: "margin:0;flex:1" }, x.title), x.score ? el("span", { class: "score" }, `${x.score}/25`) : null),
+      el("p", { class: "one-liner" }, x.one_liner),
+      el("div", { class: "inline", style: "flex-wrap:wrap;gap:6px;margin-bottom:10px" },
+        x.trend ? el("span", { class: "pill" }, x.trend) : null, x.audience ? el("span", { class: "pill" }, x.audience) : null,
+        el("span", { class: risk[x.policy_risk] || "pill" }, `Policy risk: ${x.policy_risk}`)),
+      field("Core verb", x.core_verb), field("Twist", x.twist), field("Why now", x.why_now), field("First 60 seconds", x.first_60_seconds),
+      field("Like", x.comps), field("Money", x.monetization), field("Stays original", x.originality),
+      el("div", { class: "inline", style: "margin-top:12px" }, el("button", { class: "btn primary design-this", onclick: () => design(x) }, "Design This"))))),
+    p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
+      el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
+  ];
+  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
+}
 
 // =====================================================================
 // 1. Review queue
@@ -952,7 +992,7 @@ async function costCard(box, agent, prompt, label) {
       el("div", {}, el("div", { class: "k" }, "Hard cap"), el("div", { class: "v" }, usd(e.cap_usd)))),
     el("div", { class: "note" }, e.subscription_note),
     el("div", { class: "inline", style: "margin-top:14px" }, go,
-      el("button", { class: "btn secondary", onclick: async () => { await invoke("run_cancel", { runId: r.run_id }).catch(() => {}); box.replaceChildren(); } }, "Cancel"))));
+      el("button", { class: "btn secondary", id: "cost-cancel", onclick: async () => { await invoke("run_cancel", { runId: r.run_id }).catch(() => {}); box.replaceChildren(); } }, "Cancel"))));
 }
 
 // =====================================================================

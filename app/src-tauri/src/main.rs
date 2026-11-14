@@ -373,6 +373,11 @@ async fn tools_dir_get() -> String {
     paths::tools_dir().display().to_string()
 }
 
+#[tauri::command]
+async fn pitches_latest() -> Result<Value, String> {
+    Ok(studio::latest_pitches(&root()?))
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -481,6 +486,7 @@ fn main() {
             studio_move,
             uv_install,
             tools_dir_get,
+            pitches_latest,
             ollama_pull,
             chat_reset,
             chat_send,

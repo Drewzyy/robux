@@ -169,12 +169,39 @@ def simulation_checks(out_path):
     ]
 
 
+def pitches_checks(out_path):
+    f = out_path.parent / "pitches.json"
+    try:
+        v = json.loads(f.read_text())
+    except Exception as e:
+        return [c("pitches.json parses", False, str(e)[:120])]
+    arr = lambda k: v.get(k) if isinstance(v.get(k), list) else []
+    s = lambda x, k: x.get(k).strip() if isinstance(x.get(k), str) else ""
+    sourced = sum(1 for x in arr("sources") if s(x, "url").startswith("http"))
+    pitches = arr("pitches")
+    fields = ["title", "one_liner", "trend", "core_verb", "twist", "why_now", "first_60_seconds", "originality"]
+    incomplete = [s(p, "title") for p in pitches if any(not s(p, f) for f in fields) or s(p, "policy_risk") not in ("low", "medium", "high")]
+    n = v.get("top_games_studied")
+    status = s(v, "data_status")
+    n_ok = isinstance(n, int) and not isinstance(n, bool) and n >= 0
+    status_ok = n_ok and ((status == "live" and n > 0) or status == "partial" or (status == "none" and n == 0))
+    return [
+        c("pitches.json parses", True, f"{len(pitches)} pitches"),
+        c("3 or more sources with links", sourced >= 3, f"{sourced} with links"),
+        c("3 or more current trends", len(arr("trends")) >= 3, f"{len(arr('trends'))}"),
+        c("5 pitches, each complete with a policy risk", len(pitches) == 5 and not incomplete, ", ".join(incomplete)),
+        c("data status matches how many top games it saw", status_ok, f"{status}, {n if n_ok else '?'} seen"),
+    ]
+
+
 def check(agent, text, project, out_path=None):
     r = common(text)
     if agent == "pulse":
         r.append(c("names its data sources", heading(text, "data sources|sources")))
         r.append(c("ranked pitches present", heading(text, "rank")))
         r.append(c("numbers are sourced or marked UNVERIFIED", has(text, r"https?://") or "UNVERIFIED" in text))
+        if out_path and (Path(out_path).parent / "pitches.json").is_file():
+            r.extend(pitches_checks(Path(out_path)))
     elif agent == "lead":
         rows = [l for l in text.splitlines() if l.strip().startswith("|")]
         r.append(c("plan table with stages", len(rows) >= 4, f"{len(rows)} table rows"))
