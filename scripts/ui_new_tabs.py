@@ -13,15 +13,18 @@ SHOTS = ROOT / "docs/screenshots"
 # Fake Ollama on 11434: version, model list, and a streamed download.
 import http.server, threading, json as _json
 _pulled = set()
+_chats = []
 class _Ollama(http.server.BaseHTTPRequestHandler):
     def _send(self, obj):
         b = _json.dumps(obj).encode(); self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
         if self.path == "/api/version": self._send({"version": "0.14.3"})
-        elif self.path == "/api/tags": self._send({"models": [{"name": m} for m in sorted(_pulled | {"llama3.2:latest"})]})
+        elif self.path == "/api/tags": self._send({"models": [{"name": m} for m in sorted(_pulled | {"llama3.2:latest", "qwen2.5-coder:7b"})]})
         else: self.send_response(404); self.end_headers()
     def do_POST(self):
         body = _json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+        if self.path == "/api/chat":
+            _chats.append(body); return self._send({"message": {"role": "assistant", "content": "minor | src/x.luau | example finding | fix it\nVerdict: SOUND WITH FIXES"}})
         self.send_response(200); self.send_header("Content-Type", "application/x-ndjson"); self.end_headers()
         for i in range(0, 101, 25):
             self.wfile.write((_json.dumps({"status": "pulling", "completed": i, "total": 100}) + "\n").encode()); self.wfile.flush(); time.sleep(0.2)
@@ -66,6 +69,15 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(1)
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: false, note: null}); done(); })();""")
+    d.execute_script("location.hash='#review'"); time.sleep(2.5)
+    Select(d.find_element(By.ID, "review-target")).select_by_value("dawn-watch")
+    d.find_element(By.ID, "review-local").click()
+    for _ in range(40):
+        time.sleep(0.5)
+        if "Verdict: SOUND WITH FIXES" in view(): break
+    sent = _chats[0]["messages"][1]["content"] if _chats else ""
+    check("Second Opinion reviews a game with the local model", "Verdict: SOUND WITH FIXES" in view() and ".luau =====" in sent and _chats[0]["model"] == "qwen2.5-coder:7b", f"{len(_chats)} request(s)")
+    d.save_screenshot(str(SHOTS / "ui-second-opinion.png"))
     d.execute_script("location.hash='#money'"); time.sleep(2.5)
     d.find_element(By.ID, "money-game").send_keys("Test Game")
     d.find_element(By.ID, "money-robux").send_keys("30000")

@@ -99,7 +99,7 @@ fn latest_obsidian() -> Result<(String, String), String> {
     Ok((tag, url))
 }
 
-fn download(url: &str, dest: &Path, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
+pub(crate) fn download(url: &str, dest: &Path, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
     std::fs::create_dir_all(dest.parent().unwrap()).map_err(|e| e.to_string())?;
     let resp = ureq::get(url)
         .set("User-Agent", "BrewixGames")

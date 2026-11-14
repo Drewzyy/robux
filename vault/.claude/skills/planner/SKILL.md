@@ -13,7 +13,7 @@ Task: $ARGUMENTS
 ## Load, in this order
 1. `00-Start-Here/index.md`
 2. `17-Development-Templates/style-kit-template`, `game-idea-template`, `mvp-build-order`
-3. The Do this block of: `04-Onboarding/first-60-seconds-checklist`, `08-UI-UX/color-palettes`, `08-UI-UX/fonts-and-text`, `08-UI-UX/ui-animation`, `08-UI-UX/ui-sound-pairing`, `08-UI-UX/accessibility`, `09-Animation-VFX/character-effects-library`, `09-Animation-VFX/free-animation-library`, `07-Monetization/cosmetics-catalog`, `07-Monetization/offer-pressure-limits`, `03-Game-Psychology/streaks-and-daily-rewards`, `03-Game-Psychology/play-with-friends`, `10-Art-Environment/lighting-presets`, `10-Art-Environment/texture-library` (if present)
+3. In one call, `brewix node <note> <note> ... --agent planner` for: `04-Onboarding/first-60-seconds-checklist`, `08-UI-UX/color-palettes`, `08-UI-UX/fonts-and-text`, `08-UI-UX/ui-animation`, `08-UI-UX/ui-sound-pairing`, `08-UI-UX/accessibility`, `09-Animation-VFX/character-effects-library`, `09-Animation-VFX/free-animation-library`, `07-Monetization/cosmetics-catalog`, `07-Monetization/offer-pressure-limits`, `03-Game-Psychology/streaks-and-daily-rewards`, `03-Game-Psychology/play-with-friends`, `10-Art-Environment/lighting-presets`, `10-Art-Environment/texture-library` (if present). Read a full note only when you need more than its node lines (for example exact hex codes).
 4. The game's references note in `19-Project-Memory/` if one exists, and its memory note.
 
 Use `brewix search <words> --agent planner` to find anything else.

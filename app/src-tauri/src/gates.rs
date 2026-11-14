@@ -664,7 +664,7 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 .and_then(|a| {
                     let t = fs::read_to_string(root.join("studio/agents.json")).ok()?;
                     let v: serde_json::Value = serde_json::from_str(&t).ok()?;
-                    let secs = v.get(a)?.get("allowed_sections")?.as_array()?.iter().filter_map(|x| x.as_str().map(String::from)).collect::<Vec<_>>();
+                    let secs = v.get("agents")?.get(a)?.get("allowed_sections")?.as_array()?.iter().filter_map(|x| x.as_str().map(String::from)).collect::<Vec<_>>();
                     (!secs.is_empty()).then_some(secs)
                 })
                 .unwrap_or_default();
@@ -678,6 +678,33 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 Err(e) => {
                     eprintln!("error: {e}");
                     return Some(1);
+                }
+            }
+            Some(0)
+        }
+        ["map", rest @ ..] | ["node", rest @ ..] => {
+            let Ok(root) = crate::paths::studio_root() else {
+                eprintln!("error: no studio folder found (open BrewixGames once to set it up)");
+                return Some(1);
+            };
+            let agent = rest.iter().position(|x| *x == "--agent").and_then(|i| rest.get(i + 1)).copied();
+            let words: Vec<&str> = rest.iter().enumerate().filter(|(i, x)| **x != "--agent" && (*i == 0 || rest[i - 1] != "--agent")).map(|(_, x)| *x).collect();
+            let sections: Vec<String> = agent
+                .and_then(|a| {
+                    let v: serde_json::Value = serde_json::from_str(&fs::read_to_string(root.join("studio/agents.json")).ok()?).ok()?;
+                    Some(v.get("agents")?.get(a)?.get("allowed_sections")?.as_array()?.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                })
+                .unwrap_or_default();
+            let g = crate::graph::build(&root);
+            if a[0] == "map" {
+                print!("{}", crate::graph::map(&g, words.first().copied(), &sections));
+                return Some(0);
+            }
+            for w in &words {
+                match crate::graph::find(&g, w) {
+                    Some(n) if !sections.is_empty() && !sections.iter().any(|s| n.id.starts_with(&format!("{s}/"))) => println!("{}: outside your vault sections.", n.id),
+                    Some(n) => print!("{}", crate::graph::node(&g, n)),
+                    None => println!("{w}: no such note. Run brewix map <section> to list notes."),
                 }
             }
             Some(0)

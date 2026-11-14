@@ -277,3 +277,7 @@ details.sources li { word-break: break-all; }
 .plan-check { width: 18px; height: 18px; margin-top: 2px; flex: none; }
 .plan-mock { display: block; width: 100%; max-width: 720px; margin: 10px 0 0 28px; border-radius: 8px; background: #fff; }
 .plan-note { width: calc(100% - 28px); margin: 8px 0 0 28px; resize: vertical; }
+
+/* Second Opinion */
+.review-report { white-space: pre-wrap; font-size: 13px; line-height: 1.5; max-height: 520px; overflow: auto; }
+.review-paste { width: 100%; margin-top: 8px; }

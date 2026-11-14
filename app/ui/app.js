@@ -153,7 +153,7 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { plans: viewPlans, money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -205,6 +205,45 @@ async function viewHome() {
   ];
   show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), money ? moneyStrip(money) : null, ...body, box));
 }
+
+// =====================================================================
+// Second Opinion: a different AI (not Claude) reviews a game or this app
+// =====================================================================
+async function viewReview() {
+  const d = await invoke("reviews_list");
+  const target = el("select", { id: "review-target" }, d.projects.map((p) => el("option", { value: p }, `Game: ${p}`)), el("option", { value: "app" }, "The BrewixGames app itself"));
+  const status = el("div", { class: "hint", id: "review-status" }, "");
+  const start = (engine) => async () => {
+    if (engine !== "local" && !confirm("This sends the code to an outside AI company. Game code is fine to share; never include passwords or keys. Continue?")) return;
+    status.textContent = "Starting...";
+    try { await invoke("review_start", { target: target.value, engine }); } catch (e) { status.textContent = ""; toast(String(e), true); }
+  };
+  const engines = el("div", { class: "inline", style: "flex-wrap:wrap;gap:8px;margin-top:12px" },
+    el("button", { class: "btn primary", id: "review-local", onclick: start("local") }, d.local_model ? `Review on This Computer (${d.local_model})` : "Review on This Computer"),
+    el("button", { class: "btn secondary", id: "review-chatgpt", onclick: start("chatgpt") }, "Review in ChatGPT"),
+    el("button", { class: "btn secondary", id: "review-codex", disabled: !d.codex, title: d.codex ? "" : "Install OpenAI's Codex CLI and sign in once to use this" }, d.codex ? "Review with Codex" : "Codex not installed"));
+  if (d.codex) engines.lastChild.addEventListener("click", start("codex"));
+  const card = (r) => {
+    const body = r.report ? el("pre", { class: "review-report" }, r.report) : null;
+    const paste = !r.report && r.engine === "chatgpt" ? (() => {
+      const ta = el("textarea", { rows: 6, placeholder: "Paste ChatGPT's answer here", class: "review-paste" });
+      return el("div", {}, el("p", { class: "note" }, "ChatGPT opened in your browser. Drag pack.md from the review folder into the chat, send it, then paste the answer here."),
+        el("div", { class: "inline" }, el("button", { class: "btn secondary", onclick: () => invoke("review_reveal", { id: r.id }) }, "Show pack.md"),
+          el("button", { class: "btn primary", onclick: async () => { await invoke("review_answer", { id: r.id, text: ta.value }).catch((e) => toast(String(e), true)); viewReview(); } }, "Save Answer")), ta);
+    })() : null;
+    return el("details", { class: "card", open: r === d.reviews[0] }, el("summary", { class: "row-title" }, `${r.title} · ${r.engine} · ${r.files} files · ${String(r.at || "").slice(0, 16).replace("T", " ")}`), body, paste);
+  };
+  show(page(head("Second Opinion", "A different AI checks the code, so Claude is not grading its own work"),
+    el("div", { class: "card" }, el("div", { class: "field" }, el("label", { for: "review-target" }, "What to check"), target),
+      el("p", { class: "note" }, "On This Computer is free and private (a local model in Ollama). ChatGPT uses your free ChatGPT account in the browser. Codex uses OpenAI's free Codex CLI if you installed it and signed in. No API keys."),
+      engines, status),
+    ...d.reviews.map(card)));
+}
+T.event.listen("review-line", (ev) => { const n = $("review-status"); if (n) n.textContent = ev.payload.line; });
+T.event.listen("review-done", (ev) => {
+  if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.engine === "chatgpt" ? "pack.md is ready. Drag it into ChatGPT." : "Review finished.");
+  if ((location.hash || "") === "#review") viewReview();
+});
 
 // =====================================================================
 // Game Plan: Planner's checklist with mockups. Build only at 100%.

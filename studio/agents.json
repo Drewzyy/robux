@@ -25,7 +25,9 @@
         "Write",
         "WebSearch",
         "WebFetch",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -49,7 +51,9 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -72,7 +76,9 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -111,7 +117,9 @@
         "Bash(mkdir:*)",
         "Bash(ls:*)",
         "Bash(brewix gate build:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -139,7 +147,9 @@
         "Skill",
         "Write",
         "Edit",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -166,7 +176,9 @@
         "Skill",
         "Write",
         "Bash(brewix gate stage:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -193,7 +205,9 @@
         "Skill",
         "Write",
         "Edit",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -223,7 +237,9 @@
         "Bash(lune:*)",
         "Bash(ls:*)",
         "Bash(brewix gate build:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -252,7 +268,9 @@
         "Write",
         "WebSearch",
         "WebFetch",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -278,7 +296,9 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -302,7 +322,9 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -325,7 +347,9 @@
         "Glob",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -354,7 +378,9 @@
         "Bash(brewix gate stage:*)",
         "Bash(stylua:*)",
         "Bash(ls:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [],
       "output": null,
@@ -373,7 +399,9 @@
         "Grep",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -402,7 +430,9 @@
         "Edit",
         "Bash(stylua:*)",
         "Bash(brewix gate build:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -432,7 +462,9 @@
         "Edit",
         "Bash(stylua:*)",
         "Bash(brewix gate build:*)",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -462,7 +494,9 @@
         "Bash(stylua:*)",
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
-        "Bash(ls:*)"
+        "Bash(ls:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -486,7 +520,9 @@
         "Grep",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -516,7 +552,9 @@
         "Write",
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
-        "Bash(ls:*)"
+        "Bash(ls:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -543,7 +581,9 @@
         "Skill",
         "Write",
         "Bash(brewix search:*)",
-        "Bash(ls:*)"
+        "Bash(ls:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -568,7 +608,9 @@
         "Grep",
         "Skill",
         "Write",
-        "Bash(brewix search:*)"
+        "Bash(brewix search:*)",
+        "Bash(brewix map:*)",
+        "Bash(brewix node:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",

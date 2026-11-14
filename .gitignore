@@ -17,3 +17,4 @@ app/src-tauri/tools/
 projects/*/build/
 /earnings/
 vault/10-Art-Environment/textures/
+reviews/

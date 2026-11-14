@@ -491,6 +491,43 @@ async fn plan_build_prepare(run_id: String) -> Result<pipeline::PipelineRun, Str
     pipeline::prepare(&r, "plan-to-build", &input, None)
 }
 
+#[tauri::command]
+async fn reviews_list() -> Result<Value, String> {
+    let r = root()?;
+    let projects: Vec<String> = std::fs::read_dir(r.join("projects")).into_iter().flatten().flatten().filter(|e| e.path().is_dir()).map(|e| e.file_name().to_string_lossy().to_string()).collect();
+    Ok(json!({ "reviews": studio_core::review::list(&r), "projects": projects, "local_model": studio_core::review::local_model(), "codex": studio_core::review::codex_installed() }))
+}
+
+/// Second opinion from a non-Claude AI (progress events).
+#[tauri::command]
+async fn review_start(app: AppHandle, target: String, engine: String) -> Result<(), String> {
+    let r = root()?;
+    let version = app.package_info().version.to_string();
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let res = studio_core::review::run(&r, &target, &engine, &version, &mut |l| {
+            let _ = app2.emit("review-line", json!({ "line": l }));
+        });
+        let _ = app.emit("review-done", json!({ "id": res.as_ref().ok(), "error": res.err(), "engine": engine }));
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn review_answer(id: String, text: String) -> Result<(), String> {
+    studio_core::review::save_answer(&root()?, &id, &text)
+}
+
+#[tauri::command]
+async fn review_reveal(id: String) -> Result<(), String> {
+    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("bad id".into());
+    }
+    let d = root()?.join("reviews").join(&id);
+    paths::open_url(&d.to_string_lossy());
+    Ok(())
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -611,6 +648,10 @@ fn main() {
             plan_set,
             plan_mock,
             plan_build_prepare,
+            reviews_list,
+            review_start,
+            review_answer,
+            review_reveal,
             money_add,
             money_remove,
             money_import,

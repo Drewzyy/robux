@@ -19,6 +19,8 @@ pub mod studio;
 pub mod studio_mcp;
 pub mod textures;
 pub mod plan;
+pub mod graph;
+pub mod review;
 pub mod update;
 pub mod paths;
 pub mod pipeline;
