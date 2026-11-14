@@ -136,6 +136,36 @@ jobs:
           if ($got -notmatch 'installed') { throw "reopened app does not see itself as installed, so Update would not work" }
           Write-Host "Installer ran (exe rewritten: $before -> $((Get-Item $exe.FullName).LastWriteTimeUtc))"
 
+  test-windows-apps:
+    # Installs Blender (portable) and Obsidian into a test Downloads folder
+    # and checks where they landed. Informative: does not block releases.
+    needs: [build-windows]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows
+          path: out
+      - name: Install Blender and Obsidian into the Downloads folder
+        shell: pwsh
+        run: |
+          Start-Process -FilePath (Resolve-Path out\BrewixGames-windows-setup.exe).Path -ArgumentList '/S' -Wait
+          $exe = (Get-ChildItem "$env:LOCALAPPDATA" -Recurse -Depth 3 -Filter 'brewixgames.exe' | Select-Object -First 1).FullName
+          $studio = Join-Path $env:RUNNER_TEMP 'Studio With Space'
+          New-Item -ItemType Directory -Force -Path (Join-Path $studio 'studio') | Out-Null
+          '{"agents":{}}' | Set-Content (Join-Path $studio 'studio\agents.json')
+          $env:ROBUX_STUDIO_ROOT = $studio
+          $results = @()
+          foreach ($app in 'obsidian','blender') {
+            $p = Start-Process -FilePath $exe -ArgumentList 'selftest-install',$app -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:RUNNER_TEMP\$app.out" -RedirectStandardError "$env:RUNNER_TEMP\$app.err"
+            Write-Host "== $app exit $($p.ExitCode)"; Get-Content "$env:RUNNER_TEMP\$app.out","$env:RUNNER_TEMP\$app.err" -ErrorAction SilentlyContinue
+            $results += "$app=$($p.ExitCode)"
+          }
+          Get-ChildItem (Join-Path $studio 'tools') -Depth 1 | Format-Table -AutoSize
+          if (-not (Test-Path (Join-Path $studio 'tools\obsidian-app\Obsidian.exe'))) { Write-Host "::warning::Obsidian did not install into the chosen folder" }
+          if (-not (Get-ChildItem (Join-Path $studio 'tools\blender-app') -Recurse -Depth 2 -Filter blender.exe -ErrorAction SilentlyContinue)) { Write-Host "::warning::Blender did not install into the chosen folder" }
+          Write-Host "Results: $($results -join ', ')"
+
   publish:
     needs: [build-mac, build-windows, test-windows-update]
     runs-on: ubuntu-latest

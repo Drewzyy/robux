@@ -378,6 +378,29 @@ async fn pitches_latest() -> Result<Value, String> {
     Ok(studio::latest_pitches(&root()?))
 }
 
+#[tauri::command]
+async fn apps_status() -> studio_core::apps::Status {
+    studio_core::apps::status()
+}
+
+/// Install Blender or Obsidian into the Downloads folder (progress events).
+#[tauri::command]
+async fn app_install(app: AppHandle, name: String) -> Result<(), String> {
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let res = studio_core::apps::install(&name, &mut |l| {
+            let _ = app2.emit("app-line", json!({ "app": name, "line": l }));
+        });
+        let _ = app.emit("app-done", json!({ "app": name, "message": res.as_ref().ok(), "error": res.err() }));
+    });
+    Ok(())
+}
+
+#[tauri::command]
+async fn app_open(name: String) -> Result<(), String> {
+    studio_core::apps::open(&name, &root()?.join("vault"))
+}
+
 // ---------- simulator and thumbnails ----------
 
 #[tauri::command]
@@ -487,6 +510,9 @@ fn main() {
             uv_install,
             tools_dir_get,
             pitches_latest,
+            apps_status,
+            app_install,
+            app_open,
             ollama_pull,
             chat_reset,
             chat_send,

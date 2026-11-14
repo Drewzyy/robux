@@ -564,7 +564,8 @@ async function viewVault() {
   };
   q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(run, 160); });
   show(page(
-    head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle())),
+    head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle()),
+      el("button", { class: "btn secondary", id: "open-obsidian", onclick: () => invoke("app_open", { name: "obsidian" }).catch((e) => toast(String(e), true)) }, "Open in Obsidian")),
     q, results,
     el("div", { class: "vault", id: "vault-browse" },
       el("div", { class: "vsecs" }, tree.map((s) => el("button", { class: s.name === sec.name ? "on" : "", onclick: () => { state.vaultSection = s.name; viewVault(); } }, s.name))),
@@ -814,9 +815,25 @@ T.event.listen("ollama-done", (ev) => {
   if ((location.hash || "") === "#settings") viewSettings();
 });
 
+// One app (Blender or Obsidian) living in the Downloads folder.
+function appRow(id, name, path, canInstall, hint) {
+  const status = el("div", { class: "hint", id: `app-${id}-status` }, path ? `Installed: ${path}` : hint);
+  const install = canInstall ? el("button", { class: path ? "btn secondary" : "btn primary", id: `app-${id}-install`, onclick: async (ev) => {
+    ev.target.disabled = true; status.textContent = "Starting...";
+    try { await invoke("app_install", { name: id }); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
+  } }, path ? "Reinstall" : "Install Here") : null;
+  const open = path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
+  return el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, name), status), el("div", { class: "inline" }, install, open));
+}
+T.event.listen("app-line", (ev) => { const n = $(`app-${ev.payload.app}-status`); if (n) n.textContent = ev.payload.line; });
+T.event.listen("app-done", (ev) => {
+  if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.message);
+  if ((location.hash || "") === "#settings") viewSettings();
+});
+
 async function viewSettings() {
   await refreshStatus();
-  const [s, info, o, sm, bm, td] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({})), invoke("tools_dir_get").catch(() => "")]);
+  const [s, info, o, sm, bm, td, ap] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({})), invoke("tools_dir_get").catch(() => ""), invoke("apps_status").catch(() => ({}))]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
     try {
@@ -859,6 +876,13 @@ async function viewSettings() {
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
           segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: $("ollama-model").value.trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
         localModelRows(s, o, save))),
+
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Apps in your Downloads folder"),
+      el("div", { class: "list" },
+        appRow("blender", "Blender", ap.blender, ap.can_install, "Portable Blender 5.2 LTS: the program, its settings and the MCP for Blender add-on all stay in the Downloads folder."),
+        appRow("obsidian", "Obsidian", ap.obsidian, ap.can_install, "Obsidian for browsing the vault. Installed into the Downloads folder if its installer accepts it (BrewixGames checks)."),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Roblox Studio"),
+          el("div", { class: "hint" }, "Roblox always installs Studio in your user folder on C:, with no option to choose. Moving it with folder tricks is reported to break Studio on updates, so BrewixGames leaves it where Roblox puts it."))))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Roblox Studio"),
       el("div", { class: "list" },

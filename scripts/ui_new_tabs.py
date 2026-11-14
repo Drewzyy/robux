@@ -125,6 +125,7 @@ try:
     check("switches back to an existing studio", "Switched to the studio in" in d.find_element(By.ID, "toast").text, d.find_element(By.ID, "toast").text[:100])
     _sh2.rmtree(newdir.parent, ignore_errors=True)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
+    check("Settings lists the apps in the Downloads folder", "Apps in your Downloads folder" in view() and "Roblox always installs Studio" in view())
     import tempfile as _tf
     tdir = Path(_tf.mkdtemp()) / "BrewixDownloads"
     box = d.find_element(By.ID, "tools-dir"); box.clear(); box.send_keys(str(tdir))
