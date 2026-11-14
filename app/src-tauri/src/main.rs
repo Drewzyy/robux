@@ -226,9 +226,13 @@ async fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd
     std::thread::spawn(move || {
         let id = run_id.clone();
         let app2 = app.clone();
-        let res = bridge::run_approved(&r, &run_id, &bin, |line| {
-            let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
-        });
+        // A crash inside the run must still end it in the UI.
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            bridge::run_approved(&r, &run_id, &bin, |line| {
+                let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
+            })
+        }))
+        .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
         let item = pipeline::finish_single(&r, &run_id).ok().flatten();
         let payload = match res {
             Ok(o) => {
@@ -268,7 +272,7 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
     std::thread::spawn(move || {
         let app2 = app.clone();
         let pid = pipeline_id.clone();
-        let res = pipeline::run(&r, &pipeline_id, &bin, |ev| match ev {
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| pipeline::run(&r, &pipeline_id, &bin, |ev| match ev {
             pipeline::Event::StageStart { index, agent, run_id } => {
                 let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "run_id": run_id, "state": "start"}));
             }
@@ -278,7 +282,8 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
             pipeline::Event::StageDone { index, agent, gate } => {
                 let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "state": "done", "gate": gate}));
             }
-        });
+        })))
+        .unwrap_or_else(|_| Err("the pipeline crashed inside the app".into()));
         let payload = match res {
             Ok(p) => serde_json::to_value(p).unwrap_or(Value::Null),
             Err(e) => json!({"pipeline_id": pipeline_id, "status": "error", "error": e}),
@@ -520,7 +525,7 @@ async fn review_answer(id: String, text: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn review_reveal(id: String) -> Result<(), String> {
-    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+    if !paths::valid_id(&id) {
         return Err("bad id".into());
     }
     let d = root()?.join("reviews").join(&id);

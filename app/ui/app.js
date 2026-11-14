@@ -89,6 +89,11 @@ function head(title, subtitle, right, clamp = false) {
   return el("div", { class: "page-head" }, el("div", {}, el("h1", { class: clamp ? "clamp" : null, title: clamp ? title : null }, title), subtitle ? el("div", { class: "subtitle" }, subtitle) : null), right || null);
 }
 function show(node) {
+  const cur = (location.hash.replace(/^#/, "") || "home").split("/")[0];
+  const g = GROUPS[GROUP_OF[cur === "run" ? "runs" : cur]];
+  if (g && node.classList && node.classList.contains("page")) {
+    node.prepend(el("div", { class: "tabs-top" }, g.map(([r, label]) => el("a", { href: `#${r}`, class: r === cur || (cur === "run" && r === "runs") ? "active" : null }, label))));
+  }
   $("view").replaceChildren(node);
   $("view").scrollTop = 0;
 }
@@ -107,6 +112,8 @@ const state = {
 };
 
 // ---------- sidebar status: running cost always visible ----------
+// Pages wait for status only the first time; after that the 5 s timer keeps it fresh.
+const freshStatus = () => (state.spend ? void refreshStatus() : refreshStatus());
 async function refreshStatus() {
   try {
     state.spend = await invoke("spend");
@@ -153,12 +160,20 @@ function runningSubtitle() {
 }
 
 // ---------- router ----------
-const routes = { review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewHome, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+// Six places in the sidebar; grouped pages get tabs along the top.
+const GROUPS = {
+  home: [["home", "Dashboard"], ["money", "Money"]],
+  make: [["plans", "Game Plan"], ["references", "References"], ["runs", "Build"], ["agents", "Team"], ["chat", "Ask Claude"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
+  check: [["review", "Second Opinion"], ["queue", "Review Queue"]],
+};
+const GROUP_OF = {};
+for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
+const routes = { ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
-  const fn = routes[name] || viewHome;
-  const navName = name === "run" ? "runs" : routes[name] ? name : "home";
+  const fn = routes[name] || viewDashboard;
+  const navName = GROUP_OF[name === "run" ? "runs" : name] || (routes[name] ? name : "home");
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === navName));
   closeSheet();
   Promise.resolve(fn(decodeURIComponent(rest.join("/")))).catch((e) => show(page(head("Something went wrong"), el("div", { class: "card" }, String(e)))));
@@ -170,9 +185,8 @@ window.addEventListener("hashchange", route);
 // =====================================================================
 const TREND_SCAN = "Trend scan: study the top 100 Roblox experiences right now and what is trending in pop culture in the last 30 days, then pitch 5 original game ideas. Write pitch.md and pitches.json.";
 async function viewHome() {
-  await refreshStatus();
+  await freshStatus();
   const p = await invoke("pitches_latest").catch(() => null);
-  const money = await invoke("money_summary").catch(() => null);
   const box = el("div", { id: "pitch-cost" });
   const go = el("button", { class: "btn primary", id: "pitch-new", onclick: () => { costCard(box, "pulse", TREND_SCAN, "Pitch Ideas"); setTimeout(() => box.scrollIntoView({ behavior: "smooth" }), 50); } }, "Pitch New Ideas");
   const risk = { low: "pill white", medium: "pill red-soft", high: "pill red" };
@@ -203,7 +217,35 @@ async function viewHome() {
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
-  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), money ? moneyStrip(money) : null, ...body, box));
+  show(page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
+}
+
+// =====================================================================
+// Dashboard: one look at everything, each widget opens its page
+// =====================================================================
+async function viewDashboard() {
+  await freshStatus();
+  const [p, money, plans, rev, queue] = await Promise.all([
+    invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
+    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
+  ]);
+  const w = (title, href, ...body) => el("a", { class: "card widget", href }, el("div", { class: "k" }, title), ...body);
+  const plan = plans[0];
+  const last = rev && rev.reviews.find((r) => r.report);
+  const verdict = last ? ((last.report.match(/NOT SOUND|SOUND WITH FIXES|SOUND/) || ["see report"])[0]) : null;
+  const waiting = queue.filter((i) => i.status === "pending").length;
+  const sp = state.spend;
+  show(page(head("Dashboard", runningSubtitle()),
+    money ? moneyStrip(money) : null,
+    el("div", { class: "widget-grid" },
+      w("Game ideas", "#ideas", p && p.pitches ? el("ol", { class: "widget-list" }, p.pitches.slice(0, 3).map((x) => el("li", {}, x.title))) : el("div", { class: "v small" }, "No ideas yet"), el("div", { class: "note" }, p && p.pitches ? "Open to plan one" : "Open to pitch ideas")),
+      w("Game plan", plan ? `#plans/${plan.run_id}` : "#plans", el("div", { class: "v small" }, plan ? plan.title : "No plan yet"),
+        plan ? el("div", { class: "plan-bar", style: "margin:8px 0" }, el("div", { class: "plan-fill", style: `width:${plan.total ? Math.round((100 * plan.done) / plan.total) : 0}%` })) : null,
+        el("div", { class: "note" }, plan ? `${plan.done} of ${plan.total} checked` : "Plan an idea first")),
+      w("Building now", "#runs", el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "Nothing running"), el("div", { class: "note" }, "Open to see runs and start one")),
+      w("Waiting for you", "#queue", el("div", { class: "v" }, String(waiting)), el("div", { class: "note" }, waiting ? "Items to approve or send back" : "Nothing to review")),
+      w("Double-check", "#review", el("div", { class: "v small" }, verdict || "Not checked yet"), el("div", { class: "note" }, last ? last.title : "Have another AI check the code")),
+      w("Thumbnails", "#thumbnails", el("div", { class: "v small" }, "Grade and improve"), el("div", { class: "note" }, "Icons and thumbnails, scored")))));
 }
 
 // =====================================================================
@@ -294,7 +336,7 @@ function moneyStrip(m) {
     el("div", {}, el("div", { class: "k" }, "Best game"), el("div", { class: "v small" }, m.per_game[0] ? m.per_game[0][0] : "None yet"), el("div", { class: "note" }, m.per_game[0] ? dollars(m.per_game[0][2]) : "")));
 }
 async function viewMoney() {
-  await refreshStatus();
+  await freshStatus();
   const m = await invoke("money_summary");
   const today = new Date().toISOString().slice(0, 10);
   const date = el("input", { type: "date", id: "money-date", value: today });
@@ -333,7 +375,7 @@ async function viewMoney() {
 const REF_CATS = ["Character", "Model", "Environment", "UI", "Animation", "Effects", "Sound and music", "Other"];
 state.refCat = "Character";
 async function viewReferences() {
-  await refreshStatus();
+  await freshStatus();
   const pick = await projectPicker(viewReferences);
   const project = state.project;
   const refs = project ? await invoke("refs_list", { project }).catch(() => []) : [];
@@ -410,7 +452,7 @@ document.addEventListener("paste", async (e) => {
 // 1. Review queue
 // =====================================================================
 async function viewQueue() {
-  await refreshStatus();
+  await freshStatus();
   let items = [];
   let err = null;
   try {
@@ -626,7 +668,7 @@ const AGENT_STATUS = {
   blocked: () => el("span", { class: "pill white" }, "Blocked"),
 };
 async function viewAgents() {
-  await refreshStatus();
+  await freshStatus();
   const agents = await invoke("agents_status");
   const working = agents.filter((a) => a.status === "working").length;
   show(page(
@@ -759,7 +801,7 @@ T.event.listen("tex-done", (ev) => {
 });
 
 async function viewVault() {
-  await refreshStatus();
+  await freshStatus();
   const tree = await invoke("vault_tree");
   const tex = await invoke("textures_status").catch(() => ({ count: 0, groups: [] }));
   if (!state.vaultSection) state.vaultSection = tree[0] && tree[0].name;
@@ -809,7 +851,7 @@ async function viewVault() {
 // 4. Runs: history, new run, run detail
 // =====================================================================
 async function viewRuns() {
-  await refreshStatus();
+  await freshStatus();
   const tabs = segmented([["history", "History"], ["new", "New Run"]], state.runsTab, (v) => { state.runsTab = v; viewRuns(); });
   if (state.runsTab === "new") return viewComposer(tabs);
   const list = await invoke("runs_overview");
@@ -921,7 +963,7 @@ async function approveRun(btn) {
 }
 
 async function viewRunDetail(id) {
-  await refreshStatus();
+  await freshStatus();
   let d;
   try {
     d = await invoke("run_detail", { id });
@@ -1068,7 +1110,7 @@ T.event.listen("app-done", (ev) => {
 });
 
 async function viewSettings() {
-  await refreshStatus();
+  await freshStatus();
   const [s, info, o, sm, bm, td, ap] = await Promise.all([invoke("settings_get"), invoke("studio_info"), invoke("ollama_status").catch(() => null), invoke("studio_mcp_status").catch(() => ({})), invoke("blender_mcp_status").catch(() => ({})), invoke("tools_dir_get").catch(() => ""), invoke("apps_status").catch(() => ({}))]);
   const c = state.claude || {};
   const save = async (patch, msg) => {
@@ -1103,7 +1145,7 @@ async function viewSettings() {
           el("div", { class: "hint" }, c.version ? `${c.version} · ${c.bin}` : "Not found. The Claude desktop app or website alone is not enough. Press Install, or paste where claude is.")),
         el("div", { class: "inline" },
           el("input", { type: "text", id: "claude-path", style: "width:220px", placeholder: "claude location (optional)", value: s.claude_path || "" }),
-          el("button", { class: "btn secondary", onclick: async () => { await save({ claude_path: $("claude-path").value.trim() }, "Saved. Checking Claude..."); await refreshStatus(); viewSettings(); } }, "Save"),
+          el("button", { class: "btn secondary", onclick: async () => { await save({ claude_path: $("claude-path").value.trim() }, "Saved. Checking Claude..."); await freshStatus(); viewSettings(); } }, "Save"),
           el("button", { class: "btn secondary", id: "app-claude-pick", title: (ap.dirs || {}).claude || "", onclick: () => chooseAppFolder("claude", "Claude Code") }, "Choose Folder"),
           el("button", { class: c.version ? "btn secondary" : "btn primary", id: "claude-install", title: "Puts BrewixGames' copy of Claude Code in the Downloads folder (installs it first if needed).", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = c.version ? "Copying..." : "Installing..."; try { toast(await invoke("claude_install")); } catch (e) { toast(String(e), true); } await refreshClaude(); viewSettings(); } }, c.version ? "Refresh Copy" : "Install")))
     ),
@@ -1263,7 +1305,7 @@ async function costCard(box, agent, prompt, label) {
 state.chatBusy = null; // run id while a reply is being written
 state.chatStatus = "";
 async function viewChat() {
-  await refreshStatus();
+  await freshStatus();
   const { chat, cap_usd, engine } = await invoke("chat_get");
   const who = engine === "ollama" ? "Local model" : "Claude";
   const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
@@ -1315,7 +1357,7 @@ function ring(score, grade) {
   return el("div", { class: "ring", html: `<svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="${r}" fill="none" stroke="#2C2C2E" stroke-width="9"/><circle cx="60" cy="60" r="${r}" fill="none" stroke="#FF3B30" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * v) / 100} ${c}" transform="rotate(-90 60 60)"/><text x="60" y="58" text-anchor="middle" fill="#fff" font-size="30" font-weight="600" font-family="-apple-system,Inter,sans-serif">${Math.round(v)}</text><text x="60" y="80" text-anchor="middle" fill="#8E8E93" font-size="13" font-family="-apple-system,Inter,sans-serif">Grade ${String(grade || "").replace(/[<>&]/g, "")}</text></svg>` });
 }
 async function viewSimulator() {
-  await refreshStatus();
+  await freshStatus();
   const pick = await projectPicker(viewSimulator);
   const box = el("div", {});
   const run = el("button", { class: "btn primary", id: "sim-run", disabled: !state.project, onclick: () => costCard(box, "simulator", `Simulate players of different ages on ${state.project}.`, "Run Simulation") }, "Simulate Players");
@@ -1358,7 +1400,7 @@ async function viewSimulator() {
 // Thumbnails
 // =====================================================================
 async function viewThumbnails() {
-  await refreshStatus();
+  await freshStatus();
   const pick = await projectPicker(viewThumbnails);
   const box = el("div", {});
   let data = { screenshots: [], thumbnails: [], run: null };

@@ -120,7 +120,7 @@ pub fn vault(root: &Path) -> Result<Vec<VaultSection>, String> {
 }
 
 pub fn vault_note(root: &Path, rel: &str) -> Result<String, String> {
-    if rel.contains("..") || !rel.ends_with(".md") {
+    if !crate::paths::safe_rel(rel) || !rel.ends_with(".md") {
         return Err("not a vault note".into());
     }
     fs::read_to_string(root.join("vault").join(rel)).map_err(|e| e.to_string())

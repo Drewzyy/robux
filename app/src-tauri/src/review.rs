@@ -188,7 +188,7 @@ pub fn run(root: &Path, target: &str, engine: &str, version: &str, on_line: &mut
 
 /// Save an answer Andrew pasted from ChatGPT.
 pub fn save_answer(root: &Path, id: &str, text: &str) -> Result<(), String> {
-    if !id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+    if !crate::paths::valid_id(id) {
         return Err("bad review id".into());
     }
     let rd = review_dir(root, id);

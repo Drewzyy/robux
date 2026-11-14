@@ -64,7 +64,6 @@ h2 { font-size: 18px; font-weight: 600; margin: 0 0 10px; }
 .btn.primary { background: var(--red); color: #fff; }
 .btn.secondary { background: var(--card-2); color: #fff; }
 .btn.secondary:hover { background: #3A3A3C; }
-.btn.destructive { background: none; color: var(--red); padding-left: 8px; padding-right: 8px; }
 .btn.small { padding: 5px 12px; font-size: 13px; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .link { color: var(--red); cursor: pointer; background: none; border: 0; padding: 0; font-size: 13px; }
@@ -281,3 +280,14 @@ details.sources li { word-break: break-all; }
 /* Second Opinion */
 .review-report { white-space: pre-wrap; font-size: 13px; line-height: 1.5; max-height: 520px; overflow: auto; }
 .review-paste { width: 100%; margin-top: 8px; }
+
+/* Dashboard and grouped tabs */
+.widget-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; }
+.widget { display: block; color: inherit; text-decoration: none; min-height: 120px; transition: transform .12s; }
+.widget:hover { transform: translateY(-2px); }
+.widget .v { font-size: 28px; font-weight: 600; margin: 6px 0; }
+.widget .v.small { font-size: 17px; }
+.widget-list { margin: 6px 0; padding-left: 18px; line-height: 1.6; }
+.tabs-top { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid #2C2C2E; }
+.tabs-top a { padding: 8px 12px; color: #98989D; text-decoration: none; border-bottom: 2px solid transparent; }
+.tabs-top a.active { color: #fff; border-color: #FF453A; }

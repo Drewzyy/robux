@@ -28,3 +28,6 @@ Load only the note your task needs. Do not read every note in this section.
 | [[10-Art-Environment/realism-when-needed]] | Stylised by default, PBR via SurfaceAppearance, tint and reuse, trim sheets, mobile tests. | draft |
 | [[10-Art-Environment/rendering-with-blender]] | Cycles with the GPU for icons, thumbnails, and shop previews; EEVEE for quick looks. | draft |
 | [[10-Art-Environment/texture-library]] | Roblox built-in materials plus CC0 Poly Haven textures (colour, normal, roughness, metalness) saved in the vault. | verified |
+| [[10-Art-Environment/art-direction-for-roblox]] | Art direction rules for Roblox games: silhouettes, shape language, colour value hierarchy, stylized versus realistic, and consistency kits, with examples from hit Roblox games. | draft |
+| [[10-Art-Environment/roblox-icon-and-thumbnail-patterns]] | Common visual patterns in top Roblox game icons and thumbnails (faces, colour, text, numbers, close-ups) and how Roblox thumbnail personalization and experiments work, with a testing routine. | draft |
+| [[10-Art-Environment/youtube-packaging-lessons]] | What top YouTubers do with titles, thumbnails, the first 30 seconds and retention, translated into Roblox icons, thumbnails and the first 60 seconds of play. | draft |

@@ -63,3 +63,5 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: roblox-audio.
+
+Also `brewix node 11-Audio/sound-feedback-map 11-Audio/music-and-adaptive-audio` when writing sounds.json.

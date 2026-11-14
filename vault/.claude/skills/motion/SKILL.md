@@ -49,3 +49,5 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: roblox-animation-vfx, roblox-camera, roblox-performance.
+
+Also `brewix node 09-Animation-VFX/game-feel-juice 16-Market-Research/teardown-elden-ring` for timing references.

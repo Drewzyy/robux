@@ -25,3 +25,8 @@ Load only the note your task needs. Do not read every note in this section.
 | [[02-Game-Design/core-loop-template]] | One-page core loop: verb every 5 seconds, reward every 30 seconds, goal every session, goal every week. | draft |
 | [[02-Game-Design/game-design-doc-template]] | One-page game design doc template the Architect fills for every pitch. | draft |
 | [[02-Game-Design/economy-worksheet]] | Economy worksheet: sources, sinks, prices in one ModuleScript, time-to-next-goal column, failure modes. | draft |
+| [[02-Game-Design/difficulty-and-flow]] | Flow channel model, dynamic difficulty adjustment options, obby difficulty pacing, and checkpoint spacing rules with numbers for Roblox obbies and action games. | draft |
+| [[02-Game-Design/economy-math]] | Sources and sinks balance, inflation control, idle and offline earnings caps, and additive versus multiplicative multiplier stacking, with a server-side Luau offline-earnings function. | draft |
+| [[02-Game-Design/loop-stack]] | Five nested loops (core, session, meta, social, long-term), how each hands off to the next, hit-game examples, and a 60-second test to find which loop is broken. | draft |
+| [[02-Game-Design/procedural-generation]] | Procedural generation for Roblox: seeded noise terrain, room and obby stitching, seed handling, server-side generation and the engine limits to watch (streaming, part counts, yielding). | draft |
+| [[02-Game-Design/rng-and-drop-tables]] | Weighted random drop tables, pity timers and bad-luck protection, odds display rules for paid random items on Roblox, and seeded RNG, with typed server-side Luau. | draft |

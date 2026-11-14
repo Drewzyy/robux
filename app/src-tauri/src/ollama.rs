@@ -102,8 +102,10 @@ pub fn status() -> Status {
     let version = get("/api/version").ok().and_then(|v| v.get("version").and_then(|x| x.as_str()).map(String::from));
     let running = version.is_some();
     let version_ok = version.as_deref().and_then(parse_version).map(|v| v >= MIN_VERSION).unwrap_or(false);
-    let mut installed: Vec<String> = get("/api/tags")
-        .ok()
+    // Skip the second call when Ollama is not there (saves the timeout).
+    let mut installed: Vec<String> = running
+        .then(|| get("/api/tags").ok())
+        .flatten()
         .and_then(|v| v.get("models").and_then(|m| m.as_array()).cloned())
         .unwrap_or_default()
         .iter()

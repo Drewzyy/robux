@@ -172,6 +172,16 @@ pub fn command<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
 }
 
 /// Open a web link in the default browser.
+/// A relative path made only of plain names (no .., no root, no drive).
+pub fn safe_rel(rel: &str) -> bool {
+    !rel.is_empty() && !rel.contains('\\') && !rel.contains(':') && Path::new(rel).components().all(|c| matches!(c, std::path::Component::Normal(_)))
+}
+
+/// A non-empty id of letters, digits, dashes and underscores.
+pub fn valid_id(s: &str) -> bool {
+    !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
 pub fn open_url(url: &str) {
     let _ = if cfg!(windows) {
         command("rundll32").args(["url.dll,FileProtocolHandler", url]).status()
@@ -204,4 +214,17 @@ pub fn app_dir(app: &str) -> PathBuf {
         other => other,
     };
     tools_dir().join(default)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn safe_rel_and_valid_id() {
+        assert!(safe_rel("08-UI-UX/hud-template.md"));
+        for bad in ["", "../x.md", "/etc/x.md", "C:\\x.md", "a/../../x.md", "C:x.md"] {
+            assert!(!safe_rel(bad), "{bad}");
+        }
+        assert!(valid_id("run-1_a") && !valid_id("") && !valid_id("a/b"));
+    }
 }

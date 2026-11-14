@@ -44,7 +44,7 @@ fn approvals_path(root: &Path, run_id: &str) -> std::path::PathBuf {
 }
 
 fn safe_id(run_id: &str) -> Result<(), String> {
-    if run_id.is_empty() || !run_id.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_') {
+    if !crate::paths::valid_id(run_id) {
         return Err("bad run id".into());
     }
     Ok(())
@@ -99,7 +99,7 @@ pub fn set(root: &Path, run_id: &str, item: &str, checked: Option<bool>, note: O
 /// Read one mockup SVG from a plan's run folder.
 pub fn mock(root: &Path, run_id: &str, path: &str) -> Result<String, String> {
     safe_id(run_id)?;
-    if !path.starts_with("mockups/") || path.contains("..") || !path.ends_with(".svg") {
+    if !path.starts_with("mockups/") || !crate::paths::safe_rel(path) || !path.ends_with(".svg") {
         return Err("bad mock path".into());
     }
     fs::read_to_string(root.join("runs").join(run_id).join(path)).map_err(|e| e.to_string())

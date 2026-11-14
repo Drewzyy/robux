@@ -58,3 +58,5 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: blender-rendering.
+
+Also `brewix node 10-Art-Environment/youtube-packaging-lessons 10-Art-Environment/roblox-icon-and-thumbnail-patterns` before designing.

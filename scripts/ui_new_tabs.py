@@ -42,7 +42,9 @@ d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set
 view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
-    check("app opens on Home", "Game Ideas" in view(), view()[:60])
+    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 6, view()[:60])
+    d.execute_script("location.hash='#ideas'"); time.sleep(2.5)
+    check("Game Ideas page", "Game Ideas" in view(), view()[:60])
     cards = d.find_elements(By.CSS_SELECTOR, ".card.pitch")
     check("Home shows 5 pitch cards", len(cards) == 5, f"{len(cards)} cards")
     check("Home warns when the scan had no live data", "No live chart data" in view() or "Partly live" in view() or "live" not in view().lower(), "")
@@ -61,7 +63,7 @@ try:
         time.sleep(1.5); d.save_screenshot(str(SHOTS / "ui-plan.png"))
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const ps = await window.__TAURI__.core.invoke('plans_list'); const p = ps[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: true, note: null}); done(); })();""")
-        d.execute_script("location.hash='#home'"); time.sleep(1); d.execute_script("location.hash='#plans'"); time.sleep(3)
+        d.execute_script("location.hash='#ideas'"); time.sleep(1); d.execute_script("location.hash='#plans'"); time.sleep(3)
         btn = d.find_element(By.ID, "plan-build")
         check("Build This Game unlocks at 100%", btn.get_attribute("disabled") is None and "Build This Game" in btn.text, btn.text)
         btn.click(); time.sleep(3)
@@ -85,7 +87,7 @@ try:
     check("Money converts 30,000 Robux to $114.00", "$114.00" in view() and "Test Game" in view(), view()[:160].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-money.png"))
     d.execute_script("location.hash='#home'"); time.sleep(2.5)
-    check("Home shows the money strip", len(d.find_elements(By.ID, "money-strip")) == 1 and "made this month" in view().lower())
+    check("Dashboard shows the money strip", len(d.find_elements(By.ID, "money-strip")) == 1 and "made this month" in view().lower())
     d.execute_script("location.hash='#money'"); time.sleep(2.5)
     d.execute_script("document.querySelector('details.sources').open = true"); time.sleep(0.5)
     for b in d.find_elements(By.XPATH, "//details[contains(@class,'sources')]//button[text()='Delete']"):
@@ -101,7 +103,7 @@ try:
       window.__TAURI__.core.invoke('refs_add', { project: document.getElementById('project-pick').value, name: 'test-ref.png', data: c.toDataURL('image/png'), category: 'Character', note: document.getElementById('ref-note').value, source: 'ui test' })
         .then(() => done('')).catch((e) => done(String(e)));
     """)
-    d.execute_script("location.hash='#home'"); time.sleep(1); d.execute_script("location.hash='#references'"); time.sleep(2.5)
+    d.execute_script("location.hash='#ideas'"); time.sleep(1); d.execute_script("location.hash='#references'"); time.sleep(2.5)
     cards = d.find_elements(By.CSS_SELECTOR, ".card.ref")
     notefile = ROOT / "vault/19-Project-Memory/dawn-watch-references.md"
     check("reference image lands in the vault note and the grid", not err and len(cards) == n0 + 1 and notefile.is_file() and "Use: round friendly eyes" in notefile.read_text(), err or f"{n0}->{len(cards)}")

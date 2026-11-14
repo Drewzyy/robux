@@ -60,3 +60,6 @@ Fill `17-Development-Templates/style-kit-template` under a `## Style kit` headin
 - no claim presented as fact without a vault source; others marked UNVERIFIED
 - not generic: names at least 3 mechanics specific to this pitch (not "collect coins" alone)
 `passed` is true only if every check passed.
+
+## Research notes
+Use `brewix node` on `16-Market-Research/roblox-hit-patterns`, `02-Game-Design/loop-stack`, `02-Game-Design/economy-math`, `05-Progression/progression-curves`, and the teardown closest to this game (`brewix map 16-Market-Research`).

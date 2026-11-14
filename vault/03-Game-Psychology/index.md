@@ -20,3 +20,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[03-Game-Psychology/streaks-and-daily-rewards]] | Mixed evidence, tie rewards to play, forgive misses, better appointment mechanics. | draft |
 | [[03-Game-Psychology/play-with-friends]] | Invite at pause points, reward on join, friend boost, co-op goals, shared spaces. | draft |
 | [[03-Game-Psychology/lessons-from-classic-games]] | Seven classics, what kept players, and how to borrow each. | draft |
+| [[03-Game-Psychology/why-players-return]] | Return triggers ranked by strength (friends, timers, updates, collections, social status, daily rewards) with evidence quality for each and how to build the top ones in Roblox. | draft |

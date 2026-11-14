@@ -16,3 +16,5 @@ Load only the note your task needs. Do not read every note in this section.
 |---|---|---|
 | [[05-Progression/progression-systems]] | Currencies, multipliers, rebirth/prestige, collections, levels, offline progress, scarcity: when to use each. | draft |
 | [[05-Progression/difficulty-curve-worksheet]] | Stage-by-stage difficulty worksheet: sawtooth ramp, quit-rate column, retune rule, retry under 2 seconds. | draft |
+| [[05-Progression/goal-gradient-and-session-goals]] | Always show a next goal: goal-gradient and endowed-progress effects, progress bar rules, near-miss feedback, and session-end hooks, with a server-side Luau session goal tracker. | draft |
+| [[05-Progression/progression-curves]] | XP and upgrade-cost curve formulas (linear, polynomial, exponential, piecewise), how to choose one, time-to-next-level targets, and rebirth/prestige math with typed Luau. | draft |

@@ -34,7 +34,8 @@
         "16-Market-Research",
         "02-Game-Design",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "10-Art-Environment"
       ],
       "output": "pitch.md",
       "role": "Market Research Analyst"
@@ -91,7 +92,9 @@
         "08-UI-UX",
         "09-Animation-VFX",
         "10-Art-Environment",
-        "11-Audio"
+        "11-Audio",
+        "05-Progression",
+        "16-Market-Research"
       ],
       "output": "design.md",
       "role": "Game Designer"
@@ -441,7 +444,8 @@
         "14-QA-Optimization",
         "03-Game-Psychology",
         "19-Project-Memory",
-        "08-UI-UX"
+        "08-UI-UX",
+        "16-Market-Research"
       ],
       "output": "motion.md",
       "role": "Animation and VFX Specialist"
@@ -629,7 +633,8 @@
         "14-QA-Optimization",
         "16-Market-Research",
         "17-Development-Templates",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "05-Progression"
       ],
       "output": "plan.md",
       "role": "Game Plan Producer"
