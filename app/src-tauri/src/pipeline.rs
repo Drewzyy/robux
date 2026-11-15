@@ -259,6 +259,9 @@ pub fn recover_stale(root: &Path) -> usize {
             continue;
         }
         stop_unfinished(root, &id, "BrewixGames closed before this pipeline finished.");
+        if load(root, &id).map(|p| p.status == "awaiting-approval").unwrap_or(false) {
+            let _ = cancel(root, &id); // an estimate nobody approved
+        }
         n += 1;
     }
     n

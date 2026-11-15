@@ -204,6 +204,8 @@ pub fn recover_stale(root: &Path) -> usize {
         if r.status == "running" || r.status == "approved" {
             fail_if_unfinished(root, &r.run_id, "BrewixGames closed before this run finished.");
             n += 1;
+        } else if r.status == "awaiting-approval" {
+            let _ = cancel(root, &r.run_id); // an estimate nobody approved
         }
     }
     n + crate::pipeline::recover_stale(root)

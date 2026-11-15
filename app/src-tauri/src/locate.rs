@@ -30,6 +30,10 @@ pub fn search_roots() -> Vec<PathBuf> {
     } else {
         v.push("/Volumes".into());
     }
+    // The studio in use is always shown, wherever it is.
+    if let Ok(cur) = crate::paths::studio_root() {
+        v.insert(0, cur.parent().map(|p| p.to_path_buf()).unwrap_or(cur));
+    }
     v.retain(|p| p.is_dir());
     // Drop places already inside an earlier one (home already covers Documents).
     let mut out: Vec<PathBuf> = vec![];

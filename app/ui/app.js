@@ -784,13 +784,16 @@ async function viewQueue() {
   showIf(nav, page(head("Review Queue", runningSubtitle(), right), body));
 }
 
-async function thumbFor(item) {
+// An image that shows at once as a placeholder and fades in when loaded,
+// so a page never waits for its pictures.
+function lazyImg(path, attrs = {}) {
+  const img = el("img", { alt: attrs.alt || "", class: "lazy" + (attrs.class ? " " + attrs.class : "") });
+  invoke("artifact_image", { path }).then((src) => { img.src = src; img.onload = () => img.classList.add("in"); }).catch(() => img.classList.add("in"));
+  return img;
+}
+function thumbFor(item) {
   const img = (item.artifacts || []).find((a) => /\.(svg|png|jpe?g)$/.test(a));
-  if (img) {
-    try {
-      return el("div", { class: "thumb" }, el("img", { src: await invoke("artifact_image", { path: img }), alt: "" }));
-    } catch {}
-  }
+  if (img) return el("div", { class: "thumb" }, lazyImg(img));
   return el("div", { class: "thumb", html: ICONS[KIND_ICON[item.kind] || "doc"] });
 }
 
@@ -860,12 +863,11 @@ async function artifactsBlock(artifacts) {
   const images = artifacts.filter((a) => /\.(svg|png|jpe?g)$/.test(a));
   const files = artifacts.filter((a) => !images.includes(a));
   const grid = images.length
-    ? el("div", { class: "tgrid" }, await Promise.all(images.map(async (p) => {
-        let src = "";
-        try { src = await invoke("artifact_image", { path: p }); } catch {}
-        return el("div", { class: "tcell" }, el("img", { src, alt: p }),
-          el("div", { class: "tfoot" }, el("span", {}, p.split("/").pop()), p.endsWith(".svg") ? el("button", { class: "link", onclick: () => exportPng(p, src).catch((e) => toast(String(e), true)) }, "Export PNG") : null));
-      })))
+    ? el("div", { class: "tgrid" }, images.map((p) => {
+        const im = lazyImg(p, { alt: p });
+        return el("div", { class: "tcell" }, im,
+          el("div", { class: "tfoot" }, el("span", {}, p.split("/").pop()), p.endsWith(".svg") ? el("button", { class: "link", onclick: () => exportPng(p, im.src).catch((e) => toast(String(e), true)) }, "Export PNG") : null));
+      }))
     : null;
   return el("div", {},
     el("div", { class: "files" }, files.map((p) => el("button", { class: "link", onclick: () => openText(p) }, p.split("/").slice(-2).join("/")))),
@@ -974,7 +976,9 @@ async function itemSheet(item, focusNote = false) {
 const AGENT_STATUS = {
   idle: () => el("span", { class: "pill" }, "Idle"),
   working: () => el("span", { class: "pill red" }, "Working"),
-  waiting: () => el("span", { class: "pill red-soft" }, "Waiting for approval"),
+  // Finished work waiting in the Review Queue reads differently from a run
+  // that needs your yes before it starts.
+  waiting: (a) => el("span", { class: "pill red-soft", title: a && a.detail || "" }, a && /review queue/.test(a.detail || "") ? "Ready for review" : "Needs your approval"),
   blocked: () => el("span", { class: "pill white" }, "Blocked"),
 };
 async function viewAgents() {
@@ -987,7 +991,7 @@ async function viewAgents() {
     el("div", { class: "list", id: "agent-list" }, agents.map((a) =>
       el("div", { class: "row tap" + (a.status === "working" ? " active-agent" : ""), "data-agent": a.name, onclick: () => agentSheet(a) },
         el("div", { class: "grow" }, el("div", { class: "row-title" }, cap(a.name), a.role ? el("span", { class: "role" }, a.role) : null), el("div", { class: "row-sub" }, a.description)),
-        AGENT_STATUS[a.status](),
+        AGENT_STATUS[a.status](a),
         el("span", { class: "chev", html: ICONS.chev })
       )
     ))
@@ -997,7 +1001,7 @@ function agentSheet(a) {
   sheet(cap(a.name),
     el("p", { class: "prose" }, a.description),
     el("div", { class: "list" },
-      el("div", { class: "srow" }, el("div", { class: "grow label" }, "Status"), AGENT_STATUS[a.status]()),
+      el("div", { class: "srow" }, el("div", { class: "grow label" }, "Status"), AGENT_STATUS[a.status](a)),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Right now"), el("span", { class: "note" }, a.detail)),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Model"), el("span", { class: "note" }, a.model)),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Writes"), el("span", { class: "note" }, a.output || "–")),
@@ -1280,8 +1284,17 @@ async function viewComposer(tabs) {
   showIf(nav, page(head("Runs", runningSubtitle(), tabs), form, estimateBox));
 }
 
+// A new estimate replaces the last one nobody approved (so it does not
+// linger as "waiting for approval").
+function dropPrepared() {
+  const p = state.prepared;
+  state.prepared = null;
+  if (p) invoke(p.kind === "run" ? "run_cancel" : "pipeline_cancel", p.kind === "run" ? { runId: p.id } : { pipelineId: p.id }).catch(() => {});
+  if (state.costRun) { invoke("run_cancel", { runId: state.costRun }).catch(() => {}); state.costRun = null; }
+}
 async function estimate(box) {
   const c = state.composer;
+  dropPrepared();
   box.replaceChildren();
   try {
     if (c.mode === "plan") {
@@ -1665,10 +1678,12 @@ async function projectPicker(onChange) {
   return sel;
 }
 async function costCard(box, agent, prompt, label) {
+  dropPrepared();
   box.replaceChildren();
   let r;
   try {
     r = await invoke("run_prepare", { agent, prompt });
+    state.costRun = r.run_id;
   } catch (e) {
     box.append(el("div", { class: "card", style: "margin-top:16px" }, el("div", { class: "row-title" }, "Can't start this"), el("p", { class: "note" }, String(e))));
     return;
@@ -1677,6 +1692,7 @@ async function costCard(box, agent, prompt, label) {
   const go = el("button", { class: "btn primary", id: "approve-run", onclick: async () => {
     go.disabled = true;
     try {
+      state.costRun = null;
       await invoke("run_approve_and_start", { runId: r.run_id, confirmedCapUsd: e.cap_usd });
       state.live = { kind: "run", id: r.run_id, estimate: e.expected_usd, cap: e.cap_usd };
       state.logs[r.run_id] = "";
@@ -1712,12 +1728,21 @@ async function viewChat() {
   const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
   const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: async () => {
     const text = input.value;
+    if (!text.trim()) return;
     send.disabled = true;
+    // Show it at once: your message, then a reply bubble that fills in live.
+    const empty = list.querySelector(".empty");
+    if (empty) empty.remove();
+    const mine = el("div", { class: "bubble me" }, el("div", {}, text));
+    const typing = el("div", { class: "bubble them typing", id: "chat-typing" }, "Thinking…");
+    list.append(mine, typing);
+    list.scrollTop = list.scrollHeight;
+    input.value = ""; state.chatDraft = "";
+    state.chatLive = "";
     try {
       state.chatBusy = await invoke("chat_send", { text });
       state.chatStatus = "Thinking…";
-      viewChat();
-    } catch (e) { send.disabled = false; toast(String(e), true); }
+    } catch (e) { mine.remove(); typing.remove(); input.value = text; send.disabled = false; toast(String(e), true); }
   } }, cap_usd > 0 ? "Send" : "Send · free");
   // Enter sends; Shift+Enter makes a new line.
   input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!send.disabled && input.value.trim()) send.click(); } });
@@ -1725,7 +1750,7 @@ async function viewChat() {
     el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
       m.role === "you" ? el("div", {}, m.text) : markdown(m.text),
       m.role !== "you" ? el("div", { class: "bubble-meta" }, who, m.cost_usd != null ? ` · ${usd(m.cost_usd, 2)}` : "", m.run_id ? el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + m.run_id) }, "Details") : null) : null));
-  if (state.chatBusy) msgs.push(el("div", { class: "bubble them typing", id: "chat-typing" }, state.chatStatus || "Thinking…"));
+  if (state.chatBusy) msgs.push(el("div", { class: "bubble them typing" + (state.chatLive ? " live" : ""), id: "chat-typing" }, state.chatLive || state.chatStatus || "Thinking…"));
   const list = el("div", { class: "chat-list", id: "chat-list" }, msgs.length ? msgs :
     el("div", { class: "empty", style: "padding:64px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
       el("div", {}, "It can answer questions about your games and fix things in your projects. Each message counts toward your budget.")));
@@ -1739,15 +1764,29 @@ async function viewChat() {
   input.focus();
 }
 T.event.listen("chat-line", (ev) => {
+  const n = $("chat-typing");
+  let v; try { v = JSON.parse(ev.payload.line); } catch { return; }
+  // Word-by-word text while Claude writes.
+  const d = v.type === "stream_event" && v.event && v.event.delta;
+  if (d && d.type === "text_delta") {
+    state.chatLive = (state.chatLive || "") + d.text;
+    if (n) { n.classList.add("live"); n.textContent = state.chatLive; const l = $("chat-list"); if (l && l.scrollHeight - l.scrollTop - l.clientHeight < 120) l.scrollTop = l.scrollHeight; }
+    return;
+  }
+  if (v.type === "stream_event") return;
   const t = renderLine(ev.payload.line);
   if (!t) return;
-  state.chatStatus = t.split("\n").pop().slice(0, 140);
-  const n = $("chat-typing");
-  if (n) n.textContent = state.chatStatus;
+  // Tool steps (reading a file, searching) show while no text is streaming.
+  const last = t.split("\n").pop();
+  if (last.startsWith("· ") || last.startsWith("Finished")) {
+    state.chatStatus = last.slice(0, 140);
+    if (n && !state.chatLive) n.textContent = state.chatStatus;
+  }
 });
 T.event.listen("chat-done", () => {
   state.chatBusy = null;
   state.chatStatus = "";
+  state.chatLive = "";
   refreshStatus();
   if ((location.hash || "") === "#chat") viewChat();
   else toast("Claude replied in Ask Claude.");
@@ -1823,13 +1862,12 @@ async function viewThumbnails() {
     grid = el("div", { class: "empty" }, el("div", { class: "ic-big", html: ICONS.image }), el("div", { class: "empty-title" }, "No thumbnails yet"),
       el("div", {}, "One subject, one strong emotion, one prize or danger, three words or fewer. The same rules the biggest YouTube thumbnails follow, applied to your game."));
   } else {
-    const cells = await Promise.all(data.thumbnails.map(async (t) => {
-      let src = "";
-      try { src = await invoke("artifact_image", { path: t.path }); } catch {}
-      return el("div", { class: "tcell" + (t.icon ? " icon" : "") }, el("img", { src, alt: t.name }),
+    const cells = data.thumbnails.map((t) => {
+      const im = lazyImg(t.path, { alt: t.name });
+      return el("div", { class: "tcell" + (t.icon ? " icon" : "") }, im,
         el("div", { class: "tfoot" }, el("span", { class: "inline", style: "gap:6px" }, el("span", { class: "pill " + (t.grade === "A+" ? "red" : t.grade === "A" ? "white" : "") , title: t.checks.map((c) => (c.passed ? "✓ " : "✕ ") + c.name).join("\n") }, t.grade), el("span", {}, t.name)),
-          el("button", { class: "link", onclick: () => exportPng(t.path, src).catch((e) => toast(String(e), true)) }, "Export PNG")));
-    }));
+          el("button", { class: "link", onclick: () => exportPng(t.path, im.src).catch((e) => toast(String(e), true)) }, "Export PNG")));
+    });
     const best = data.thumbnails.filter((t) => !t.icon)[0];
     grid = el("div", { class: "section" },
       el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "section-label" }, `Latest set · made ${ago(data.run.at)} for ${usd(data.run.cost_usd, 2)}`), el("button", { class: "link", onclick: () => (location.hash = "#run/" + data.run.run_id) }, "Ranking and details")),

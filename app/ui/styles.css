@@ -363,3 +363,12 @@ body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.
 .heat-sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
 .heat-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
 #heat-slot { margin-bottom: 14px; }
+
+/* Ask Claude: streaming reply */
+.bubble.typing.live { color: var(--text); white-space: pre-wrap; animation: none; }
+.bubble { animation: pop .14s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Pictures fade in as they load; the page never waits for them */
+img.lazy { opacity: 0; transition: opacity .2s ease; background: #1a1a1c; }
+img.lazy.in { opacity: 1; }

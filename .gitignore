@@ -21,3 +21,6 @@ reviews/
 tuneup/
 projects/*/docs/score.json
 graphify-out/
+
+*.bak
+*.json.tmp

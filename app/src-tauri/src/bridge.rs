@@ -101,6 +101,10 @@ pub fn build_args(
         (Some(_), _) => {}
         _ => a.push("--no-session-persistence".into()),
     }
+    if req.chat.is_some() {
+        // Ask Claude shows the reply as it is written, word by word.
+        a.push("--include-partial-messages".into());
+    }
     if !allowed_tools.is_empty() {
         a.push("--allowedTools".into());
         a.push(allowed_tools.join(" "));

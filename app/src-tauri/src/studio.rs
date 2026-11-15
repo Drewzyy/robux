@@ -198,6 +198,13 @@ fn step_for(root: &Path, r: &runs::RunRequest, gate: Option<queue::Gate>, output
 
 /// Pipelines and standalone runs, newest first (stage runs are folded into
 /// their pipeline). Cancelled estimates are left out.
+/// What a run was asked, without the context the app adds (a recovered
+/// chat carries the earlier conversation before "Andrew's new message:").
+fn short_prompt(p: &str) -> String {
+    let p = p.rsplit("Andrew's new message:\n").next().unwrap_or(p).trim();
+    p.chars().take(90).collect()
+}
+
 pub fn run_list(root: &Path) -> Result<Vec<RunSummary>, String> {
     let mut out: Vec<RunSummary> = pipeline::list(root)
         .into_iter()
@@ -219,7 +226,7 @@ pub fn run_list(root: &Path) -> Result<Vec<RunSummary>, String> {
         out.push(RunSummary {
             id: r.run_id.clone(),
             kind: "run".into(),
-            title: format!("{}: {}", r.agent, r.prompt.chars().take(90).collect::<String>()),
+            title: format!("{}: {}", r.agent, short_prompt(&r.prompt)),
             status: r.status.clone(),
             created_at: r.created_at.clone(),
             estimate_usd: r.estimate.expected_usd,
