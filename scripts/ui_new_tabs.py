@@ -117,6 +117,19 @@ try:
     d.execute_script("location.hash='#tuneup/now'"); time.sleep(8)
     check("Tune-Up scans the game's code and map", "dawn-watch" in view() and "code files" in view() and "parts" in view() and len(d.find_elements(By.ID, "tuneup-run")) == 1, view()[:120].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-tuneup.png"))
+    import tempfile, shutil as _sh
+    lost = Path(tempfile.mkdtemp(prefix="lost-", dir=str(Path.home())))
+    (lost / "OldCopy/vault/00-Start-Here").mkdir(parents=True); (lost / "OldCopy/vault/02-Game-Design").mkdir(parents=True)
+    (lost / "OldCopy/vault/00-Start-Here/index.md").write_text("x"); (lost / "OldCopy/vault/02-Game-Design/ui-test-lost-note.md").write_text("---\ndescription: test\n---\n")
+    d.execute_script("location.hash='#files'"); time.sleep(25)
+    found_txt = view()
+    check("Find My Files finds the studio in use and a stray vault", "In use" in found_txt and str(lost) in found_txt, found_txt[:160].replace("\n", " "))
+    d.save_screenshot(str(SHOTS / "ui-files.png"))
+    for b in d.find_elements(By.XPATH, "//button[text()='Copy Into My Vault']"):
+        if str(lost) in b.find_element(By.XPATH, "../..").text: b.click(); time.sleep(4); break
+    merged = ROOT / "vault/02-Game-Design/ui-test-lost-note.md"
+    check("a stray vault's notes copy into the vault without overwriting", merged.is_file())
+    merged.unlink(missing_ok=True); _sh.rmtree(lost, ignore_errors=True)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Settings offers the optional Figma login", "Figma (optional login)" in view() and "no login, no limits" in view())
     d.execute_script("location.hash='#review'"); time.sleep(2.5)

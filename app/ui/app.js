@@ -183,7 +183,7 @@ function dropZone(node, onFiles, accept = /^image\//) {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -220,7 +220,7 @@ const GROUPS = {
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -280,6 +280,8 @@ async function viewHome() {
 // Dashboard: one look at everything, each widget opens its page
 // =====================================================================
 async function viewDashboard() {
+  const inf = await invoke("studio_info").catch(() => ({}));
+  if (!inf.root) { location.hash = "#files"; return; }
   const nav = navSeq;
   await freshStatus();
   const [p, money, plans, rev, queue] = await Promise.all([
@@ -392,6 +394,33 @@ async function viewScore(project) {
   showIf(nav, page(head("Game Score", "How ready each game is, out of 100. 75 is the standard to publish."),
     el("div", { class: "card note" }, "Scored from what the studio can check itself: does it build, is the code clean, graphics and feel (lighting, materials, motion, particles, sound, UI), what keeps players playing (saves, daily streaks, playtime gifts, goals, leaderboards, friends, favorite reminder, badges), fair monetization, plus the latest Player Test and Second Opinion. Free, no AI."),
     ...cards.map((v) => v.error ? el("div", { class: "card" }, `${v.project}: ${v.error}`) : scoreCard(v))));
+}
+
+// =====================================================================
+// Find My Files: studios, vaults and apps anywhere on this computer
+// =====================================================================
+async function viewFiles() {
+  const nav = navSeq;
+  showIf(nav, page(head("Find My Files", "Searching your drives..."), el("div", { class: "card" }, "Looking in your home folder, Documents, Desktop, Downloads, OneDrive and every drive. This can take a minute.")));
+  const [found, info, st] = await Promise.all([invoke("locate_scan"), invoke("studio_info"), invoke("settings_get")]);
+  const label = { studio: "Studio folder (vault, games, agents)", vault: "Vault on its own", blender: "Blender", obsidian: "Obsidian", claude: "Claude Code copy" };
+  const act = async (fn, args) => { try { toast(await invoke(fn, args)); viewFiles(); } catch (e) { toast(String(e), true); } };
+  const moveHere = async () => { const dest = await invoke("pick_folder"); if (!dest) return; try { toast(await invoke("studio_move", { dest: dest + (dest.endsWith("BrewixGames") ? "" : (dest.includes("\\\\") ? "\\\\" : "/") + "BrewixGames") })); viewFiles(); } catch (e) { toast(String(e), true); } };
+  const row = (f) => el("div", { class: "row" },
+    el("div", { class: "row-main", style: "flex:1;min-width:0" }, el("div", { class: "row-title" }, label[f.kind] || f.kind, f.current ? el("span", { class: "pill white", style: "margin-left:8px" }, "In use") : null),
+      el("div", { class: "note", style: "word-break:break-all" }, f.path),
+      el("div", { class: "note" }, [f.notes ? `${f.notes} notes` : null, f.projects ? `${f.projects} game(s)` : null, f.modified ? `changed ${f.modified}` : null].filter(Boolean).join(" · "))),
+    el("div", { class: "inline" },
+      f.kind === "vault" ? el("button", { class: "btn secondary", onclick: () => act("locate_merge_vault", { path: f.path }) }, "Copy Into My Vault")
+        : f.current ? (f.kind === "studio" ? el("button", { class: "btn secondary", onclick: moveHere }, "Move to Another Folder") : null)
+        : el("button", { class: "btn primary", onclick: () => act("locate_use", { kind: f.kind, path: f.path }) }, "Use This One")));
+  showIf(nav, page(head("Find My Files", `${found.length} found`, el("button", { class: "btn secondary", onclick: viewFiles }, "Search Again")),
+    el("div", { class: "card" },
+      el("div", { class: "row-title" }, "In use now"),
+      el("div", { class: "note", style: "word-break:break-all" }, info.root ? `Studio: ${info.root}` : `No studio folder: ${info.root_error || ""}`),
+      el("div", { class: "note", style: "word-break:break-all" }, `Downloads folder: ${st.tools_dir || "(default, inside the studio)"} · Settings file: ${info.config_file}`),
+      el("p", { class: "note" }, "Use This One points the app at a folder where it is. Move to Another Folder copies your whole studio (vault, games, runs) to a folder you pick, such as one on your D drive, and switches to it; the old folder is kept until you delete it. A vault found on its own can be copied into yours: notes you already have are never overwritten.")),
+    found.length ? el("div", { class: "list" }, found.map(row)) : el("div", { class: "card" }, "Nothing found. If your files are somewhere unusual, set the studio folder in Settings.")));
 }
 
 // A Claude model picker: cheapest first, with a plain hint of size.
@@ -1421,7 +1450,7 @@ async function viewSettings() {
           el("div", { class: "inline", style: "width:430px" }, el("input", { type: "text", id: "tools-dir", placeholder: "Default: tools inside the studio folder", value: s.tools_dir || "" }),
             el("button", { class: "btn secondary", id: "tools-dir-pick", onclick: async () => { const f = await invoke("pick_folder"); if (f) { $("tools-dir").value = f; await save({ tools_dir: f }, "Downloads folder set."); viewSettings(); } } }, "Choose Folder"),
             el("button", { class: "btn secondary", id: "tools-dir-save", onclick: () => save({ tools_dir: $("tools-dir").value.trim() }, "Downloads folder saved. Press Install next to Claude Code and uv to put them there.") }, "Save"))),
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio folder"), el("div", { class: "hint" }, `In use: ${info.root}. Vault: ${info.vault}.`)),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio folder"), el("div", { class: "hint" }, `In use: ${info.root}. Vault: ${info.vault}. Lost something? `, el("a", { class: "link", href: "#files", id: "find-files" }, "Find My Files"))),
           el("div", { class: "inline", style: "width:430px" }, root, el("button", { class: "btn secondary", id: "studio-move", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Moving..."; try { toast(await invoke("studio_move", { dest: root.value.trim() })); viewSettings(); } catch (e) { toast(String(e), true); } ev.target.disabled = false; ev.target.textContent = "Move Here"; } }, "Move Here"))),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Import a game project"), el("div", { class: "hint" }, "Copies a Rojo project into projects/ so agents can work on it.")),
           el("div", { class: "inline", style: "width:430px" }, importPath, el("button", { class: "btn secondary", onclick: async () => { try { toast(await invoke("project_import", { path: importPath.value.trim() })); } catch (e) { toast(String(e), true); } } }, "Import"))))),

@@ -449,6 +449,11 @@ pub fn ensure_studio() -> Result<Option<PathBuf>, String> {
     if crate::paths::studio_root().is_ok() {
         return Ok(None);
     }
+    // Lost track of it (settings reset or folder moved)? Find it before
+    // ever making a new, empty one.
+    if crate::locate::auto_heal().is_some() {
+        return Ok(None);
+    }
     let Some(t) = bundled_template() else { return Ok(None) };
     let home = crate::paths::home().ok_or("no home folder")?;
     let dest = home.join("BrewixGames");

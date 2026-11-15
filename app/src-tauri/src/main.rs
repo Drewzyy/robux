@@ -597,6 +597,21 @@ async fn tuneup_fix(project: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || studio_core::tuneup::fix(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
+// ---------- find my files ----------
+#[tauri::command]
+async fn locate_scan() -> Result<Vec<Value>, String> {
+    tauri::async_runtime::spawn_blocking(studio_core::locate::scan).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+async fn locate_use(kind: String, path: String) -> Result<String, String> {
+    studio_core::locate::use_found(&kind, &path)
+}
+#[tauri::command]
+async fn locate_merge_vault(path: String) -> Result<String, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::locate::merge_vault(std::path::Path::new(&path), &r)).await.map_err(|e| e.to_string())?
+}
+
 // ---------- game score ----------
 #[tauri::command]
 async fn scores_list() -> Result<Vec<Value>, String> {
@@ -767,6 +782,9 @@ fn main() {
             settings_patch,
             brief_list,
             scores_list,
+            locate_scan,
+            locate_use,
+            locate_merge_vault,
             score_run,
             brief_create,
             brief_get,
