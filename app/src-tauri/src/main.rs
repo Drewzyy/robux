@@ -560,7 +560,12 @@ async fn reviews_list(engines: Option<bool>) -> Result<Value, String> {
 #[tauri::command]
 async fn review_start(app: AppHandle, target: String, engine: String) -> Result<(), String> {
     let r = root()?;
-    let version = app.package_info().version.to_string();
+    // The release name the build baked in (tauri.conf's version stays 0.1.0).
+    let version = update::release_tag().map(|t| t.trim_start_matches('v').to_string()).unwrap_or_default();
+    if target == "app" && version.is_empty() {
+        return Err("Reviewing the app itself needs an installed release (this is a development build).".into());
+    }
+    let _ = &app;
     std::thread::spawn(move || {
         let app2 = app.clone();
         let res = studio_core::review::run(&r, &target, &engine, &version, &mut |l| {

@@ -207,7 +207,7 @@ pub fn stale(root: &Path) -> Vec<PathBuf> {
             out.push(e.path());
         }
     }
-    let cur = format!("v{}", env!("CARGO_PKG_VERSION"));
+    let cur = crate::update::release_tag().unwrap_or("").to_string();
     for e in fs::read_dir(tools.join("app-source")).into_iter().flatten().flatten() {
         if e.file_name().to_string_lossy() != cur {
             out.push(e.path());

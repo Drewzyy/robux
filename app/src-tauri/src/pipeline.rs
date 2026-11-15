@@ -203,6 +203,7 @@ pub fn prepare(root: &Path, name: &str, input: &str, project: Option<&str>) -> R
 }
 
 pub fn approve(root: &Path, id: &str, confirmed_cap_usd: f64) -> Result<PipelineRun, String> {
+    let _g = crate::budget::APPROVE.lock().unwrap_or_else(|e| e.into_inner());
     let mut p = load(root, id)?;
     if p.status != "awaiting-approval" {
         return Err(format!("pipeline {id} is {}, not awaiting approval", p.status));

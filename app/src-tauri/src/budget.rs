@@ -22,6 +22,10 @@ pub fn current_month() -> String {
     chrono::Utc::now().format("%Y-%m").to_string()
 }
 
+/// Held across the budget check and the approval, so two approvals at the
+/// same moment cannot both pass a check that only one fits.
+pub static APPROVE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn spend(root: &Path, budget_usd: f64) -> Spend {
     let month = current_month();
     let mut spent = 0.0;

@@ -155,6 +155,7 @@ pub fn list(root: &Path) -> Result<Vec<RunRequest>, String> {
 /// Approve a prepared run. `confirmed_cap_usd` must equal the cap that was
 /// shown to Andrew.
 pub fn approve(root: &Path, run_id: &str, confirmed_cap_usd: f64) -> Result<RunRequest, String> {
+    let _g = crate::budget::APPROVE.lock().unwrap_or_else(|e| e.into_inner());
     let req = load(root, run_id)?;
     if req.status == "awaiting-approval" {
         crate::budget::check(root, req.estimate.cap_usd)?;

@@ -38,8 +38,12 @@ pub fn list(root: &Path, project: &str) -> Result<Vec<Reference>, String> {
 }
 
 /// Add one image (PNG, JPEG, or WebP bytes as base64).
+/// add and remove read, change and write index.json: one at a time.
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn add(root: &Path, project: &str, name: &str, data_b64: &str, category: &str, note: &str, source: &str) -> Result<Reference, String> {
     let game = game_of(project)?;
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     if !root.join("projects").join(&game).is_dir() {
         return Err(format!("no game folder projects/{game}"));
     }
@@ -78,6 +82,7 @@ pub fn add(root: &Path, project: &str, name: &str, data_b64: &str, category: &st
 
 pub fn remove(root: &Path, project: &str, file: &str) -> Result<(), String> {
     let game = game_of(project)?;
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root, project)?;
     all.retain(|r| r.file != file);
     let d = dir(root, &game);
@@ -159,5 +164,20 @@ mod tests {
         assert!(list(&root, "projects/g1").unwrap().is_empty());
         assert_eq!(fs::read_to_string(root.join("vault/19-Project-Memory/index.md")).unwrap().matches("g1-references").count(), 1);
         let _ = fs::remove_dir_all(&root);
+    }
+}
+
+#[cfg(test)]
+mod race_tests {
+    use super::*;
+    #[test]
+    fn five_images_at_once_all_listed() {
+        let d = std::env::temp_dir().join(format!("refs-race-{}", std::process::id()));
+        fs::create_dir_all(d.join("projects/g")).unwrap();
+        let png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+        let hs: Vec<_> = (0..5).map(|i| { let d = d.clone(); std::thread::spawn(move || add(&d, "g", &format!("shot{i}.png"), png, "UI", "", "test").unwrap()) }).collect();
+        for h in hs { h.join().unwrap(); }
+        assert_eq!(list(&d, "g").unwrap().len(), 5);
+        let _ = fs::remove_dir_all(&d);
     }
 }

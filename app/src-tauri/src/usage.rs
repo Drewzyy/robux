@@ -130,7 +130,10 @@ fn runs_usage(root: &Path) -> BTreeMap<String, Day> {
 pub fn heatmap(root: &Path) -> Value {
     let prices = crate::cost::load_pricing(root).map(|p| p.models).unwrap_or_default();
     let cache_path = root.join(".cache/usage-cache.json");
-    let mut cache: HashMap<String, (u64, u128, BTreeMap<String, Day>)> = fs::read_to_string(&cache_path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
+    // Per file: size, modified time, its days, and its message keys. The
+    // keys of unchanged files are known before new files are read, so a
+    // message repeated in a resumed session's new log is counted once.
+    let mut cache: HashMap<String, (u64, u128, BTreeMap<String, Day>, Vec<String>)> = fs::read_to_string(&cache_path).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default();
     let mut files = vec![];
     for d in claude_dirs() {
         jsonl_files(&d, &mut files);
@@ -138,18 +141,30 @@ pub fn heatmap(root: &Path) -> Value {
     let mut days: BTreeMap<String, Day> = BTreeMap::new();
     let mut seen = HashSet::new();
     let mut fresh = HashMap::new();
+    let stat = |f: &Path| fs::metadata(f).ok().map(|m| (m.len(), m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis()).unwrap_or(0))).unwrap_or((0, 0));
+    let mut todo = vec![];
     for f in &files {
         let key = f.display().to_string();
-        let meta = fs::metadata(f).ok();
-        let (size, mtime) = meta.map(|m| (m.len(), m.modified().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()).map(|d| d.as_millis()).unwrap_or(0))).unwrap_or((0, 0));
-        let per = match cache.remove(&key) {
-            Some((s, t, d)) if s == size && t == mtime => d,
-            _ => parse_log(f, &prices, &mut seen),
-        };
+        let (size, mtime) = stat(f);
+        match cache.remove(&key) {
+            Some((s, t, d, keys)) if s == size && t == mtime => {
+                seen.extend(keys.iter().cloned());
+                for (k, v) in &d {
+                    days.entry(k.clone()).or_default().add(v);
+                }
+                fresh.insert(key, (size, mtime, d, keys));
+            }
+            _ => todo.push((f, key, size, mtime)),
+        }
+    }
+    for (f, key, size, mtime) in todo {
+        let before: HashSet<String> = seen.clone();
+        let per = parse_log(f, &prices, &mut seen);
+        let keys: Vec<String> = seen.difference(&before).cloned().collect();
         for (k, v) in &per {
             days.entry(k.clone()).or_default().add(v);
         }
-        fresh.insert(key, (size, mtime, per));
+        fresh.insert(key, (size, mtime, per, keys));
     }
     let _ = fs::create_dir_all(root.join(".cache"));
     let _ = fs::write(&cache_path, serde_json::to_string(&fresh).unwrap_or_default());
