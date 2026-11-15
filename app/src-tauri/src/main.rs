@@ -71,6 +71,20 @@ async fn settings_patch(patch: Value) -> Result<settings::Settings, String> {
     settings::patch(&patch)
 }
 
+/// Pick what answers in Ask Claude: a Claude model ("claude:<id>", empty id
+/// for the default) or a local Ollama model ("ollama:<name>").
+#[tauri::command]
+async fn chat_model_set(choice: String) -> Result<settings::Settings, String> {
+    if let Some(m) = choice.strip_prefix("ollama:") {
+        if !ollama::ensure_running() {
+            return Err("Ollama is not installed or would not start. Install it free from ollama.com, then try again.".into());
+        }
+        settings::patch(&json!({ "engine": "ollama", "ollama_model": m }))
+    } else {
+        settings::patch(&json!({ "engine": "claude", "chat_model": choice.strip_prefix("claude:").unwrap_or("") }))
+    }
+}
+
 /// Claude models the app has prices for, cheapest first.
 #[tauri::command]
 async fn models_list() -> Result<Vec<Value>, String> {
@@ -689,6 +703,9 @@ fn main() {
             eprintln!("{m}");
         }
     }
+    if settings::load().ollama_autostart {
+        std::thread::spawn(ollama::ensure_running);
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
@@ -757,6 +774,7 @@ fn main() {
             brief_add_image,
             brief_prompt,
             models_list,
+            chat_model_set,
             reviews_list,
             review_start,
             review_answer,

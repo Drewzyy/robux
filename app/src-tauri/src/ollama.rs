@@ -96,6 +96,45 @@ fn get(path: &str) -> Result<serde_json::Value, String> {
         .map_err(|e| e.to_string())
 }
 
+/// Where Ollama is installed, if it is.
+pub fn binary() -> Option<std::path::PathBuf> {
+    let mut c = vec![];
+    if cfg!(windows) {
+        if let Some(l) = std::env::var_os("LOCALAPPDATA") {
+            c.push(std::path::PathBuf::from(l).join("Programs/Ollama/ollama.exe"));
+        }
+    } else if cfg!(target_os = "macos") {
+        c.push("/Applications/Ollama.app/Contents/Resources/ollama".into());
+        c.push("/opt/homebrew/bin/ollama".into());
+        c.push("/usr/local/bin/ollama".into());
+    } else {
+        c.push("/usr/local/bin/ollama".into());
+        c.push("/usr/bin/ollama".into());
+    }
+    c.into_iter().find(|p| p.is_file()).or_else(|| {
+        crate::paths::command(if cfg!(windows) { "where" } else { "which" }).arg("ollama").output().ok().filter(|o| o.status.success()).and_then(|o| String::from_utf8_lossy(&o.stdout).lines().next().map(|l| l.trim().into()))
+    })
+}
+
+/// Auto-connect: if Ollama is installed but not running, start it quietly
+/// (no window). Returns true when Ollama answers.
+pub fn ensure_running() -> bool {
+    if get("/api/version").is_ok() {
+        return true;
+    }
+    let Some(bin) = binary() else { return false };
+    if crate::paths::command(&bin).arg("serve").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
+        return false;
+    }
+    for _ in 0..20 {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        if get("/api/version").is_ok() {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn status() -> Status {
     let memory_gb = memory_gb();
     let recommended = recommend(memory_gb);

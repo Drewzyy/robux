@@ -74,6 +74,9 @@ pub struct Settings {
     pub chat_model: String,
     #[serde(default)]
     pub run_model: String,
+    /// Start Ollama in the background when the app opens (if installed).
+    #[serde(default = "default_true")]
+    pub ollama_autostart: bool,
     /// Figma login connection for the UI agents (off by default).
     #[serde(default)]
     pub figma_mcp: bool,
@@ -94,6 +97,9 @@ pub struct Settings {
 }
 fn default_rate() -> f64 {
     crate::earnings::STANDARD_RATE
+}
+fn default_true() -> bool {
+    true
 }
 fn default_tuneup_days() -> u32 {
     7
@@ -120,6 +126,7 @@ impl Default for Settings {
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),
             figma_mcp: false,
+            ollama_autostart: true,
             chat_model: String::new(),
             run_model: String::new(),
             tuneup_days: default_tuneup_days(),
@@ -150,11 +157,33 @@ pub fn path() -> PathBuf {
     config_dir().join("settings.json")
 }
 
+/// Read settings without ever losing them: if the file does not parse in
+/// full, keep every field that still reads, fall back to the last good
+/// backup, and only then to defaults.
 pub fn load() -> Settings {
-    fs::read_to_string(path())
-        .ok()
-        .and_then(|t| serde_json::from_str(&t).ok())
-        .unwrap_or_default()
+    let main = fs::read_to_string(path()).ok();
+    if let Some(s) = main.as_deref().and_then(|t| serde_json::from_str::<Settings>(t).ok()) {
+        return s;
+    }
+    let bak = fs::read_to_string(path().with_extension("json.bak")).ok();
+    if let Some(s) = bak.as_deref().and_then(|t| serde_json::from_str::<Settings>(t).ok()) {
+        return s;
+    }
+    main.or(bak).map(|t| salvage(&t)).unwrap_or_default()
+}
+
+/// Keep each field of a damaged settings file that still has a valid value.
+pub fn salvage(text: &str) -> Settings {
+    let Ok(serde_json::Value::Object(saved)) = serde_json::from_str::<serde_json::Value>(text) else { return Settings::default() };
+    let mut cur = serde_json::to_value(Settings::default()).unwrap_or_default();
+    for (k, v) in saved {
+        let mut trial = cur.clone();
+        trial[&k] = v;
+        if serde_json::from_value::<Settings>(trial.clone()).is_ok() {
+            cur = trial;
+        }
+    }
+    serde_json::from_value(cur).unwrap_or_default()
 }
 
 pub fn validate(s: &Settings) -> Result<(), String> {
@@ -226,11 +255,36 @@ fn save_unlocked(s: &Settings) -> Result<(), String> {
     fs::create_dir_all(&d).map_err(|e| format!("create {}: {e}", d.display()))?;
     let tmp = d.join("settings.json.tmp");
     fs::write(&tmp, serde_json::to_string_pretty(s).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    fs::rename(&tmp, path()).map_err(|e| e.to_string())?;
+    // Keep the last good copy, then swap in the new file. Windows can briefly
+    // lock a file (antivirus, indexing), so retry the swap a few times.
+    if path().is_file() {
+        let _ = fs::copy(path(), path().with_extension("json.bak"));
+    }
+    let mut last = Ok(());
+    for _ in 0..5 {
+        last = fs::rename(&tmp, path());
+        if last.is_ok() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(80));
+    }
+    last.map_err(|e| format!("could not save settings to {}: {e}", path().display()))?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let _ = fs::set_permissions(path(), fs::Permissions::from_mode(0o600));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn salvage_keeps_good_fields() {
+        let s = salvage(r#"{"studio_root": "D:/Games/Studio", "tools_dir": "D:/Tools", "monthly_budget_usd": "oops", "tuneup_days": 3}"#);
+        assert_eq!(s.studio_root, "D:/Games/Studio");
+        assert_eq!(s.tools_dir, "D:/Tools");
+        assert_eq!(s.tuneup_days, 3);
+    }
 }

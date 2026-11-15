@@ -339,3 +339,8 @@ body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.
 .score-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 20px; margin-top: 18px; }
 .score-part .plan-bar { margin: 6px 0; }
 .score-todo { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+
+/* Drag and drop */
+.drop-on { outline: 2px dashed #FF453A; outline-offset: 4px; border-radius: 12px; background: rgba(255, 69, 58, 0.06); }
+.drop-hint { display: none; color: var(--text-2); font-size: 12px; margin-top: 6px; }
+.brief-item:hover .drop-hint, .drop-on .drop-hint { display: block; }

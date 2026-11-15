@@ -85,9 +85,13 @@ try:
     d.execute_script("arguments[0].dispatchEvent(new Event('change'))", box); time.sleep(2)
     PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
     d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('brief_add_image', {slug: 'ui-test-idea', id: 'look', name: 'ref.png', data: arguments[0]}).then(() => done()).catch((e) => done(String(e)));", PNG)
+    # drag and drop a screenshot onto a checklist item (a real DataTransfer drop event)
+    d.execute_script("""const b = Uint8Array.from(atob(arguments[0]), (c) => c.charCodeAt(0)); const f = new File([b], 'shot.png', {type: 'image/png'});
+      const dt = new DataTransfer(); dt.items.add(f); const n = document.querySelector(".brief-item[data-id='world']");
+      n.dispatchEvent(new DragEvent('dragenter', {dataTransfer: dt, bubbles: true})); n.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true}));""", PNG); time.sleep(3)
     d.execute_script("location.hash='#ideas'"); time.sleep(1); d.execute_script("location.hash='#brief'"); time.sleep(3)
     saved_box = d.find_element(By.CSS_SELECTOR, ".brief-item[data-id='loop'] textarea").get_attribute("value")
-    check("Game Brief checklist saves answers and images", n_items == 19 and saved_box.startswith("Collect sugar") and "2 of 19 covered" in view() and len(d.find_elements(By.CSS_SELECTOR, ".brief-thumb")) == 1, f"{n_items} items · {saved_box[:20]}")
+    check("Game Brief checklist saves answers, images and dropped screenshots", n_items == 19 and saved_box.startswith("Collect sugar") and "3 of 19 covered" in view() and len(d.find_elements(By.CSS_SELECTOR, ".brief-thumb")) == 2, f"{n_items} items · {saved_box[:20]}")
     d.save_screenshot(str(SHOTS / "ui-brief.png"))
     d.find_element(By.ID, "brief-plan").click(); time.sleep(2.5)
     pr = d.find_element(By.ID, "prompt").get_attribute("value")
@@ -96,13 +100,16 @@ try:
     check("Game Score rates the game out of 100 with what to add", "dawn-watch" in view() and "Keeps players playing" in view() and len(d.find_elements(By.CSS_SELECTOR, ".score-num")) >= 1, view()[:140].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-score.png"))
     d.execute_script("location.hash='#chat'"); time.sleep(3)
-    Select(d.find_element(By.ID, "chat-model")).select_by_value("claude-haiku-5-5"); time.sleep(2.5)
+    Select(d.find_element(By.ID, "chat-model")).select_by_value("ollama:qwen2.5-coder:7b"); time.sleep(3)
+    eng = d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_get').then((s) => done([s.engine, s.ollama_model]));")
+    check("Ask Claude can switch to a free local Ollama model", eng == ["ollama", "qwen2.5-coder:7b"] and "free" in d.find_element(By.ID, "chat-send").text.lower(), str(eng))
+    Select(d.find_element(By.ID, "chat-model")).select_by_value("claude:claude-haiku-5-5"); time.sleep(2.5)
     saved = d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_get').then((s) => done(s.chat_model));")
-    check("Ask Claude lets you choose the model and it saves", saved == "claude-haiku-5-5" and Select(d.find_element(By.ID, "chat-model")).first_selected_option.get_attribute("value") == "claude-haiku-5-5", saved)
+    check("Ask Claude lets you choose the model and it saves", saved == "claude-haiku-5-5" and Select(d.find_element(By.ID, "chat-model")).first_selected_option.get_attribute("value") == "claude:claude-haiku-5-5", saved)
     # a stale page copy must not undo another save
     both = d.execute_async_script("""const done = arguments[arguments.length-1]; const inv = window.__TAURI__.core.invoke;
       (async () => { await inv('settings_patch', {patch: {app_dirs: {blender: '/tmp/blender-x'}}}); await inv('settings_patch', {patch: {tuneup_days: 3}}); const s = await inv('settings_get');
-        await inv('settings_patch', {patch: {chat_model: '', tuneup_days: 7, app_dirs: {blender: ''}}}); done([s.app_dirs.blender, s.tuneup_days, s.chat_model]); })();""")
+        await inv('settings_patch', {patch: {chat_model: '', engine: 'claude', tuneup_days: 7, app_dirs: {blender: ''}}}); done([s.app_dirs.blender, s.tuneup_days, s.chat_model]); })();""")
     check("separate saves keep each other's changes", both == ["/tmp/blender-x", 3, "claude-haiku-5-5"], str(both))
     # leave a slow page, land on the page you clicked last
     d.execute_script("location.hash='#vault'; location.hash='#settings'; location.hash='#money'"); time.sleep(4)
@@ -149,6 +156,14 @@ try:
     notefile = ROOT / "vault/19-Project-Memory/dawn-watch-references.md"
     check("reference image lands in the vault note and the grid", not err and len(cards) == n0 + 1 and notefile.is_file() and "Use: round friendly eyes" in notefile.read_text(), err or f"{n0}->{len(cards)}")
     d.save_screenshot(str(SHOTS / "ui-references.png"))
+    n1 = len(d.find_elements(By.CSS_SELECTOR, ".card.ref"))
+    d.execute_script("""const b = Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), (c) => c.charCodeAt(0));
+      const dt = new DataTransfer(); dt.items.add(new File([b], 'dropped.png', {type: 'image/png'})); const n = document.querySelector('#view .page');
+      n.dispatchEvent(new DragEvent('drop', {dataTransfer: dt, bubbles: true, cancelable: true}));"""); time.sleep(3.5)
+    check("dragging a screenshot onto References adds it", len(d.find_elements(By.CSS_SELECTOR, ".card.ref")) == n1 + 1, f"{n1}->{len(d.find_elements(By.CSS_SELECTOR, '.card.ref'))}")
+    for _ in range(2):
+        rr = d.find_elements(By.XPATH, "//div[contains(@class,'ref')]//button[text()='Remove']")
+        if rr and len(d.find_elements(By.CSS_SELECTOR, ".card.ref")) > n0 + 1: rr[0].click(); time.sleep(2)
     rm = d.find_elements(By.XPATH, "//div[contains(@class,'ref')]//button[text()='Remove']")
     if rm: rm[0].click(); time.sleep(2)
     check("removing a reference works", len(d.find_elements(By.CSS_SELECTOR, ".card.ref")) == n0)
@@ -157,8 +172,9 @@ try:
     d.save_screenshot(str(SHOTS / "ui-chat-empty.png"))
     send = d.find_element(By.ID, "chat-send")
     check("Send button is plain", send.text.strip() == "Send", send.text)
+    from selenium.webdriver.common.keys import Keys
     d.find_element(By.ID, "chat-input").send_keys("In one short sentence: which of my projects exist and how many Luau files does the first one have?")
-    send.click()
+    d.find_element(By.ID, "chat-input").send_keys(Keys.ENTER)
     WebDriverWait(d, 240).until(lambda x: len(x.find_elements(By.CSS_SELECTOR, ".bubble.them:not(.typing)")) >= 1)
     time.sleep(1)
     reply = d.find_elements(By.CSS_SELECTOR, ".bubble.them")[-1].text

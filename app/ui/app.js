@@ -165,6 +165,23 @@ function runningSubtitle() {
   );
 }
 
+// ---------- drag and drop: images dropped onto a zone ----------
+// Dropping anywhere else does nothing (instead of opening the file).
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+function dropZone(node, onFiles, accept = /^image\//) {
+  let depth = 0;
+  node.addEventListener("dragenter", (e) => { e.preventDefault(); depth += 1; node.classList.add("drop-on"); });
+  node.addEventListener("dragleave", () => { depth = Math.max(0, depth - 1); if (!depth) node.classList.remove("drop-on"); });
+  node.addEventListener("dragover", (e) => { e.preventDefault(); e.stopPropagation(); });
+  node.addEventListener("drop", (e) => {
+    e.preventDefault(); e.stopPropagation(); depth = 0; node.classList.remove("drop-on");
+    const files = [...(e.dataTransfer ? e.dataTransfer.files : [])].filter((f) => accept.test(f.type));
+    if (files.length) onFiles(files); else toast("Drop an image (PNG, JPG or WebP).", true);
+  });
+  return node;
+}
+
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
 const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
 function openPalette() {
@@ -335,7 +352,7 @@ async function viewBrief(arg) {
     const pick = el("input", { type: "file", accept: "image/png,image/jpeg,image/webp", multiple: true, class: "hidden" });
     pick.addEventListener("change", () => [...pick.files].forEach(upload));
     ta.addEventListener("paste", (e) => { const f = [...(e.clipboardData || {}).items || []].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); upload(f.getAsFile()); } });
-    return el("div", { class: "plan-item brief-item", "data-id": it.id }, el("div", { class: "inline", style: "gap:10px" }, tick, el("strong", {}, it.title), el("button", { class: "link", style: "margin-left:auto", onclick: () => pick.click() }, "Add image"), pick), ta, thumbs);
+    return dropZone(el("div", { class: "plan-item brief-item", "data-id": it.id }, el("div", { class: "inline", style: "gap:10px" }, tick, el("strong", {}, it.title), el("button", { class: "link", style: "margin-left:auto", onclick: () => pick.click() }, "Add image"), pick), ta, thumbs, el("div", { class: "drop-hint" }, "Drop screenshots here")), (fs) => fs.forEach(upload));
   };
   const groups = [...new Set(b.items.map((i) => i.group))];
   const plan = el("button", { class: "btn primary", id: "brief-plan", onclick: async () => {
@@ -343,7 +360,7 @@ async function viewBrief(arg) {
   const pickBrief = briefs.length > 1 ? el("select", { onchange: (e) => viewBrief(e.target.value) }, briefs.map((x) => el("option", { value: x.slug, selected: x.slug === slug }, `${x.title} · ${x.done}/${x.total}`))) : null;
   showIf(nav, page(head(b.title, count, pickBrief),
     el("div", { class: "card" }, el("div", { class: "plan-bar" }, fill),
-      el("p", { class: "note" }, "Answer what you can, in your own words. Paste or add images on any item (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
+      el("p", { class: "note" }, "Answer what you can, in your own words. Drag screenshots onto any item, paste them, or use Add image (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
       el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, plan, el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
     ...groups.map((g) => el("div", { class: "card plan-sec" }, el("h2", {}, g), b.items.filter((i) => i.group === g).map(item)))));
 }
@@ -610,6 +627,8 @@ async function viewReferences() {
         el("span", { class: "note" }, "Or paste an image anywhere on this page (Ctrl+V). Everything goes into the vault (19-Project-Memory) and the game's references folder.")),
       files, vfile, el("div", { style: "margin-top:12px" }, video, grabRow)),
     refs.length ? grid : el("div", { class: "empty", style: "padding:40px 20px" }, el("div", { class: "empty-title" }, "No references yet"), el("div", {}, "Paste a screenshot, add images, or grab frames from a video. Modeler, Architect, Frame, Scenic, Motion and Director look at them before they work."))));
+  const pg = $("view").firstChild;
+  if (nav === navSeq && pg) dropZone(pg, async (fs) => { for (const f of fs) await add(f.name, await readFile(f), `dropped ${f.name}`); viewReferences(); });
 }
 document.addEventListener("paste", async (e) => {
   if ((location.hash || "") !== "#references") return;
@@ -1499,8 +1518,13 @@ state.chatStatus = "";
 async function viewChat() {
   const nav = navSeq;
   await freshStatus();
-  const [{ chat, cap_usd, engine }, models, st] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get")]);
-  const modelPick = engine === "ollama" ? null : modelSelect("chat-model", models, st.chat_model, "Default", async (v) => { await invoke("settings_patch", { patch: { chat_model: v } }).catch((e) => toast(String(e), true)); viewChat(); });
+  const [{ chat, cap_usd, engine }, models, st, ol] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get"), invoke("ollama_status").catch(() => null)]);
+  const cur = engine === "ollama" ? `ollama:${st.ollama_model}` : `claude:${st.chat_model}`;
+  const local = ol && ol.installed ? ol.installed : [];
+  const modelPick = el("select", { id: "chat-model", class: "model-select", title: "Which model answers" },
+    el("optgroup", { label: "Claude (your subscription)" }, el("option", { value: "claude:", selected: cur === "claude:" }, "Default"), models.map((m) => el("option", { value: `claude:${m.id}`, selected: cur === `claude:${m.id}` }, MODEL_NAMES[m.id] || m.id))),
+    el("optgroup", { label: local.length ? "Free on this computer (Ollama)" : "Ollama: no local models yet (Settings)" }, local.map((m) => el("option", { value: `ollama:${m}`, selected: cur === `ollama:${m}` }, `${m} · free, local`))));
+  modelPick.addEventListener("change", async () => { try { await invoke("chat_model_set", { choice: modelPick.value }); toast(modelPick.value.startsWith("ollama:") ? "Using your free local model." : "Using Claude."); } catch (e) { toast(String(e), true); } viewChat(); });
   const who = engine === "ollama" ? "Local model" : "Claude";
   const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
   const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: async () => {
@@ -1512,7 +1536,8 @@ async function viewChat() {
       viewChat();
     } catch (e) { send.disabled = false; toast(String(e), true); }
   } }, cap_usd > 0 ? "Send" : "Send · free");
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send.click(); });
+  // Enter sends; Shift+Enter makes a new line.
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!send.disabled && input.value.trim()) send.click(); } });
   const msgs = chat.messages.map((m) =>
     el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
       m.role === "you" ? el("div", {}, m.text) : markdown(m.text),
@@ -1524,7 +1549,7 @@ async function viewChat() {
   show(el("div", { class: "page chat-page" },
     head("Ask Claude", runningSubtitle(), chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null),
     list,
-    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Send is your approval for that message. Ctrl+Enter to send."), el("div", { class: "inline" }, modelPick, send)))));
+    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Enter sends (Shift+Enter for a new line). Sending is your approval for that message."), el("div", { class: "inline" }, modelPick, send)))));
   list.scrollTop = list.scrollHeight;
   input.focus();
 }

@@ -15,6 +15,9 @@ tags: [start-here, router]
 4. Never edit vault notes. Write output only to your run folder.
 5. Any claim you use must come from a note with a `verify:` line, or be marked UNVERIFIED in your output.
 
+## Shortcuts
+Not sure where to look? [[00-Start-Here/question-router]] maps 90+ common questions to the 1-3 notes that answer them. Building a whole game? Follow [[00-Start-Here/moc-make-a-game-start-to-finish]].
+
 ## Task to section
 | If the task is about | Load next |
 |---|---|
@@ -56,3 +59,16 @@ tags: [start-here, router]
 - [[00-Start-Here/glossary]]: shared words.
 - [[00-Start-Here/policy-change-log]]: dated policy changes and what they changed in the vault.
 | [[00-Start-Here/recommended-tools]] | Free tool per job, costs, cautions about plugins. | draft |
+| [[00-Start-Here/moc-animation-and-effects]] | Map of notes on animations, particles, tweens, hit feedback, emotes and reward moments, with cheap-on-phones rules. | verified |
+| [[00-Start-Here/moc-code-and-performance]] | Map of notes on Luau engineering, project setup, security, data saving, testing, bugs, profiling, and low-end phone performance. | verified |
+| [[00-Start-Here/moc-game-loops-and-systems]] | Map of notes on core loops, progression, economy math, quests, difficulty, drops, procedural worlds and other systems that make a game work. | verified |
+| [[00-Start-Here/moc-genres]] | Every genre playbook, teardown and player-review note grouped by genre, plus cross-genre pattern notes. | verified |
+| [[00-Start-Here/moc-graphics-and-feel]] | Map of notes on how a game looks and feels: art direction, lighting, models, textures, thumbnails, UI look, and game feel rules. | verified |
+| [[00-Start-Here/moc-keep-players-playing]] | Map of notes on why players stay or leave: psychology, onboarding, retention levers, analytics, churn, events, and returning-player care. | verified |
+| [[00-Start-Here/moc-make-a-game-start-to-finish]] | Ordered path from idea to launch and the first 30 days: each step lists the 2 to 5 vault notes to read, in order. | verified |
+| [[00-Start-Here/moc-money]] | Map of notes on earning Robux fairly: shop design, pricing, gamepasses, developer products, receipts, payouts, DevEx, and what never to sell. | verified |
+| [[00-Start-Here/moc-multiplayer]] | Map of notes on servers, rounds, lobbies, teams, trading, leaderboards, NPCs, bots, bosses, streaming and social play. | verified |
+| [[00-Start-Here/moc-research-and-trends]] | Map of notes on market research: hit patterns, teardowns, competitor tracking, discovery signals, benchmarks, policy watch, and sources. | verified |
+| [[00-Start-Here/moc-sound]] | Map of notes on game audio: feedback sounds, music, mixing, settings menu, free licensed sources, and the ForgeGUI pipeline. | verified |
+| [[00-Start-Here/moc-ui]] | Map of notes on Roblox interface work: mobile-first layout, HUD, shop screens, fonts, colour, accessibility, animation and Figma handoff. | verified |
+| [[00-Start-Here/question-router]] | 70+ common questions (daily reward, quit at minute 2, shop prices, exploits, lag) each mapped to the 1 to 3 vault notes that answer it. | verified |
