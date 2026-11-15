@@ -88,7 +88,7 @@ pub fn get(root: &Path, slug: &str) -> Result<Value, String> {
             json!({ "id": id, "group": group, "title": title, "hint": hint, "text": text, "images": images })
         })
         .collect();
-    Ok(json!({ "title": b["title"], "slug": slug, "items": items, "done": done, "total": ITEMS.len() }))
+    Ok(json!({ "title": b["title"], "slug": slug, "items": items, "done": done, "total": ITEMS.len(), "dump": b["dump"].as_str().unwrap_or("") }))
 }
 
 /// Save one answer, and keep a readable brief.md next to it.
@@ -136,6 +136,80 @@ fn markdown(root: &Path, slug: &str) -> Result<String, String> {
     Ok(s)
 }
 
+/// Find the first JSON object in a model's reply.
+pub fn json_in(text: &str) -> Option<Value> {
+    let start = text.find('{')?;
+    let end = text.rfind('}')?;
+    serde_json::from_str(&text[start..=end]).ok()
+}
+
+fn autofill_prompt(b: &Value, dump: &str) -> String {
+    let items: Vec<String> = b["items"].as_array().into_iter().flatten().map(|it| {
+        let cur = it["text"].as_str().unwrap_or("").trim();
+        format!("- {}: {} ({}){}", it["id"].as_str().unwrap_or(""), it["title"].as_str().unwrap_or(""), it["hint"].as_str().unwrap_or(""), if cur.is_empty() { String::new() } else { format!(" ALREADY ANSWERED: {cur}") })
+    }).collect();
+    format!(
+        "You help a Roblox game maker turn a messy idea into a checklist. Game: {}.\n\nTheir idea, in their own words:\n<<<\n{}\n>>>\n\nChecklist items:\n{}\n\nFor every item NOT already answered, write 1 to 3 short, concrete sentences. If their idea covers it, use their words and intent. If it does not, write a sensible default for this kind of Roblox game and start it with \"Default:\". Keep it original (no other game's names or characters), free to make (no paid assets), fair to players (no pay-to-win, purchase popups only when a player taps Buy). Reply with only JSON, no other text: {{\"answers\": {{\"<item id>\": \"<text>\"}}}}",
+        b["title"].as_str().unwrap_or(""), dump.trim(), items.join("\n")
+    )
+}
+
+fn ask_model(prompt: &str) -> Result<String, String> {
+    let st = crate::settings::load();
+    if st.engine == "ollama" {
+        let v: Value = ureq::post(&format!("{}/api/chat", crate::ollama::base()))
+            .timeout(std::time::Duration::from_secs(600))
+            .send_json(json!({ "model": st.ollama_model, "stream": false, "format": "json", "messages": [{ "role": "user", "content": prompt }] }))
+            .map_err(|e| format!("could not reach Ollama: {e}"))?
+            .into_json()
+            .map_err(|e| e.to_string())?;
+        return Ok(v["message"]["content"].as_str().unwrap_or("").to_string());
+    }
+    let bin = crate::paths::claude_bin()?;
+    let tmp = std::env::temp_dir().join("brewix-brief");
+    let _ = fs::create_dir_all(&tmp);
+    // One answer, no tools, no files, the smallest model, a hard cap.
+    let out = crate::paths::command(&bin)
+        .args(["-p", prompt, "--model", "claude-haiku-5-5", "--output-format", "json", "--max-turns", "1", "--max-budget-usd", "0.10", "--strict-mcp-config", "--permission-mode", "dontAsk", "--no-session-persistence", "--setting-sources", "project"])
+        .current_dir(&tmp)
+        .env_remove("ANTHROPIC_API_KEY")
+        .stdin(std::process::Stdio::null())
+        .output()
+        .map_err(|e| format!("could not start Claude: {e}"))?;
+    let v: Value = serde_json::from_slice(&out.stdout).map_err(|_| format!("Claude did not answer: {}", String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or("")))?;
+    Ok(v["result"].as_str().unwrap_or("").to_string())
+}
+
+/// Save the idea dump, then sort it into the checklist and fill every item
+/// left empty with a default (marked "Default:"). Never changes an item
+/// Andrew already answered. Returns how many items were filled.
+pub fn autofill(root: &Path, slug: &str, dump: &str) -> Result<usize, String> {
+    let mut stored = load(root, slug)?;
+    stored["dump"] = json!(dump);
+    let f = file(root, slug)?;
+    fs::write(&f, serde_json::to_string_pretty(&stored).unwrap()).map_err(|e| e.to_string())?;
+    let b = get(root, slug)?;
+    let reply = ask_model(&autofill_prompt(&b, dump))?;
+    let v = json_in(&reply).ok_or("The model's answer was not readable. Try again.")?;
+    let answers = v["answers"].as_object().cloned().unwrap_or_default();
+    let mut n = 0;
+    for it in b["items"].as_array().into_iter().flatten() {
+        let id = it["id"].as_str().unwrap_or("");
+        if !it["text"].as_str().unwrap_or("").trim().is_empty() {
+            continue;
+        }
+        if let Some(t) = answers.get(id).and_then(|x| x.as_str()).map(str::trim).filter(|t| !t.is_empty()) {
+            set(root, slug, id, t)?;
+            n += 1;
+        }
+    }
+    Ok(n)
+}
+
+pub fn dump(root: &Path, slug: &str) -> String {
+    load(root, slug).ok().and_then(|b| b["dump"].as_str().map(String::from)).unwrap_or_default()
+}
+
 /// The instruction that sends this brief to Planner.
 pub fn planner_prompt(root: &Path, slug: &str) -> Result<String, String> {
     Ok(format!(
@@ -161,5 +235,13 @@ mod tests {
         assert!(p.contains("Race for sugar") && p.contains("(not answered)") && p.contains("candy-rush-2"));
         assert_eq!(list(&d).len(), 1);
         let _ = fs::remove_dir_all(&d);
+    }
+    #[test]
+    fn autofill_prompt_and_reply_parsing() {
+        let b = json!({ "title": "Candy", "items": [{ "id": "loop", "title": "The core loop", "hint": "h", "text": "Collect sugar" }, { "id": "shop", "title": "What is sold", "hint": "h", "text": "" }] });
+        let p = autofill_prompt(&b, "a candy race game");
+        assert!(p.contains("ALREADY ANSWERED: Collect sugar") && p.contains("a candy race game") && p.contains("Default:"));
+        let v = json_in("Sure!\n{\"answers\": {\"shop\": \"Default: a 2x coins pass\"}} thanks").unwrap();
+        assert_eq!(v["answers"]["shop"], "Default: a 2x coins pass");
     }
 }

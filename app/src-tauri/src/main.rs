@@ -663,6 +663,11 @@ async fn brief_add_image(slug: String, id: String, name: String, data: String) -
     studio_core::brief::add_image(&root()?, &slug, &id, &name, &data)
 }
 #[tauri::command]
+async fn brief_autofill(slug: String, dump: String) -> Result<usize, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::brief::autofill(&r, &slug, &dump)).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
 async fn brief_prompt(slug: String) -> Result<String, String> {
     studio_core::brief::planner_prompt(&root()?, &slug)
 }
@@ -808,6 +813,7 @@ fn main() {
             brief_set,
             brief_add_image,
             brief_prompt,
+            brief_autofill,
             models_list,
             chat_model_set,
             reviews_list,

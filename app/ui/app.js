@@ -273,7 +273,7 @@ async function viewHome() {
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
-  showIf(nav, page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ...body, box));
+  showIf(nav, page(head("Game Ideas", el("span", {}, p && p.at ? `From the top Roblox games and current trends · ${String(p.at).slice(0, 10)} · ` : "", runningSubtitle()), p ? go : null), ideaDump(), ...body, box));
 }
 
 // =====================================================================
@@ -328,7 +328,9 @@ async function viewDashboard() {
 async function viewBrief(arg) {
   const nav = navSeq;
   const briefs = await invoke("brief_list");
-  const slug = arg || state.briefSlug || (briefs[0] && briefs[0].slug);
+  // A remembered idea that was deleted since falls back to the newest one.
+  const known = (x) => x && briefs.some((b) => b.slug === x);
+  const slug = known(arg) ? arg : known(state.briefSlug) ? state.briefSlug : (briefs[0] && briefs[0].slug);
   const name = el("input", { id: "brief-name", placeholder: "Name your game idea" });
   const start = el("button", { class: "btn primary", id: "brief-new", onclick: async () => { try { state.briefSlug = await invoke("brief_create", { title: name.value }); viewBrief(state.briefSlug); } catch (e) { toast(String(e), true); } } }, "Start a Brief");
   const newRow = el("div", { class: "inline" }, name, start);
@@ -364,6 +366,7 @@ async function viewBrief(arg) {
     el("div", { class: "card" }, el("div", { class: "plan-bar" }, fill),
       el("p", { class: "note" }, "Answer what you can, in your own words. Drag screenshots onto any item, paste them, or use Add image (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
       el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, plan, el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
+    ideaDump({ slug, dump: b.dump || "" }),
     ...groups.map((g) => el("div", { class: "card plan-sec" }, el("h2", {}, g), b.items.filter((i) => i.group === g).map(item)))));
 }
 
@@ -421,6 +424,29 @@ async function viewFiles() {
       el("div", { class: "note", style: "word-break:break-all" }, `Downloads folder: ${st.tools_dir || "(default, inside the studio)"} · Settings file: ${info.config_file}`),
       el("p", { class: "note" }, "Use This One points the app at a folder where it is. Move to Another Folder copies your whole studio (vault, games, runs) to a folder you pick, such as one on your D drive, and switches to it; the old folder is kept until you delete it. A vault found on its own can be copied into yours: notes you already have are never overwritten.")),
     found.length ? el("div", { class: "list" }, found.map(row)) : el("div", { class: "card" }, "Nothing found. If your files are somewhere unusual, set the studio folder in Settings.")));
+}
+
+// Word-dump an idea, then let the model sort it into the checklist and fill
+// every empty item with a default (marked "Default:").
+function ideaDump({ slug = null, dump = "" } = {}) {
+  const name = slug ? null : el("input", { id: "idea-name", placeholder: "Name it (you can change it later)", style: "margin-bottom:8px;width:100%" });
+  const box = el("textarea", { id: "idea-dump", rows: slug ? 4 : 7, style: "width:100%", placeholder: "Word-vomit the whole idea here: the vibe, what you do, what you collect, what it looks like, games it is like, anything. Messy is fine." }, dump);
+  const status = el("span", { class: "note", id: "idea-status" }, "");
+  const go = el("button", { class: "btn primary", id: "idea-fill", onclick: async () => {
+    if (!box.value.trim() && !confirm("Nothing written yet. Fill every item with a default version?")) return;
+    go.disabled = true; status.textContent = "Sorting your idea into the checklist... (about 10-30 seconds)";
+    try {
+      const s2 = slug || await invoke("brief_create", { title: ((name && name.value) || box.value.split(/[.\n]/)[0] || "New idea").slice(0, 40) });
+      const n = await invoke("brief_autofill", { slug: s2, dump: box.value });
+      toast(`Filled ${n} item(s). Your own answers were kept.`);
+      state.briefSlug = s2;
+      if (location.hash === `#brief/${s2}`) viewBrief(s2); else location.hash = `#brief/${s2}`;
+    } catch (e) { go.disabled = false; status.textContent = ""; toast(String(e), true); }
+  } }, slug ? "Fill Empty Items" : "Fill the Checklist");
+  return el("div", { class: "card", id: "idea-card" },
+    el("h2", { style: "margin:0 0 6px" }, slug ? "Your idea, in your words" : "Your own idea"),
+    el("p", { class: "note", style: "margin-top:0" }, "Write it however it comes out. Fill the Checklist sorts it into the 19-item game checklist and writes a sensible default (marked Default:) for anything you left out. Your own answers are never overwritten. Uses a little Claude usage (the smallest model), or your free local model if that is on."),
+    name, box, el("div", { class: "inline", style: "margin-top:10px;gap:12px" }, go, status));
 }
 
 // A Claude model picker: cheapest first, with a plain hint of size.
