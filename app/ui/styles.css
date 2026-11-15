@@ -354,3 +354,12 @@ body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.
 .vg-node circle { cursor: pointer; }
 .vg-link { fill: none; stroke: #fff; stroke-width: 0.6; opacity: 0.04; }
 .vg-link.on { opacity: 0.85; stroke-width: 1.4; }
+
+/* Usage heatmap */
+.heat { width: 100%; height: auto; display: block; }
+.heat-l { font-size: 9px; fill: #8E8E93; }
+.heat rect:hover { stroke: #fff; stroke-width: 1; }
+.heat-key { gap: 3px; }
+.heat-sw { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.heat-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+#heat-slot { margin-bottom: 14px; }

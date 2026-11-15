@@ -288,6 +288,8 @@ async function viewDashboard() {
     invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
     invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
   ]);
+  const heatSlot = el("div", { id: "heat-slot" });
+  invoke("usage_heatmap").then((u) => { if (u) heatSlot.replaceChildren(heatmapCard(u)); }).catch(() => {});
   invoke("scores_list").then((l) => { const n = $("score-widget"); if (!n) return; const s = l.map((g) => g.saved).filter(Boolean); n.textContent = s.length ? s.map((x) => `${x.project}: ${x.score}`).join(" · ") : "Not scored yet"; }).catch(() => {});
   invoke("tuneup_get", { force: false }).then((t) => { const n = $("tune-widget"); if (n && t) n.textContent = t.issues ? `${t.issues} to look at` : "All clean"; }).catch(() => {});
   const w = (title, href, ...body) => el("a", { class: "card widget", href }, el("div", { class: "k" }, title), ...body);
@@ -309,6 +311,7 @@ async function viewDashboard() {
   const earned = money && money.total_robux > 0;
   showIf(nav, page(head("Dashboard", runningSubtitle()),
     hero,
+    heatSlot,
     money ? (earned ? moneyStrip(money) : el("a", { class: "fold-line", id: "money-strip", href: "#money" }, "Made this month: $0.00 · add earnings in Money")) : null,
     el("div", { class: "widget-grid" },
       w("Game ideas", "#ideas", p && p.pitches ? el("ol", { class: "widget-list" }, p.pitches.slice(0, 3).map((x) => el("li", {}, x.title))) : el("div", { class: "v small" }, "No ideas yet"), el("div", { class: "note" }, p && p.pitches ? "Open to plan one" : "Open to pitch ideas")),
@@ -447,6 +450,47 @@ function ideaDump({ slug = null, dump = "" } = {}) {
     el("h2", { style: "margin:0 0 6px" }, slug ? "Your idea, in your words" : "Your own idea"),
     el("p", { class: "note", style: "margin-top:0" }, "Write it however it comes out. Fill the Checklist sorts it into the 19-item game checklist and writes a sensible default (marked Default:) for anything you left out. Your own answers are never overwritten. Uses a little Claude usage (the smallest model), or your free local model if that is on."),
     name, box, el("div", { class: "inline", style: "margin-top:10px;gap:12px" }, go, status));
+}
+
+// Claude Code usage heatmap (idea from seunggabi/ai-heatmap, MIT): one square
+// per day for the last year, darker to brighter red as more tokens are used.
+const HEAT = ["#232326", "#4A1714", "#8A231A", "#C92D20", "#FF453A"];
+const bigNum = (n) => n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(n);
+function heatmapCard(u) {
+  const byDate = Object.fromEntries(u.days.map((d) => [d.date, d]));
+  const vals = u.days.map((d) => d.tokens).filter((t) => t > 0).sort((a, b) => a - b);
+  const q = (f) => vals.length ? vals[Math.min(vals.length - 1, Math.floor(f * vals.length))] : 0;
+  const cuts = [q(0.25), q(0.5), q(0.75)];
+  const level = (t) => (!t ? 0 : t <= cuts[0] ? 1 : t <= cuts[1] ? 2 : t <= cuts[2] ? 3 : 4);
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const end = new Date(); const start = new Date(end); start.setDate(start.getDate() - 364 - start.getDay());
+  const NS = "http://www.w3.org/2000/svg", B = 11, G = 3, L = 28, T = 16;
+  const svg = document.createElementNS(NS, "svg");
+  const weeks = Math.ceil((end - start) / 864e5 / 7) + 1;
+  svg.setAttribute("viewBox", `0 0 ${L + weeks * (B + G)} ${T + 7 * (B + G)}`); svg.setAttribute("class", "heat");
+  const add = (tag, a, text) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) n.setAttribute(k, v); if (text) n.textContent = text; svg.append(n); return n; };
+  ["Mon", "Wed", "Fri"].forEach((d, i) => add("text", { x: 0, y: T + (1 + i * 2) * (B + G) + 9, class: "heat-l" }, d));
+  let lastMonth = -1;
+  for (let d = new Date(start), i = 0; d <= end; d.setDate(d.getDate() + 1), i++) {
+    const w = Math.floor(i / 7), dow = d.getDay(), day = byDate[iso(d)];
+    if (d.getDate() <= 7 && d.getMonth() !== lastMonth && dow === 0) { lastMonth = d.getMonth(); add("text", { x: L + w * (B + G), y: 10, class: "heat-l" }, d.toLocaleString(undefined, { month: "short" })); }
+    const r = add("rect", { x: L + w * (B + G), y: T + dow * (B + G), width: B, height: B, rx: 2, fill: HEAT[level(day ? day.tokens : 0)] });
+    const tip = document.createElementNS(NS, "title");
+    tip.textContent = day ? `${iso(d)}\n${day.tokens.toLocaleString()} tokens\nIn ${day.input.toLocaleString()} · Out ${day.output.toLocaleString()}\nCache read ${day.cache_read.toLocaleString()} · write ${day.cache_write.toLocaleString()}\n${day.messages} messages · ${usd(day.cost)} API-equivalent` : `${iso(d)}\nNo usage`;
+    r.append(tip);
+  }
+  const L2 = u.lifetime;
+  const stat = (k, v, n) => el("div", {}, el("div", { class: "k" }, k), el("div", { class: "v small" }, v), n ? el("div", { class: "note" }, n) : null);
+  return el("div", { class: "card", id: "usage-heatmap" },
+    el("div", { class: "inline", style: "justify-content:space-between;margin-bottom:10px" }, el("div", { class: "k" }, "Claude usage"),
+      el("div", { class: "inline heat-key" }, el("span", { class: "note" }, "Less"), HEAT.map((c) => el("span", { class: "heat-sw", style: `background:${c}` })), el("span", { class: "note" }, "More"))),
+    svg,
+    el("div", { class: "heat-stats" },
+      stat("Today", `${bigNum(u.today.tokens)} tokens`, usd(u.today.cost) + " API-equivalent"),
+      stat("Lifetime", `${bigNum(L2.tokens)} tokens`, `In ${bigNum(L2.input)} · Out ${bigNum(L2.output)} · Cache ${bigNum(L2.cache_read + L2.cache_write)}`),
+      stat("Days active", String(L2.days_active), `${u.streak}-day streak`),
+      stat("Busiest day", u.busiest ? bigNum(u.busiest.tokens) : "-", u.busiest ? u.busiest.date : ""),
+      stat("Messages", L2.messages.toLocaleString(), `${usd(L2.cost)} API-equivalent; your plan is not billed this`)));
 }
 
 // A Claude model picker: cheapest first, with a plain hint of size.

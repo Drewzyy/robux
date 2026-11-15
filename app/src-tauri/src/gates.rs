@@ -632,6 +632,17 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 1
             }
         }),
+        ["usage"] => Some(match crate::paths::studio_root() {
+            Ok(r) => {
+                let v = crate::usage::heatmap(&r);
+                println!("{}", serde_json::json!({ "lifetime": v["lifetime"], "today": v["today"], "streak": v["streak"], "busiest": v["busiest"], "sources": v["sources"], "days": v["days"].as_array().map(|a| a.len()) }));
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["tuneup"] => Some(match crate::paths::studio_root().and_then(|r| crate::tuneup::run(&r)) {
             Ok(v) => {
                 println!("{}", serde_json::to_string_pretty(&v).unwrap());

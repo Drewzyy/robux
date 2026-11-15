@@ -611,6 +611,13 @@ async fn vault_graph() -> Result<Value, String> {
     Ok(json!({ "nodes": nodes }))
 }
 
+/// Claude Code usage per day and lifetime (Dashboard heatmap).
+#[tauri::command]
+async fn usage_heatmap() -> Result<Value, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::usage::heatmap(&r)).await.map_err(|e| e.to_string())
+}
+
 // ---------- find my files ----------
 #[tauri::command]
 async fn locate_scan() -> Result<Vec<Value>, String> {
@@ -804,6 +811,7 @@ fn main() {
             scores_list,
             locate_scan,
             vault_graph,
+            usage_heatmap,
             studio_mcp_test,
             locate_use,
             locate_merge_vault,

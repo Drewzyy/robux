@@ -49,6 +49,10 @@ try:
     from selenium.webdriver.common.keys import Keys
     d.find_element(By.ID, "palette-input").send_keys(Keys.ENTER); time.sleep(2.5)
     check("Search palette jumps to a page", "#thumbnails" in d.execute_script("return location.hash"))
+    d.execute_script("location.hash='#home'")
+    WebDriverWait(d, 60).until(lambda x: len(x.find_elements(By.CSS_SELECTOR, "#usage-heatmap rect")) > 300)
+    check("Dashboard shows the Claude usage heatmap with daily and lifetime tokens", "Lifetime" in view() and "tokens" in view() and len(d.find_elements(By.CSS_SELECTOR, "#usage-heatmap rect")) >= 365, view()[:80])
+    d.save_screenshot(str(SHOTS / "ui-heatmap.png"))
     d.execute_script("location.hash='#ideas'"); time.sleep(2.5)
     check("Game Ideas page", "Game Ideas" in view(), view()[:60])
     cards = d.find_elements(By.CSS_SELECTOR, ".card.pitch")

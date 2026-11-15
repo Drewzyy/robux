@@ -25,6 +25,7 @@ pub mod tuneup;
 pub mod brief;
 pub mod score;
 pub mod locate;
+pub mod usage;
 pub mod update;
 pub mod paths;
 pub mod pipeline;
