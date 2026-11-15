@@ -80,9 +80,49 @@ pub fn begin(root: &Path, text: &str) -> Result<String, String> {
     Ok(req.run_id)
 }
 
+pub fn is_lost_session(text: &str) -> bool {
+    let t = text.to_lowercase();
+    t.contains("no conversation found") || (t.contains("session") && t.contains("not found"))
+}
+
+/// Clear the lost session and prepare the same message as a new conversation.
+fn restart(root: &Path, failed_run: &str) -> Result<String, String> {
+    let mut c = load(root);
+    c.session = None;
+    let text = c.messages.iter().rev().find(|m| m.role == "you").map(|m| m.text.clone()).unwrap_or_default();
+    let recent: Vec<String> = c.messages.iter().rev().skip(1).take(8).collect::<Vec<_>>().into_iter().rev().filter(|m| !m.failed).map(|m| format!("{}: {}", if m.role == "you" { "Andrew" } else { "You" }, m.text.chars().take(600).collect::<String>())).collect();
+    let prompt = if recent.is_empty() { text } else { format!("Our earlier conversation, for context:\n{}\n\nAndrew's new message:\n{text}", recent.join("\n")) };
+    let mut req = runs::prepare(root, AGENT, &prompt)?;
+    req.chat = Some("main".into());
+    req.resume = None;
+    runs::save(root, &req)?;
+    runs::approve(root, &req.run_id, req.estimate.cap_usd)?;
+    for m in c.messages.iter_mut().rev() {
+        if m.run_id.as_deref() == Some(failed_run) {
+            m.run_id = Some(req.run_id.clone());
+            break;
+        }
+    }
+    save(root, &c)?;
+    Ok(req.run_id)
+}
+
 /// Run the prepared message to completion and store the reply.
-pub fn finish<F: FnMut(&str)>(root: &Path, run_id: &str, claude_bin: &Path, on_line: F) -> Message {
-    let res = bridge::run_approved(root, run_id, claude_bin, on_line);
+pub fn finish<F: FnMut(&str)>(root: &Path, run_id: &str, claude_bin: &Path, mut on_line: F) -> Message {
+    let mut run_id = run_id.to_string();
+    let mut res = bridge::run_approved(root, &run_id, claude_bin, &mut on_line);
+    // The saved conversation can be gone (studio folder moved, engine
+    // switched, Claude Code updated). Forget it and send the message again
+    // as a new conversation, with the recent messages as context.
+    if let Ok(o) = &res {
+        if !o.ok && is_lost_session(&format!("{} {}", o.result_text, o.stderr_tail)) {
+            if let Ok(id) = restart(root, &run_id) {
+                run_id = id;
+                res = bridge::run_approved(root, &run_id, claude_bin, &mut on_line);
+            }
+        }
+    }
+    let run_id = run_id.as_str();
     let mut c = load(root);
     let session = fs::read_to_string(root.join("runs").join(run_id).join("result.json"))
         .ok()
@@ -109,3 +149,13 @@ pub fn finish<F: FnMut(&str)>(root: &Path, run_id: &str, claude_bin: &Path, on_l
     let _ = save(root, &c);
     msg
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn spots_a_lost_session() {
+        assert!(super::is_lost_session("Error: No conversation found with session ID: abc"));
+        assert!(!super::is_lost_session("rate limited"));
+    }
+}
+

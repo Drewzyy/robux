@@ -180,12 +180,15 @@ try:
     reply = d.find_elements(By.CSS_SELECTOR, ".bubble.them")[-1].text
     check("Claude replied in the chat", len(reply) > 10 and "Could not run" not in reply, reply.replace("\n", " ")[:200])
     d.save_screenshot(str(SHOTS / "ui-chat.png"))
+    # break the saved conversation the way it happens after a move or an update
+    import json as _j
+    cf = ROOT / "runs/chat.json"; cj = _j.loads(cf.read_text()); cj["session"] = "00000000-0000-4000-8000-000000000000"; cf.write_text(_j.dumps(cj))
     d.find_element(By.ID, "chat-input").send_keys("What was my previous question? Answer in under 15 words.")
     d.find_element(By.ID, "chat-send").click()
     WebDriverWait(d, 240).until(lambda x: len(x.find_elements(By.CSS_SELECTOR, ".bubble.them:not(.typing)")) >= 2)
     time.sleep(1)
     r2 = d.find_elements(By.CSS_SELECTOR, ".bubble.them")[-1].text
-    check("it remembers the conversation", "project" in r2.lower() or "luau" in r2.lower(), r2.replace("\n", " ")[:160])
+    check("a lost saved conversation recovers by itself and still remembers", ("project" in r2.lower() or "luau" in r2.lower()) and "didn't finish" not in r2.lower() and "no conversation found" not in r2.lower(), r2.replace("\n", " ")[:160])
 
     d.execute_script("location.hash='#simulator'"); time.sleep(2.5)
     v = view()
