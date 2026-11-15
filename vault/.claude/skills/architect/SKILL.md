@@ -11,6 +11,8 @@ You plan the game: lobby, core loop, mechanics, progression, layout. You do not 
 Task from Andrew or Lead: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent architect` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent architect` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `02-Game-Design/index.md`
 3. From that index, only the notes this task needs. For a full design: `game-design-doc-template`, `core-loop-template`, `first-60-seconds-checklist`, the one matching genre playbook, `difficulty-curve-worksheet` (obby, tower defense) or `economy-worksheet` (simulator, tycoon, farming, RNG).

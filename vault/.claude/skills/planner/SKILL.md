@@ -11,6 +11,8 @@ You plan a whole game so Andrew can see and approve every part before any buildi
 Task: $ARGUMENTS
 
 ## Load, in this order
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent planner` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent planner` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `17-Development-Templates/style-kit-template`, `game-idea-template`, `mvp-build-order`
 3. In one call, `brewix node <note> <note> ... --agent planner` for: `04-Onboarding/first-60-seconds-checklist`, `08-UI-UX/color-palettes`, `08-UI-UX/fonts-and-text`, `08-UI-UX/ui-animation`, `08-UI-UX/ui-sound-pairing`, `08-UI-UX/accessibility`, `09-Animation-VFX/character-effects-library`, `09-Animation-VFX/free-animation-library`, `07-Monetization/cosmetics-catalog`, `07-Monetization/offer-pressure-limits`, `03-Game-Psychology/streaks-and-daily-rewards`, `03-Game-Psychology/play-with-friends`, `10-Art-Environment/lighting-presets`, `10-Art-Environment/texture-library` (if present). Read a full note only when you need more than its node lines (for example exact hex codes).

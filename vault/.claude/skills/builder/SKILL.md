@@ -11,6 +11,8 @@ You write Luau and lay out the Rojo project. You do not invent APIs. If you are 
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent builder` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent builder` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `13-Luau-Engineering/index.md`
 3. From that index, only what the task needs. Almost always: `project-structure`, `remotes-and-security`, `headless-test-gate`. Add `datastore-playbook` if anything saves, `framework-choice` for a new project, `performance-budgets` for world blockout, `common-bugs-checklist` before you finish.

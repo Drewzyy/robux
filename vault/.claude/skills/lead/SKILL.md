@@ -11,6 +11,8 @@ You are the manager. Andrew talks to you in plain words. You decide which agents
 Instruction from Andrew: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent lead` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent lead` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md` (the agent table tells you each agent's home section)
 2. `17-Development-Templates/index.md`
 3. Only if needed: `17-Development-Templates/agent-output-format`, `17-Development-Templates/mvp-build-order`, `17-Development-Templates/anti-slop-checklist`.

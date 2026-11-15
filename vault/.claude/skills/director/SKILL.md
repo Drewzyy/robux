@@ -11,6 +11,8 @@ Guards the game's identity: one clear hook, a consistent look and feel, and cuts
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent director` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent director` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `02-Game-Design/index.md`, then the game's design doc
 3. `17-Development-Templates/anti-slop-checklist` is not yours to load; apply the anti-slop rule in the quality bar

@@ -51,6 +51,15 @@ pub fn default_path() -> Option<PathBuf> {
 }
 
 /// Command and arguments for the server, or None when the connection is off.
+/// The exact line Roblox gives for Studio's server: change into the Roblox
+/// folder first, then run the batch file from there.
+/// claude mcp add --transport stdio Roblox_Studio -- "cmd.exe" "/c" "cd /d %LOCALAPPDATA%\Roblox && .\mcp.bat"
+pub fn bat_line(p: &Path, is_default: bool) -> String {
+    let file = p.file_name().and_then(|n| n.to_str()).unwrap_or("mcp.bat");
+    let dir = if is_default { "%LOCALAPPDATA%\\Roblox".to_string() } else { p.parent().map(|d| d.display().to_string()).unwrap_or_default() };
+    format!("cd /d {dir} && .\\{file}")
+}
+
 pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<String>)> {
     match s.studio_mcp.as_str() {
         "mock" => Some((std::env::current_exe().ok()?.display().to_string(), vec!["mock-studio-mcp".into()])),
@@ -58,8 +67,7 @@ pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<Stri
             let p = if s.studio_mcp_path.trim().is_empty() { default_path()? } else { PathBuf::from(s.studio_mcp_path.trim()) };
             let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("").to_lowercase();
             if name.ends_with(".bat") || name.ends_with(".cmd") {
-                // Roblox docs: cmd.exe /c %LOCALAPPDATA%\Roblox\mcp.bat
-                Some(("cmd.exe".into(), vec!["/c".into(), p.display().to_string()]))
+                Some(("cmd.exe".into(), vec!["/c".into(), bat_line(&p, s.studio_mcp_path.trim().is_empty())]))
             } else if name.starts_with("rbx-studio-mcp") {
                 Some((p.display().to_string(), vec!["--stdio".into()]))
             } else {
@@ -204,6 +212,12 @@ pub fn mock_server() -> i32 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn bat_line_matches_roblox() {
+        assert_eq!(super::bat_line(std::path::Path::new("C:/x/Roblox/mcp.bat"), true), "cd /d %LOCALAPPDATA%\\Roblox && .\\mcp.bat");
+        assert_eq!(super::bat_line(std::path::Path::new("D:/Roblox/mcp.bat"), false), "cd /d D:/Roblox && .\\mcp.bat");
+    }
+
     use super::*;
     use serde_json::json;
 
@@ -241,4 +255,5 @@ mod tests {
 fn deny_compiled_deny() -> &'static [(regex::Regex, &'static str)] {
     static C: std::sync::OnceLock<Vec<(regex::Regex, &'static str)>> = std::sync::OnceLock::new();
     C.get_or_init(|| DENY.iter().map(|(p, w)| (regex::Regex::new(p).unwrap(), *w)).collect())
+
 }

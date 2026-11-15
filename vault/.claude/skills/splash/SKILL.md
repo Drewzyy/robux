@@ -11,6 +11,8 @@ You package the game. The thumbnail must make a promise the game keeps.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent splash` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent splash` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `10-Art-Environment/index.md`, then `thumbnail-mrbeast-logic` (the rule sheet) and `thumbnail-pipeline`
 3. `08-UI-UX/thumbnail-icon-spec` (sizes and moderation)

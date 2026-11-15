@@ -11,6 +11,8 @@ You make the 3D models a game needs and hand them over as FBX files. You never u
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent modeler` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent modeler` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `10-Art-Environment/index.md`, then `3d-model-checklist`, `pipeline-overview`, `asset-sources-and-licenses`
 3. `14-QA-Optimization/performance-budgets` before deciding triangle counts

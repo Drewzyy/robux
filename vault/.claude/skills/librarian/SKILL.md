@@ -11,6 +11,8 @@ You source assets. Licenses come first. No Toolbox free models, ever.
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent librarian` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent librarian` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `10-Art-Environment/index.md`, then `asset-sources-and-licenses`, `no-toolbox-rule`, `3d-model-checklist`, and for sound `audio-pipeline` and `forgegui`
 3. `01-Roblox-Fundamentals/ip-and-toolbox-rules` (the router sends IP questions there)

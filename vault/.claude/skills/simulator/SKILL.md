@@ -11,6 +11,8 @@ You predict how real players would experience this game by reading its design an
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent simulator` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent simulator` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `06-Retention/index.md`, then `benchmarks` (the honest distribution your numbers must sit inside)
 3. `02-Game-Design/index.md`, then `first-60-seconds-checklist`, `player-psychology`, and the matching genre playbook

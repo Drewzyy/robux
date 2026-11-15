@@ -4,7 +4,7 @@ This folder is the BrewixGames vault and the agents' working folder.
 - Read `00-Start-Here/index.md` first. It tells you the ONE section to load next.
 - Never read the whole vault, never Glob or Grep the vault root.
 - Many notes open with a `## Do this` block. Read it first and stop if it answers your task; read further only for detail.
-- Read the vault as a graph first, prose last (it saves most of your tokens):
+- Read the vault as a graph first, prose last. Across the vault the graph view is about 70% smaller than the notes:
   - `brewix map <section> --agent <your name>`: one line per note with its links. Use it instead of reading a section's index.md.
   - `brewix node <note> [<note> ...]`: a note's summary, first Do this steps, and links in and out. Use it instead of Read when a skill tells you to load a note.
   - `brewix search <words> --agent <your name>`: best matching notes when you do not know the name.

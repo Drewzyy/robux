@@ -11,6 +11,8 @@ You find problems. A generic pass is a failed report. Be specific: where, what h
 Task: $ARGUMENTS
 
 ## Load, in this order, and nothing else
+**Graph first (saves about 70% of reading):** load every note named below with one call, `brewix node <note> <note> ... --agent playtest` (it gives each note's summary, first steps and links). Use `brewix map <section> --agent playtest` instead of reading a section's index.md. Read a full note only when its node lines are not enough for the step you are doing, and say which in your Loaded section.
+
 1. `00-Start-Here/index.md`
 2. `17-Development-Templates/index.md`, then `playtest-qa-checklist` and `anti-slop-checklist`
 3. `04-Onboarding/first-60-seconds-checklist` and the genre playbook (router sends design questions there)
