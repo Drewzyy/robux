@@ -1027,6 +1027,61 @@ T.event.listen("tex-done", (ev) => {
   if ((location.hash || "") === "#vault") viewVault();
 });
 
+// The vault as a second-brain map: the hub in the middle, a spike to each
+// section, notes fanned out at the ends. Hover a note to see its links;
+// click to open it. Drawn as SVG, no libraries.
+async function vaultGraph() {
+  const { nodes } = await invoke("vault_graph");
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, a) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) n.setAttribute(k, v); return n; };
+  const secs = [...new Set(nodes.map((n) => n.id.split("/")[0]))].filter((s) => s !== "00-Start-Here" || true).sort();
+  const W = 1400, H = 1400, cx = W / 2, cy = H / 2, R1 = 230, R2 = 560;
+  const colors = ["#FF453A", "#FF9F0A", "#FFD60A", "#30D158", "#64D2FF", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF375F", "#AC8E68", "#66D4CF", "#FF6482", "#8E8E93", "#32ADE6", "#A2845E", "#DA8FFF", "#63E6E2", "#FFB340", "#7D7AFF", "#34C759"];
+  const pos = {};
+  const total = nodes.length;
+  let k = 0;
+  const svg = mk("svg", { viewBox: `0 0 ${W} ${H}`, class: "vg" });
+  const gl = mk("g", {}), gn = mk("g", {});
+  svg.append(gl, gn);
+  secs.forEach((s, i) => {
+    const mine = nodes.filter((n) => n.id.startsWith(s + "/"));
+    const a0 = (k / total) * Math.PI * 2, a1 = ((k + mine.length) / total) * Math.PI * 2, am = (a0 + a1) / 2;
+    const sx = cx + R1 * Math.cos(am), sy = cy + R1 * Math.sin(am), col = colors[i % colors.length];
+    pos[s] = [sx, sy];
+    gl.append(mk("line", { x1: cx, y1: cy, x2: sx, y2: sy, stroke: col, "stroke-width": 3, opacity: 0.8 }));
+    mine.forEach((n, j) => {
+      const a = a0 + ((j + 0.5) / mine.length) * (a1 - a0), r = R2 + (j % 2) * 70;
+      const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+      pos[n.id] = [x, y, a, col];
+      gl.append(mk("line", { x1: sx, y1: sy, x2: x, y2: y, stroke: col, "stroke-width": 1, opacity: 0.35 }));
+      k += 1;
+    });
+    const t = mk("text", { x: sx, y: sy - 14, "text-anchor": "middle", class: "vg-sec", fill: col });
+    t.textContent = s.replace(/^\d+-/, "").replace(/-/g, " ");
+    gn.append(mk("circle", { cx: sx, cy: sy, r: 11, fill: col }), t);
+  });
+  // links between notes: drawn faint, lit up on hover
+  const cross = [];
+  nodes.forEach((n) => n.out.forEach((o) => { if (pos[o] && pos[n.id]) { const [x1, y1] = pos[n.id], [x2, y2] = pos[o]; const l = mk("path", { d: `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, class: "vg-link", "data-a": n.id, "data-b": o }); cross.push(l); gl.append(l); } }));
+  nodes.forEach((n) => {
+    const [x, y, a, col] = pos[n.id];
+    const g = mk("g", { class: "vg-node", "data-id": n.id });
+    const deg = (a * 180) / Math.PI, flip = Math.cos(a) < 0;
+    const lab = mk("text", { x: x + (flip ? -9 : 9), y: y + 4, "text-anchor": flip ? "end" : "start", transform: `rotate(${flip ? deg + 180 : deg} ${x} ${y})`, class: "vg-label" });
+    lab.textContent = n.id.split("/").pop().replace(/-/g, " ");
+    const tip = mk("title", {}); tip.textContent = `${n.id}\n${n.desc}`;
+    g.append(mk("circle", { cx: x, cy: y, r: 5, fill: col }), lab, tip);
+    g.addEventListener("mouseenter", () => cross.forEach((l) => l.classList.toggle("on", l.dataset.a === n.id || l.dataset.b === n.id)));
+    g.addEventListener("mouseleave", () => cross.forEach((l) => l.classList.remove("on")));
+    g.addEventListener("click", () => openNote(n.id + ".md"));
+    gn.append(g);
+  });
+  const hub = mk("circle", { cx, cy, r: 26, fill: "#fff" }), ht = mk("text", { x: cx, y: cy + 52, "text-anchor": "middle", class: "vg-sec", fill: "#fff" });
+  ht.textContent = "Second brain";
+  gn.append(hub, ht);
+  return el("div", { class: "card vg-wrap", id: "vault-graph" }, svg);
+}
+
 async function viewVault() {
   const nav = navSeq;
   await freshStatus();
@@ -1059,6 +1114,8 @@ async function viewVault() {
   showIf(nav, page(
     head("Vault", el("span", {}, `${total} notes · ${verified} verified · agents load one section at a time · `, runningSubtitle()),
       el("button", { class: "btn secondary", id: "open-obsidian", onclick: () => invoke("app_open", { name: "obsidian" }).catch((e) => toast(String(e), true)) }, "Open in Obsidian")),
+    el("div", { class: "inline", style: "margin-bottom:10px" }, segmented([["list", "Notes"], ["graph", "Graph"]], state.vaultView || "list", (v) => { state.vaultView = v; viewVault(); })),
+    state.vaultView === "graph" ? await vaultGraph() : null,
     texturePanel(tex),
     q, results,
     el("div", { class: "vault", id: "vault-browse" },

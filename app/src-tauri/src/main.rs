@@ -603,6 +603,14 @@ async fn tuneup_fix(project: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || studio_core::tuneup::fix(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
+/// The vault as a graph: notes, their section, and the links between them.
+#[tauri::command]
+async fn vault_graph() -> Result<Value, String> {
+    let g = studio_core::graph::build(&root()?);
+    let nodes: Vec<Value> = g.values().filter(|n| !n.id.ends_with("/index")).map(|n| json!({ "id": n.id, "desc": n.desc, "out": n.out })).collect();
+    Ok(json!({ "nodes": nodes }))
+}
+
 // ---------- find my files ----------
 #[tauri::command]
 async fn locate_scan() -> Result<Vec<Value>, String> {
@@ -790,6 +798,7 @@ fn main() {
             brief_list,
             scores_list,
             locate_scan,
+            vault_graph,
             studio_mcp_test,
             locate_use,
             locate_merge_vault,

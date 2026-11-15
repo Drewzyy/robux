@@ -244,6 +244,33 @@ fn install_git(on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
     }
 }
 
+/// First time the vault opens in Obsidian, open it on the Graph view (the
+/// "second brain" picture: notes as dots, links as lines), with the file
+/// list on the left. Obsidian keeps its own layout after that.
+pub fn graph_first(vault: &Path) {
+    let ws = vault.join(".obsidian/workspace.json");
+    if ws.is_file() {
+        return;
+    }
+    let layout = serde_json::json!({
+        "main": {"id": "bg-main", "type": "split", "direction": "vertical", "children": [
+            {"id": "bg-tabs", "type": "tabs", "children": [
+                {"id": "bg-graph", "type": "leaf", "state": {"type": "graph", "state": {}}}
+            ]}
+        ]},
+        "left": {"id": "bg-left", "type": "split", "direction": "horizontal", "width": 280, "children": [
+            {"id": "bg-left-tabs", "type": "tabs", "children": [
+                {"id": "bg-files", "type": "leaf", "state": {"type": "file-explorer", "state": {"sortOrder": "alphabetical"}}}
+            ]}
+        ]},
+        "right": {"id": "bg-right", "type": "split", "direction": "horizontal", "width": 300, "collapsed": true, "children": []},
+        "active": "bg-graph",
+        "lastOpenFiles": []
+    });
+    let _ = std::fs::create_dir_all(ws.parent().unwrap_or(vault));
+    let _ = std::fs::write(ws, serde_json::to_string_pretty(&layout).unwrap_or_default());
+}
+
 /// Open Blender, or the studio's vault in Obsidian, from the Downloads folder.
 pub fn open(app: &str, vault: &Path) -> Result<(), String> {
     match app {
@@ -252,6 +279,7 @@ pub fn open(app: &str, vault: &Path) -> Result<(), String> {
             crate::paths::command(&exe).spawn().map(|_| ()).map_err(|e| e.to_string())
         }
         "obsidian" => {
+            graph_first(vault);
             let uri = format!("obsidian://open?path={}", urlencode(&vault.display().to_string()));
             match obsidian_exe() {
                 Some(exe) => crate::paths::command(&exe).arg(uri).spawn().map(|_| ()).map_err(|e| e.to_string()),

@@ -1,0 +1,163 @@
+{
+  "collapse-filter": true,
+  "search": "-path:.claude",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": true,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "path:00-Start-Here",
+      "color": {
+        "a": 1,
+        "rgb": 16729402
+      }
+    },
+    {
+      "query": "path:01-Roblox-Fundamentals",
+      "color": {
+        "a": 1,
+        "rgb": 16752394
+      }
+    },
+    {
+      "query": "path:02-Game-Design",
+      "color": {
+        "a": 1,
+        "rgb": 16766474
+      }
+    },
+    {
+      "query": "path:03-Game-Psychology",
+      "color": {
+        "a": 1,
+        "rgb": 3199320
+      }
+    },
+    {
+      "query": "path:04-Onboarding",
+      "color": {
+        "a": 1,
+        "rgb": 6607615
+      }
+    },
+    {
+      "query": "path:05-Progression",
+      "color": {
+        "a": 1,
+        "rgb": 689407
+      }
+    },
+    {
+      "query": "path:06-Retention",
+      "color": {
+        "a": 1,
+        "rgb": 6184166
+      }
+    },
+    {
+      "query": "path:07-Monetization",
+      "color": {
+        "a": 1,
+        "rgb": 12540658
+      }
+    },
+    {
+      "query": "path:08-UI-UX",
+      "color": {
+        "a": 1,
+        "rgb": 16725855
+      }
+    },
+    {
+      "query": "path:09-Animation-VFX",
+      "color": {
+        "a": 1,
+        "rgb": 11308648
+      }
+    },
+    {
+      "query": "path:10-Art-Environment",
+      "color": {
+        "a": 1,
+        "rgb": 6739151
+      }
+    },
+    {
+      "query": "path:11-Audio",
+      "color": {
+        "a": 1,
+        "rgb": 16737410
+      }
+    },
+    {
+      "query": "path:12-Multiplayer-NPCs",
+      "color": {
+        "a": 1,
+        "rgb": 9342611
+      }
+    },
+    {
+      "query": "path:13-Luau-Engineering",
+      "color": {
+        "a": 1,
+        "rgb": 3321318
+      }
+    },
+    {
+      "query": "path:14-QA-Optimization",
+      "color": {
+        "a": 1,
+        "rgb": 10650718
+      }
+    },
+    {
+      "query": "path:15-LiveOps",
+      "color": {
+        "a": 1,
+        "rgb": 14323711
+      }
+    },
+    {
+      "query": "path:16-Market-Research",
+      "color": {
+        "a": 1,
+        "rgb": 6547170
+      }
+    },
+    {
+      "query": "path:17-Development-Templates",
+      "color": {
+        "a": 1,
+        "rgb": 16757568
+      }
+    },
+    {
+      "query": "path:18-Source-Library",
+      "color": {
+        "a": 1,
+        "rgb": 8223487
+      }
+    },
+    {
+      "query": "path:19-Project-Memory",
+      "color": {
+        "a": 1,
+        "rgb": 3458905
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": false,
+  "textFadeMultiplier": -1,
+  "nodeSizeMultiplier": 1.3,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": true,
+  "centerStrength": 0.55,
+  "repelStrength": 12,
+  "linkStrength": 1,
+  "linkDistance": 180,
+  "scale": 0.6,
+  "close": true
+}
