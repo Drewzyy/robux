@@ -99,9 +99,7 @@ pub fn set(root: &Path, slug: &str, id: &str, text: &str) -> Result<(), String> 
     let mut b = load(root, slug)?;
     b["answers"][id] = json!(text);
     let f = file(root, slug)?;
-    let tmp = f.with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(&b).unwrap()).map_err(|e| e.to_string())?;
-    fs::rename(&tmp, &f).map_err(|e| e.to_string())?;
+    crate::paths::write_atomic(&f, serde_json::to_string_pretty(&b).unwrap_or_default().as_bytes())?;
     fs::write(f.with_file_name("brief.md"), markdown(root, slug)?).map_err(|e| e.to_string())
 }
 
@@ -140,6 +138,9 @@ fn markdown(root: &Path, slug: &str) -> Result<String, String> {
 pub fn json_in(text: &str) -> Option<Value> {
     let start = text.find('{')?;
     let end = text.rfind('}')?;
+    if end < start {
+        return None;
+    }
     serde_json::from_str(&text[start..=end]).ok()
 }
 
@@ -187,7 +188,7 @@ pub fn autofill(root: &Path, slug: &str, dump: &str) -> Result<usize, String> {
     let mut stored = load(root, slug)?;
     stored["dump"] = json!(dump);
     let f = file(root, slug)?;
-    fs::write(&f, serde_json::to_string_pretty(&stored).unwrap()).map_err(|e| e.to_string())?;
+    crate::paths::write_atomic(&f, serde_json::to_string_pretty(&stored).unwrap_or_default().as_bytes())?;
     let mut n = 0;
     // A model sometimes skips an item; ask once more for just those.
     for _ in 0..2 {
@@ -211,6 +212,10 @@ fn fill_once(root: &Path, slug: &str, b: &Value, dump: &str) -> Result<usize, St
             continue;
         }
         if let Some(t) = answers.get(id).and_then(|x| x.as_str()).map(str::trim).filter(|t| !t.is_empty()) {
+            // Andrew may have typed an answer while the model was thinking.
+            if !load(root, slug)?["answers"][id].as_str().unwrap_or("").trim().is_empty() {
+                continue;
+            }
             set(root, slug, id, t)?;
             n += 1;
         }

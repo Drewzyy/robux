@@ -177,6 +177,28 @@ pub fn command<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
 }
 
 /// Open a web link in the default browser.
+/// Write a file safely: keep the old one as <name>.bak, write a temp file,
+/// then swap it in. A crash never leaves a half-written file behind.
+pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    if let Some(d) = path.parent() {
+        std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+    }
+    let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let tmp = path.with_file_name(format!("{name}.tmp"));
+    std::fs::write(&tmp, bytes).map_err(|e| format!("could not save {}: {e}", path.display()))?;
+    if path.is_file() {
+        let _ = std::fs::copy(path, path.with_file_name(format!("{name}.bak")));
+    }
+    std::fs::rename(&tmp, path).map_err(|e| format!("could not save {}: {e}", path.display()))
+}
+
+/// Read JSON saved by write_atomic, falling back to its .bak copy when the
+/// file is missing or damaged. None when neither reads.
+pub fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
+    let name = path.file_name()?.to_string_lossy().to_string();
+    [path.to_path_buf(), path.with_file_name(format!("{name}.bak"))].iter().find_map(|p| serde_json::from_str(&std::fs::read_to_string(p).ok()?).ok())
+}
+
 /// A relative path made only of plain names (no .., no root, no drive).
 pub fn safe_rel(rel: &str) -> bool {
     !rel.is_empty() && !rel.contains('\\') && !rel.contains(':') && Path::new(rel).components().all(|c| matches!(c, std::path::Component::Normal(_)))
@@ -231,5 +253,20 @@ mod tests {
             assert!(!safe_rel(bad), "{bad}");
         }
         assert!(valid_id("run-1_a") && !valid_id("") && !valid_id("a/b"));
+    }
+}
+
+#[cfg(test)]
+mod atomic_tests {
+    #[test]
+    fn damaged_file_falls_back_to_backup() {
+        let d = std::env::temp_dir().join(format!("atomic-t-{}", std::process::id()));
+        let f = d.join("e.json");
+        super::write_atomic(&f, b"[1]").unwrap();
+        super::write_atomic(&f, b"[1,2]").unwrap();
+        std::fs::write(&f, "[1,2").unwrap(); // cut off mid-write
+        let v: Vec<u32> = super::read_json(&f).unwrap();
+        assert_eq!(v, vec![1]);
+        let _ = std::fs::remove_dir_all(&d);
     }
 }

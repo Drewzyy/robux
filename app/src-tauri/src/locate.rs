@@ -31,7 +31,14 @@ pub fn search_roots() -> Vec<PathBuf> {
         v.push("/Volumes".into());
     }
     v.retain(|p| p.is_dir());
-    v.dedup();
+    // Drop places already inside an earlier one (home already covers Documents).
+    let mut out: Vec<PathBuf> = vec![];
+    for p in v {
+        if !out.iter().any(|o| p.starts_with(o) && p != *o && o.components().count() > 1 && o.parent().is_some() && o.to_string_lossy().len() > 3) && !out.contains(&p) {
+            out.push(p);
+        }
+    }
+    let v = out;
     v
 }
 
@@ -84,8 +91,10 @@ fn modified(p: &Path) -> String {
 /// Everything found, with enough detail to pick the right one.
 pub fn scan_in(roots: &[PathBuf]) -> Vec<Value> {
     let mut found = vec![];
-    let mut seen = 0;
     for r in roots {
+        // Each place gets its own search budget, so a big home folder cannot
+        // use it all up before another drive is searched.
+        let mut seen = 0;
         // home-like folders a bit deeper, whole drives shallower
         let depth = if r.parent().is_none() || r.to_string_lossy().len() <= 3 { 3 } else { 4 };
         walk(r, depth, &mut found, &mut seen);

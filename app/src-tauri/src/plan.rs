@@ -80,20 +80,23 @@ pub fn list(root: &Path) -> Vec<Value> {
 }
 
 /// Save one checkmark or note.
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn set(root: &Path, run_id: &str, item: &str, checked: Option<bool>, note: Option<String>) -> Result<(), String> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     safe_id(run_id)?;
     let p = approvals_path(root, run_id);
     if !p.parent().map(|d| d.join("plan.json").is_file()).unwrap_or(false) {
         return Err("no plan in that run".into());
     }
-    let mut ap: Value = fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or(json!({"checked": {}, "notes": {}}));
+    let mut ap: Value = crate::paths::read_json(&p).unwrap_or(json!({"checked": {}, "notes": {}}));
     if let Some(b) = checked {
         ap["checked"][item] = json!(b);
     }
     if let Some(n) = note {
         ap["notes"][item] = json!(n);
     }
-    fs::write(&p, serde_json::to_string_pretty(&ap).unwrap()).map_err(|e| e.to_string())
+    crate::paths::write_atomic(&p, serde_json::to_string_pretty(&ap).unwrap_or_default().as_bytes())
 }
 
 /// Read one mockup SVG from a plan's run folder.

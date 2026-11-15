@@ -96,6 +96,7 @@ pub fn source(root: &Path, target: &str, version: &str, on_line: &mut dyn FnMut(
             let st = crate::paths::command("tar").arg("-xf").arg(&zip).arg("-C").arg(&dir).status().map_err(|e| format!("tar: {e}"))?;
             let _ = fs::remove_file(&zip);
             if !st.success() {
+                let _ = fs::remove_dir_all(&dir); // so the next try downloads again
                 return Err("could not unpack the app source".into());
             }
         }
@@ -168,7 +169,8 @@ pub fn run(root: &Path, target: &str, engine: &str, version: &str, on_line: &mut
             let o = crate::paths::command(if cfg!(windows) { "codex.cmd" } else { "codex" })
                 .current_dir(&rd)
                 .args(["exec", "--skip-git-repo-check", "--sandbox", "read-only"])
-                .arg(format!("{PROMPT}\n\nThe code is in pack.md in this folder. Read it all, then write the review."))
+                // One line: Windows refuses newlines in arguments to a .cmd file.
+                .arg(format!("{PROMPT} The code is in pack.md in this folder. Read it all, then write the review."))
                 .output()
                 .map_err(|e| format!("codex: {e}"))?;
             if !o.status.success() {

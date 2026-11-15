@@ -127,6 +127,10 @@ pub fn safe_fix(t: &str) -> String {
                 Some(i) => l.split_at(i),
                 None => (l, ""),
             };
+            // A local function named wait/spawn/delay is the game's own: leave it.
+            if code.contains("function wait") || code.contains("function spawn") || code.contains("function delay") || code.contains('"') || code.contains('\'') {
+                return l.to_string();
+            }
             format!("{}{}", re.replace_all(code, "${1}task.${2}${3}"), comment)
         })
         .collect::<Vec<_>>()
@@ -331,5 +335,14 @@ mod tests {
         assert_eq!(sum["files"], 2);
         assert_eq!(safe_fix("wait(1)\ntask.wait(1)\nx:wait() -- wait(3)\n a = spawn(f)\n"), "task.wait(1)\ntask.wait(1)\nx:wait() -- wait(3)\n a = task.spawn(f)\n");
         let _ = fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(test)]
+mod safe_fix_tests {
+    #[test]
+    fn leaves_own_functions_and_strings_alone() {
+        let t = "local function delay(x)\nprint(\"wait(1)\")\nwait(2)\n";
+        assert_eq!(super::safe_fix(t), "local function delay(x)\nprint(\"wait(1)\")\ntask.wait(2)\n");
     }
 }

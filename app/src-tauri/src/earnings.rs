@@ -11,7 +11,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs;
+
 use std::path::{Path, PathBuf};
 
 pub const STANDARD_RATE: f64 = 0.0038;
@@ -45,13 +45,11 @@ fn file(root: &Path) -> PathBuf {
 }
 
 pub fn load(root: &Path) -> Vec<Entry> {
-    fs::read_to_string(file(root)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+    crate::paths::read_json(&file(root)).unwrap_or_default()
 }
 
 fn save(root: &Path, all: &[Entry]) -> Result<(), String> {
-    let f = file(root);
-    fs::create_dir_all(f.parent().unwrap()).map_err(|e| e.to_string())?;
-    fs::write(f, serde_json::to_string_pretty(all).unwrap()).map_err(|e| e.to_string())
+    crate::paths::write_atomic(&file(root), serde_json::to_string_pretty(all).map_err(|e| e.to_string())?.as_bytes())
 }
 
 fn valid_date(d: &str) -> bool {
@@ -65,8 +63,10 @@ pub fn add(root: &Path, e: Entry) -> Result<(), String> {
     if e.game.trim().is_empty() {
         return Err("name the game".into());
     }
+    // Store as 2026-01-05 even when typed as 2026-1-5 (months group by the first 7 characters).
+    let date = chrono::NaiveDate::parse_from_str(&e.date, "%Y-%m-%d").map(|d| d.format("%Y-%m-%d").to_string()).unwrap_or(e.date.clone());
     let mut all = load(root);
-    all.push(Entry { game: e.game.trim().to_string(), note: e.note.trim().to_string(), ..e });
+    all.push(Entry { date, game: e.game.trim().to_string(), note: e.note.trim().to_string(), ..e });
     save(root, &all)
 }
 
@@ -173,7 +173,7 @@ mod tests {
     #[test]
     fn totals_conversion_and_csv_import() {
         let root = std::env::temp_dir().join(format!("brewix-money-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&root);
+        let _ = std::fs::remove_dir_all(&root);
         add(&root, Entry { date: "2026-11-02".into(), game: "Scrap Garden".into(), robux: 30_000, note: String::new() }).unwrap();
         assert!(add(&root, Entry { date: "11/02/2026".into(), game: "x".into(), robux: 1, note: String::new() }).is_err());
         let csv = "Date,Experience,Robux Earned\n2026-10-15,\"Rule Bender, Run\",\"1,200\"\n2026-11-10,Scrap Garden,800\n2026-11-10,Scrap Garden,800\nbad,row,x\n";
@@ -189,6 +189,6 @@ mod tests {
         assert_eq!((30_000.0 * STANDARD_RATE * 100.0_f64).round() / 100.0, 114.0, "matches Roblox's $114 for 30,000");
         remove(&root, 0).unwrap();
         assert_eq!(load(&root).len(), 2);
-        let _ = fs::remove_dir_all(&root);
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

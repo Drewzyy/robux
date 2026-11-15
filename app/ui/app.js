@@ -90,7 +90,7 @@ function head(title, subtitle, right, clamp = false) {
 }
 // Each navigation gets a number. A page that finishes loading after you have
 // moved on is dropped instead of drawing over the page you are on.
-let navSeq = 0, navTimer = null;
+let navSeq = 0, navTimer = null, freshNav = true;
 function showIf(nav, node) { if (nav === navSeq) show(node); }
 function show(node) {
   clearTimeout(navTimer);
@@ -101,7 +101,7 @@ function show(node) {
   }
   $("view").classList.remove("loading");
   $("view").replaceChildren(node);
-  $("view").scrollTop = 0;
+  if (freshNav) { $("view").scrollTop = 0; freshNav = false; }
 }
 
 // ---------- global state ----------
@@ -229,9 +229,11 @@ function route() {
   document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === navName));
   closeSheet();
   navSeq += 1;
+  freshNav = true;
+  const mine = navSeq;
   clearTimeout(navTimer);
   navTimer = setTimeout(() => { const v = $("view"); if (v) v.classList.add("loading"); }, 250);
-  Promise.resolve(fn(decodeURIComponent(rest.join("/")))).catch((e) => show(page(head("Something went wrong"), el("div", { class: "card" }, String(e)))));
+  Promise.resolve(fn(decodeURIComponent(rest.join("/")))).catch((e) => showIf(mine, page(head("Something went wrong"), el("div", { class: "card" }, String(e)))));
 }
 window.addEventListener("hashchange", route);
 
@@ -351,7 +353,7 @@ async function viewBrief(arg) {
   const item = (it) => {
     const tick = el("span", { class: "brief-tick" + (it.text.trim() || it.images.length ? " on" : "") }, "✓");
     const ta = el("textarea", { class: "brief-text", rows: 2, placeholder: it.hint }, it.text);
-    ta.addEventListener("change", async () => { try { await invoke("brief_set", { slug, id: it.id, text: ta.value }); const n = await bump(); const me = n.items.find((x) => x.id === it.id); tick.classList.toggle("on", !!(me.text.trim() || me.images.length)); } catch (e) { toast(String(e), true); } });
+    ta.addEventListener("change", async () => { try { await (state.briefSave = invoke("brief_set", { slug, id: it.id, text: ta.value })); const n = await bump(); const me = n.items.find((x) => x.id === it.id); tick.classList.toggle("on", !!(me.text.trim() || me.images.length)); } catch (e) { toast(String(e), true); } });
     const thumbs = el("div", { class: "brief-thumbs" });
     const addThumb = (file) => { const img = el("img", { class: "brief-thumb", alt: file }); invoke("refs_image", { project: slug, file }).then((src) => (img.src = src)).catch(() => img.remove()); thumbs.append(img); };
     it.images.forEach(addThumb);
@@ -363,6 +365,10 @@ async function viewBrief(arg) {
   };
   const groups = [...new Set(b.items.map((i) => i.group))];
   const plan = el("button", { class: "btn primary", id: "brief-plan", onclick: async () => {
+    // Save the box still being typed in, then wait for saves, then read.
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    await new Promise((r) => setTimeout(r, 0));
+    try { await state.briefSave; } catch {}
     try { const prompt = await invoke("brief_prompt", { slug }); state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt }; state.runsTab = "new"; location.hash = "#runs"; } catch (e) { toast(String(e), true); } } }, "Plan This Game");
   const pickBrief = briefs.length > 1 ? el("select", { onchange: (e) => viewBrief(e.target.value) }, briefs.map((x) => el("option", { value: x.slug, selected: x.slug === slug }, `${x.title} · ${x.done}/${x.total}`))) : null;
   showIf(nav, page(head(b.title, count, pickBrief),
@@ -546,8 +552,10 @@ async function viewReview() {
   const status = el("div", { class: "hint", id: "review-status" }, "");
   const start = (engine) => async () => {
     if (engine !== "local" && !confirm("This sends the code to an outside AI company. Game code is fine to share; never include passwords or keys. Continue?")) return;
+    if (state.reviewing) { toast("A review is already running."); return; }
     status.textContent = "Starting...";
-    try { await invoke("review_start", { target: target.value, engine }); } catch (e) { status.textContent = ""; toast(String(e), true); }
+    state.reviewing = true;
+    try { await invoke("review_start", { target: target.value, engine }); } catch (e) { state.reviewing = false; status.textContent = ""; toast(String(e), true); }
   };
   const engines = el("div", { class: "inline", style: "flex-wrap:wrap;gap:8px;margin-top:12px" },
     el("button", { class: "btn primary", id: "review-local", onclick: start("local") }, d.local_model ? `Review on This Computer (${d.local_model})` : "Review on This Computer"),
@@ -572,6 +580,7 @@ async function viewReview() {
 }
 T.event.listen("review-line", (ev) => { const n = $("review-status"); if (n) n.textContent = ev.payload.line; });
 T.event.listen("review-done", (ev) => {
+  state.reviewing = false;
   if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.engine === "chatgpt" ? "pack.md is ready. Drag it into ChatGPT." : "Review finished.");
   if ((location.hash || "") === "#review") viewReview();
 });
@@ -652,7 +661,8 @@ async function viewMoney() {
     el("div", { class: "card" }, el("div", { class: "row-title" }, "Add earnings"),
       el("div", { class: "hint" }, "Type what Roblox's Creator Dashboard shows, or import its CSV export. BrewixGames never signs in to Roblox."),
       el("div", { class: "inline", style: "gap:8px;margin-top:10px;flex-wrap:wrap" }, date, game, amt,
-        el("button", { class: "btn primary", id: "money-add", onclick: async () => {
+        el("button", { class: "btn primary", id: "money-add", onclick: async (ev) => {
+          ev.target.disabled = true;
           try { await invoke("money_add", { date: date.value, game: game.value, robux: parseInt(amt.value || "0", 10), note: "" }); toast("Added."); viewMoney(); } catch (e) { toast(String(e), true); }
         } }, "Add"),
         el("button", { class: "btn secondary", onclick: () => csv.click() }, "Import CSV"), csv)),
@@ -814,6 +824,8 @@ async function queueCard(item) {
 }
 
 async function decide(item, verdict, note = "") {
+  if (state.deciding) return; // a second click while the first is saving
+  state.deciding = true;
   try {
     await invoke("queue_decide", { id: item.id, verdict, note });
     toast(verdict === "approved" ? "Approved. Nothing was published." : "Rejected.");
@@ -821,6 +833,8 @@ async function decide(item, verdict, note = "") {
     viewQueue();
   } catch (e) {
     toast(String(e), true);
+  } finally {
+    state.deciding = false;
   }
 }
 
@@ -1101,7 +1115,7 @@ T.event.listen("tex-done", (ev) => {
 // section, notes fanned out at the ends. Hover a note to see its links;
 // click to open it. Drawn as SVG, no libraries.
 async function vaultGraph() {
-  const { nodes } = await invoke("vault_graph");
+  const nodes = (await invoke("vault_graph")).nodes.filter((n) => n.id.includes("/")); // root files like CLAUDE.md are not notes
   const NS = "http://www.w3.org/2000/svg";
   const mk = (tag, a) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) n.setAttribute(k, v); return n; };
   const secs = [...new Set(nodes.map((n) => n.id.split("/")[0]))].filter((s) => s !== "00-Start-Here" || true).sort();
@@ -1159,6 +1173,7 @@ async function viewVault() {
   const tex = await invoke("textures_status").catch(() => ({ count: 0, groups: [] }));
   if (!state.vaultSection) state.vaultSection = tree[0] && tree[0].name;
   const sec = tree.find((s) => s.name === state.vaultSection) || tree[0];
+  if (!sec) { showIf(nav, page(head("Vault"), el("div", { class: "card" }, "The vault is empty or missing. Open Find My Files in Settings to locate it."))); return; }
   const total = tree.reduce((n, s) => n + s.notes.length, 0);
   const verified = tree.reduce((n, s) => n + s.notes.filter((x) => x.status === "verified").length, 0);
   const results = el("div", { id: "vault-results" });
@@ -1270,6 +1285,7 @@ async function estimate(box) {
   box.replaceChildren();
   try {
     if (c.mode === "plan") {
+      c.mode = "agent"; // one-off: the Runs form must not stay in plan mode
       const p = await invoke("plan_build_prepare", { runId: c.planRun });
       state.prepared = { kind: "pipeline", id: p.pipeline_id, expected: p.expected_usd, low: null, high: p.high_usd, cap: p.cap_usd, assumptions: p.stages.map((s) => `${cap(s.agent)} writes ${s.output}`), note: "Nothing was spent on building until now. Each stage runs under its own cap." };
     } else if (c.mode === "agent") {
@@ -1308,14 +1324,16 @@ async function approveRun(btn) {
   const p = state.prepared;
   btn.disabled = true;
   try {
-    if (p.kind === "run") await invoke("run_approve_and_start", { runId: p.id, confirmedCapUsd: p.cap });
-    else await invoke("pipeline_approve_and_start", { pipelineId: p.id, confirmedCapUsd: p.cap });
+    // Set before starting: a run that fails at once sends run-done first.
     state.live = { kind: p.kind, id: p.id, estimate: p.expected, cap: p.cap };
     state.logs[p.id] = "";
+    if (p.kind === "run") await invoke("run_approve_and_start", { runId: p.id, confirmedCapUsd: p.cap });
+    else await invoke("pipeline_approve_and_start", { pipelineId: p.id, confirmedCapUsd: p.cap });
     state.prepared = null;
     state.composer.prompt = "";
     location.hash = "#run/" + p.id;
   } catch (e) {
+    state.live = null;
     btn.disabled = false;
     toast(String(e), true);
   }
@@ -1375,12 +1393,16 @@ function renderLine(line) {
   if (v.type === "result") return `Finished · ${usd(v.total_cost_usd, 4)} · ${v.num_turns} turns`;
   return null;
 }
+const LOG_MAX = 200000; // keep the last ~200 KB of a run's live output
 function appendLog(id, text) {
-  state.logs[id] = (state.logs[id] || "") + text + "\n";
+  let t = (state.logs[id] || "") + text + "\n";
+  if (t.length > LOG_MAX) t = t.slice(-LOG_MAX);
+  state.logs[id] = t;
   const log = $("live-log");
   if (log && location.hash === "#run/" + id) {
-    log.textContent = state.logs[id];
-    log.scrollTop = log.scrollHeight;
+    log.append(text + "\n");
+    if (log.textContent.length > LOG_MAX) log.textContent = t;
+    if (!log._scrollQueued) { log._scrollQueued = true; requestAnimationFrame(() => { log._scrollQueued = false; log.scrollTop = log.scrollHeight; }); }
   }
 }
 T.event.listen("run-line", (ev) => {
@@ -1516,7 +1538,7 @@ async function viewSettings() {
     el("div", { class: "section" }, el("div", { class: "section-label" }, "AI engine"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
-          segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: $("ollama-model").value.trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
+          segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: (($("ollama-model") || {}).value || s.ollama_model || "").trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
         localModelRows(s, o, save))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Apps in your Downloads folder"),
@@ -1707,10 +1729,12 @@ async function viewChat() {
   const list = el("div", { class: "chat-list", id: "chat-list" }, msgs.length ? msgs :
     el("div", { class: "empty", style: "padding:64px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
       el("div", {}, "It can answer questions about your games and fix things in your projects. Each message counts toward your budget.")));
-  show(el("div", { class: "page chat-page" },
+  showIf(nav, el("div", { class: "page chat-page" },
     head("Ask Claude", runningSubtitle(), chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null),
     list,
     el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Enter sends (Shift+Enter for a new line). Sending is your approval for that message."), el("div", { class: "inline" }, modelPick, send)))));
+  if (state.chatDraft) input.value = state.chatDraft;
+  input.addEventListener("input", () => { state.chatDraft = input.value; });
   list.scrollTop = list.scrollHeight;
   input.focus();
 }

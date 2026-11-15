@@ -240,7 +240,13 @@ pub fn patch(p: &serde_json::Value) -> Result<Settings, String> {
     let mut cur = serde_json::to_value(load()).map_err(|e| e.to_string())?;
     merge(&mut cur, p);
     let next: Settings = serde_json::from_value(cur).map_err(|e| format!("bad setting: {e}"))?;
-    save_unlocked(&next)?;
+    // If the saved settings were already invalid for the same reason (an
+    // unplugged drive, a removed tool), still save this unrelated change.
+    let old = load();
+    match (validate(&next), validate(&old)) {
+        (Err(a), Err(b)) if a == b => write_unchecked(&next)?,
+        _ => save_unlocked(&next)?,
+    }
     Ok(next)
 }
 
@@ -251,6 +257,10 @@ pub fn save(s: &Settings) -> Result<(), String> {
 
 fn save_unlocked(s: &Settings) -> Result<(), String> {
     validate(s)?;
+    write_unchecked(s)
+}
+
+fn write_unchecked(s: &Settings) -> Result<(), String> {
     let d = config_dir();
     fs::create_dir_all(&d).map_err(|e| format!("create {}: {e}", d.display()))?;
     let tmp = d.join("settings.json.tmp");

@@ -34,7 +34,7 @@ fn dir(root: &Path, game: &str) -> PathBuf {
 
 pub fn list(root: &Path, project: &str) -> Result<Vec<Reference>, String> {
     let game = game_of(project)?;
-    Ok(fs::read_to_string(dir(root, &game).join("index.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default())
+    Ok(crate::paths::read_json(&dir(root, &game).join("index.json")).unwrap_or_default())
 }
 
 /// Add one image (PNG, JPEG, or WebP bytes as base64).
@@ -75,7 +75,7 @@ pub fn add(root: &Path, project: &str, name: &str, data_b64: &str, category: &st
     let r = Reference { file, category: category.into(), note: note.trim().to_string(), source: source.trim().to_string(), added: crate::now_rfc3339() };
     let mut all = list(root, project)?;
     all.push(r.clone());
-    fs::write(d.join("index.json"), serde_json::to_string_pretty(&all).unwrap()).map_err(|e| e.to_string())?;
+    crate::paths::write_atomic(&d.join("index.json"), serde_json::to_string_pretty(&all).unwrap_or_default().as_bytes())?;
     write_note(root, &game, &all)?;
     Ok(r)
 }
@@ -91,7 +91,7 @@ pub fn remove(root: &Path, project: &str, file: &str) -> Result<(), String> {
     }
     let _ = fs::remove_file(d.join(file));
     let _ = fs::remove_file(root.join("projects").join(&game).join("references").join(file));
-    fs::write(d.join("index.json"), serde_json::to_string_pretty(&all).unwrap()).map_err(|e| e.to_string())?;
+    crate::paths::write_atomic(&d.join("index.json"), serde_json::to_string_pretty(&all).unwrap_or_default().as_bytes())?;
     write_note(root, &game, &all)
 }
 

@@ -105,7 +105,7 @@ pub fn vault(root: &Path) -> Result<Vec<VaultSection>, String> {
                     let t = fs::read_to_string(&p).unwrap_or_default();
                     let title = t.lines().find(|l| l.starts_with("# ")).map(|l| l[2..].to_string()).unwrap_or_default();
                     notes.push(VaultNote {
-                        path: p.strip_prefix(&v).unwrap().display().to_string(),
+                        path: p.strip_prefix(&v).map(|x| x.to_string_lossy().replace('\\', "/")).unwrap_or_default(),
                         title,
                         description: fm_field(&t, "description"),
                         status: fm_field(&t, "status"),
@@ -504,12 +504,29 @@ pub fn refresh_from_template(root: &Path, template: &Path) -> Result<String, Str
     let tmp = std::env::temp_dir().join(format!("brewix-template-{stamp}"));
     fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
     untar(template, &tmp)?;
+    // Things the app and Andrew add inside the vault survive updates: game
+    // memory and references, downloaded textures, Obsidian's own settings.
+    const KEEP: [&str; 3] = ["19-Project-Memory", "10-Art-Environment/textures", ".obsidian"];
+    let kept = tmp.join("kept");
+    for k in KEEP {
+        let from = root.join("vault").join(k);
+        if from.is_dir() {
+            let mut n = 0;
+            copy_dir_all(&from, &kept.join(k), &mut n)?;
+        }
+    }
     for d in ["vault", "studio"] {
         let src = tmp.join(d);
         if src.is_dir() {
             let _ = fs::remove_dir_all(root.join(d));
             let mut n = 0;
             copy_dir_all(&src, &root.join(d), &mut n)?;
+        }
+    }
+    for k in KEEP {
+        if kept.join(k).is_dir() {
+            let mut n = 0;
+            copy_dir_all(&kept.join(k), &root.join("vault").join(k), &mut n)?; // Andrew's copy wins
         }
     }
     let _ = fs::remove_dir_all(&tmp);
@@ -746,5 +763,33 @@ mod move_tests {
         fs::write(base.join("busy/x.txt"), "x").unwrap();
         assert!(move_studio(&cur, base.join("busy").to_str().unwrap()).is_err());
         let _ = fs::remove_dir_all(&base);
+    }
+}
+
+#[cfg(test)]
+mod update_keeps_tests {
+    use super::*;
+    #[test]
+    fn update_keeps_game_memory_textures_and_obsidian() {
+        let d = std::env::temp_dir().join(format!("upd-t-{}", std::process::id()));
+        let root = d.join("studio");
+        for f in ["vault/02-Game-Design/a.md", "vault/19-Project-Memory/my-game-references.md", "vault/10-Art-Environment/textures/wood/x/color.jpg", "vault/.obsidian/workspace.json", "studio/agents.json"] {
+            let p = root.join(f);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(&p, "mine").unwrap();
+        }
+        let t = d.join("t");
+        fs::create_dir_all(t.join("vault/02-Game-Design")).unwrap();
+        fs::create_dir_all(t.join("studio")).unwrap();
+        fs::write(t.join("vault/02-Game-Design/a.md"), "new").unwrap();
+        fs::write(t.join("studio/agents.json"), "new").unwrap();
+        let tar = d.join("template.tar.gz");
+        assert!(crate::paths::command("tar").arg("-czf").arg(&tar).arg("-C").arg(&t).args(["vault", "studio"]).status().unwrap().success());
+        refresh_from_template(&root, &tar).unwrap();
+        assert_eq!(fs::read_to_string(root.join("vault/02-Game-Design/a.md")).unwrap(), "new");
+        for f in ["vault/19-Project-Memory/my-game-references.md", "vault/10-Art-Environment/textures/wood/x/color.jpg", "vault/.obsidian/workspace.json"] {
+            assert_eq!(fs::read_to_string(root.join(f)).unwrap(), "mine", "{f}");
+        }
+        let _ = fs::remove_dir_all(&d);
     }
 }

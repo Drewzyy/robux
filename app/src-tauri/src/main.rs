@@ -350,9 +350,16 @@ async fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
     std::thread::spawn(move || {
         let app2 = app.clone();
         let id2 = id.clone();
-        let msg = chat::finish(&r, &id, &bin, |line| {
-            let _ = app2.emit("chat-line", json!({ "run_id": id2, "line": line }));
-        });
+        // A crash must still send chat-done, or Send stays disabled.
+        let msg = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            chat::finish(&r, &id, &bin, |line| {
+                let _ = app2.emit("chat-line", json!({ "run_id": id2, "line": line }));
+            })
+        }));
+        if msg.is_err() {
+            runs::fail_if_unfinished(&r, &id, "the chat crashed inside the app");
+        }
+        let msg = msg.unwrap_or_else(|_| chat::Message { role: "assistant".into(), text: "That didn't finish: the app hit an error. Try again.".into(), at: studio_core::now_rfc3339(), cost_usd: None, run_id: Some(id.clone()), failed: true });
         let _ = app.emit("chat-done", json!({ "run_id": id, "message": msg }));
     });
     Ok(run_id)
