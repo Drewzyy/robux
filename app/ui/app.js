@@ -1459,7 +1459,7 @@ function appRow(id, name, path, canInstall, hint, dir) {
     ev.target.disabled = true; status.textContent = "Starting...";
     try { await invoke("app_install", { name: id }); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
   } }, path ? "Reinstall" : "Install Here") : null;
-  const open = id === "git" ? null : path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
+  const open = id === "git" || id === "graphify" ? null : path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
   const pick = el("button", { class: "btn secondary", id: `app-${id}-pick`, onclick: () => chooseAppFolder(id, name) }, "Choose Folder");
   return el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, name), status), el("div", { class: "inline" }, pick, install, open));
 }
@@ -1523,6 +1523,7 @@ async function viewSettings() {
       el("div", { class: "list" },
         appRow("blender", "Blender", ap.blender, ap.can_install, "Portable Blender 5.2 LTS: the program, its settings and the MCP for Blender add-on all stay in its folder.", (ap.dirs || {}).blender),
         appRow("obsidian", "Obsidian", ap.obsidian, ap.can_install, "Obsidian for browsing the vault. Installed into its folder if its installer accepts it (BrewixGames checks).", (ap.dirs || {}).obsidian),
+        appRow("graphify", "Graphify (code map)", ap.graphify, true, "Free code map so Builder, Tuner and Playtest can find where things are in your game without reading every file. Installs with uv.", (ap.dirs || {}).graphify),
         ap.can_install ? appRow("git", "Git for Windows", ap.git, ap.can_install, "Claude Code needs Git on Windows to run (and to reach Roblox Studio). Free, installed into this folder.", (ap.dirs || {}).git) : null,
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Roblox Studio"),
           el("div", { class: "hint" }, "Roblox always installs Studio in your user folder on C:, with no option to choose. Moving it with folder tricks is reported to break Studio on updates, so BrewixGames leaves it where Roblox puts it."))))),

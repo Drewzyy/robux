@@ -23,6 +23,8 @@ pub struct Status {
     pub obsidian: Option<String>,
     /// Git Bash (Windows): Claude Code needs it.
     pub git: Option<String>,
+    /// Graphify (code map for agents), if installed.
+    pub graphify: Option<String>,
     pub can_install: bool,
     pub folder: String,
 }
@@ -53,9 +55,10 @@ pub fn obsidian_exe() -> Option<PathBuf> {
 
 pub fn status() -> Status {
     Status {
-        dirs: ["claude", "blender", "obsidian", "git"].iter().map(|a| (a.to_string(), crate::paths::app_dir(a).display().to_string())).collect(),
+        dirs: ["claude", "blender", "obsidian", "git", "graphify"].iter().map(|a| (a.to_string(), crate::paths::app_dir(a).display().to_string())).collect(),
         blender: blender_exe().map(|p| p.display().to_string()),
         obsidian: obsidian_exe().map(|p| p.display().to_string()),
+        graphify: graphify_bin().map(|p| p.display().to_string()),
         git: crate::claude::git_bash().filter(|_| cfg!(windows)).map(|p| p.display().to_string()),
         can_install: cfg!(windows),
         folder: crate::paths::tools_dir().display().to_string(),
@@ -131,6 +134,9 @@ pub(crate) fn download(url: &str, dest: &Path, on_line: &mut dyn FnMut(&str)) ->
 }
 
 pub fn install(app: &str, on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
+    if app == "graphify" {
+        return install_graphify(on_line); // uv works on every platform
+    }
     if !cfg!(windows) {
         return Err("Installing into the Downloads folder is for Windows. On a Mac, install it the usual way.".into());
     }
@@ -138,6 +144,7 @@ pub fn install(app: &str, on_line: &mut dyn FnMut(&str)) -> Result<String, Strin
         "blender" => install_blender(on_line),
         "obsidian" => install_obsidian(on_line),
         "git" => install_git(on_line),
+        "graphify" => install_graphify(on_line),
         _ => Err(format!("unknown app {app}")),
     }
 }
@@ -269,6 +276,36 @@ pub fn graph_first(vault: &Path) {
     });
     let _ = std::fs::create_dir_all(ws.parent().unwrap_or(vault));
     let _ = std::fs::write(ws, serde_json::to_string_pretty(&layout).unwrap_or_default());
+}
+
+/// Graphify's own folder for its program (Apache-2.0, PyPI "graphifyy").
+pub fn graphify_bin_dir() -> PathBuf {
+    crate::paths::app_dir("graphify").join("bin")
+}
+
+pub fn graphify_bin() -> Option<PathBuf> {
+    let p = graphify_bin_dir().join(if cfg!(windows) { "graphify.exe" } else { "graphify" });
+    p.is_file().then_some(p)
+}
+
+/// Install Graphify with uv into its own folder. It never runs
+/// `graphify install` (that would change Claude Code's own settings).
+fn install_graphify(on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
+    let uvx = crate::blender_mcp::uvx().ok_or("Graphify installs with uv, which is not installed yet. Press Get uv in Settings (Blender section) first.")?;
+    let uv = uvx.with_file_name(if cfg!(windows) { "uv.exe" } else { "uv" });
+    let dir = crate::paths::app_dir("graphify");
+    on_line("Installing Graphify (code map for the agents)...");
+    let out = crate::paths::command(&uv)
+        .args(["tool", "install", "--force", "graphifyy"])
+        .env("UV_TOOL_DIR", dir.join("tools"))
+        .env("UV_TOOL_BIN_DIR", graphify_bin_dir())
+        .stdin(std::process::Stdio::null())
+        .output()
+        .map_err(|e| format!("could not run uv: {e}"))?;
+    match graphify_bin() {
+        Some(p) => Ok(format!("Graphify is installed ({}). Builder, Tuner and Playtest can map your game's code with it.", p.display())),
+        None => Err(format!("Graphify did not install: {}", String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or(""))),
+    }
 }
 
 /// Open Blender, or the studio's vault in Obsidian, from the Downloads folder.

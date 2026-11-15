@@ -126,7 +126,13 @@
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
         "Bash(brewix node:*)",
-        "Bash(brewix score:*)"
+        "Bash(brewix score:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -247,7 +253,13 @@
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
         "Bash(brewix node:*)",
-        "Bash(brewix score:*)"
+        "Bash(brewix score:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -390,7 +402,13 @@
         "Bash(ls:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [],
       "output": null,
@@ -442,7 +460,13 @@
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -475,7 +499,13 @@
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -508,7 +538,13 @@
         "Bash(ls:*)",
         "Bash(brewix map:*)",
         "Bash(brewix node:*)",
-        "Bash(brewix score:*)"
+        "Bash(brewix score:*)",
+        "Bash(graphify update:*)",
+        "Bash(graphify query:*)",
+        "Bash(graphify explain:*)",
+        "Bash(graphify path:*)",
+        "Bash(graphify affected:*)",
+        "Bash(graphify god-nodes:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",

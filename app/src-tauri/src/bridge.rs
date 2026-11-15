@@ -393,6 +393,7 @@ pub fn agent_path() -> std::ffi::OsString {
             dirs.push(d.join("tools"));
         }
     }
+    dirs.push(crate::apps::graphify_bin_dir());
     if let Some(home) = crate::paths::home() {
         dirs.push(home.join(".cargo/bin"));
     }

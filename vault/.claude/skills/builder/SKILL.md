@@ -72,3 +72,6 @@ For engine detail, load these with the Skill tool only when the task needs them:
 ## Engagement
 Every game ships with the systems in `17-Development-Templates/engagement-template` (playtime gifts, the 6-minute favorite reminder) and a daily streak. Check `brewix node 03-Game-Psychology/retention-tricks-catalog 04-Onboarding/fast-early-rewards` and build only the fair version of each trick. Run `brewix score <project>` when done; under 75, keep going on its list.
 For engine libraries and patterns worth using (ProfileStore, Promise, Trove, Fusion and others) see `00-Start-Here/top-roblox-repos` and the 13-Luau-Engineering library notes; follow their licences.
+
+## Code map (Graphify, if installed)
+Before reading many files of an existing game, map it: `graphify update projects/<game>` (free, no AI, under a second). Then ask the map instead of opening files: `graphify explain "<function or file>" --graph projects/<game>/graphify-out/graph.json`, `graphify affected "<function>" --graph ...` (what a change would break), `graphify path "A" "B" --graph ...`. Its free-text `query` is weak; prefer explain and affected. It reads Luau with the Lua grammar, so typed lines can be missed: open the file when the map looks incomplete. Never run `graphify install`. If the graphify command is missing, skip this and read files as usual.
