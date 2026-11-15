@@ -24,3 +24,7 @@ Load only the note your task needs. Do not read every note in this section.
 | [[17-Development-Templates/mvp-build-order]] | Build order for a new game and for the vault itself. | draft |
 | [[17-Development-Templates/style-kit-template]] | Style kit every design doc fills: palette, fonts, motion, UI sounds, lighting, accessibility, offers. | verified |
 | [[17-Development-Templates/engagement-template]] | Ready Luau for a favorite reminder after 6 minutes of real play (once per player, never rewarded) and playtime gifts every few minutes, server-authoritative and saved. | verified |
+| [[17-Development-Templates/example-gallery-feel-and-loops]] | Original SVG charts for hit-stop, shake and squash timing, the core loop, retention loop stack, first-60-seconds onboarding timeline and a sound feedback map. | draft |
+| [[17-Development-Templates/example-gallery-maps]] | Original SVG layouts for a lobby hub, obby difficulty, tycoon plot and simulator zones, plus colour palettes for six genres and five lighting mood panels. | draft |
+| [[17-Development-Templates/example-gallery-thumbnails-and-icons]] | Original SVG good-versus-bad game icons (512x512) and thumbnail compositions (1920x1080), showing one focal avatar, three elements maximum and large readable text. | draft |
+| [[17-Development-Templates/example-gallery-ui]] | Original SVG examples of good and bad phone HUD, shop, reward reveal, daily calendar, gift popup, favorite card, quests, leaderboard and settings, each with what it teaches. | draft |

@@ -14,6 +14,7 @@ Checks:
   that is either a real check or starts with UNVERIFIED
 """
 import re
+import pathlib
 import sys
 from pathlib import Path
 
@@ -39,7 +40,8 @@ def frontmatter(p: Path):
 
 
 def resolves(link: str) -> bool:
-    return (VAULT / f"{link}.md").is_file()
+    # notes are linked without .md; pictures and other files with their extension
+    return (VAULT / f"{link}.md").is_file() or (pathlib.Path(link).suffix.lower() in {".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif"} and (VAULT / link).is_file())
 
 
 def main() -> int:

@@ -31,3 +31,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[08-UI-UX/figma-handoff]] | How UI moves between BrewixGames, Figma and Roblox Studio: SVG mockups with named layers, editing in Figma, and free plugins that turn a Figma frame into Roblox UI. | draft |
 | [[08-UI-UX/ui-polish-passes]] | Six ordered passes that turn a generic, cluttered screen into a polished one: clean and group, one primary action, depth, fold the unimportant, grouped nav with icons, and search. | draft |
 | [[08-UI-UX/reward-moments-and-juice]] | The four-beat reward reveal (anticipation, reveal, celebration, collection) with timings, sound and particle rules, scaled for small free rewards and big paid ones, plus skip and reduced-motion rules. | draft |
+| [[08-UI-UX/ui-frameworks-fusion-react-lua-vide]] | Compare Fusion, React Lua, Vide and Roact for building Roblox UI in code, with stars, licenses, a tiny example each, and which one an agent should pick. | draft |

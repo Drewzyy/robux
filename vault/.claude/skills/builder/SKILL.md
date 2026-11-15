@@ -71,3 +71,4 @@ For engine detail, load these with the Skill tool only when the task needs them:
 
 ## Engagement
 Every game ships with the systems in `17-Development-Templates/engagement-template` (playtime gifts, the 6-minute favorite reminder) and a daily streak. Check `brewix node 03-Game-Psychology/retention-tricks-catalog 04-Onboarding/fast-early-rewards` and build only the fair version of each trick. Run `brewix score <project>` when done; under 75, keep going on its list.
+For engine libraries and patterns worth using (ProfileStore, Promise, Trove, Fusion and others) see `00-Start-Here/top-roblox-repos` and the 13-Luau-Engineering library notes; follow their licences.

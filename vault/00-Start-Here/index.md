@@ -72,3 +72,4 @@ Not sure where to look? [[00-Start-Here/question-router]] maps 90+ common questi
 | [[00-Start-Here/moc-sound]] | Map of notes on game audio: feedback sounds, music, mixing, settings menu, free licensed sources, and the ForgeGUI pipeline. | verified |
 | [[00-Start-Here/moc-ui]] | Map of notes on Roblox interface work: mobile-first layout, HUD, shop screens, fonts, colour, accessibility, animation and Figma handoff. | verified |
 | [[00-Start-Here/question-router]] | 70+ common questions (daily reward, quit at minute 2, shop prices, exploits, lag) each mapped to the 1 to 3 vault notes that answer it. | verified |
+| [[00-Start-Here/top-roblox-repos]] | Ranked table of 30 popular Roblox and Luau GitHub repos with stars, licenses, why each matters for building games, and which vault note covers it; skips spam and exploit repos. | draft |

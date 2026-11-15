@@ -62,3 +62,4 @@ Checks:
 For engine detail, load these with the Skill tool only when the task needs them: blender-rendering.
 
 Also `brewix node 10-Art-Environment/youtube-packaging-lessons 10-Art-Environment/roblox-icon-and-thumbnail-patterns` before designing.
+Check `17-Development-Templates/example-gallery-thumbnails-and-icons` (good vs bad icon and thumbnail SVGs) before designing.

@@ -52,3 +52,4 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: roblox-building, roblox-lighting, roblox-physics.
+Use `17-Development-Templates/example-gallery-maps` for layout and its lighting-mood panels for colour.
