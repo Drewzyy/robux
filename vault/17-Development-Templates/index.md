@@ -23,3 +23,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[17-Development-Templates/agent-output-format]] | Every agent output: header, what was loaded, the work, gate results, open questions. | verified |
 | [[17-Development-Templates/mvp-build-order]] | Build order for a new game and for the vault itself. | draft |
 | [[17-Development-Templates/style-kit-template]] | Style kit every design doc fills: palette, fonts, motion, UI sounds, lighting, accessibility, offers. | verified |
+| [[17-Development-Templates/engagement-template]] | Ready Luau for a favorite reminder after 6 minutes of real play (once per player, never rewarded) and playtime gifts every few minutes, server-authoritative and saved. | verified |

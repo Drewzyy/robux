@@ -54,3 +54,5 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: roblox-monetization.
+
+Use `brewix node 07-Monetization/rewarding-purchases 08-UI-UX/reward-moments-and-juice`: every purchase gives an instant, visible reward with a reveal; free players get plenty of rewards too, so buying is a shortcut, never a wall.

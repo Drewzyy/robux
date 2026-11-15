@@ -23,6 +23,7 @@ pub mod graph;
 pub mod review;
 pub mod tuneup;
 pub mod brief;
+pub mod score;
 pub mod update;
 pub mod paths;
 pub mod pipeline;

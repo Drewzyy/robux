@@ -48,6 +48,6 @@ def check(note: str) -> bool:
 
 
 if __name__ == "__main__":
-    notes = ["13-Luau-Engineering/service-controller-template.md", "07-Monetization/processreceipt-template.md"]
+    notes = ["13-Luau-Engineering/service-controller-template.md", "07-Monetization/processreceipt-template.md", "17-Development-Templates/engagement-template.md"]
     results = [check(n) for n in notes]
     sys.exit(0 if all(results) else 1)

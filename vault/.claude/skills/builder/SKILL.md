@@ -66,3 +66,6 @@ Run what is installed and record the real result, never a guess:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: roblox-architecture, roblox-luau-core, roblox-luau-patterns, roblox-luau-types, roblox-networking, roblox-security, roblox-data, roblox-server-data, roblox-performance.
+
+## Engagement
+Every game ships with the systems in `17-Development-Templates/engagement-template` (playtime gifts, the 6-minute favorite reminder) and a daily streak. Check `brewix node 03-Game-Psychology/retention-tricks-catalog 04-Onboarding/fast-early-rewards` and build only the fair version of each trick. Run `brewix score <project>` when done; under 75, keep going on its list.

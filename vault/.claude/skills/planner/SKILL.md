@@ -51,3 +51,5 @@ For engine detail, load these with the Skill tool only when the task needs them:
 
 ## Research notes
 Before choosing the loop, run `brewix node 16-Market-Research/roblox-hit-patterns 02-Game-Design/loop-stack 03-Game-Psychology/why-players-return 05-Progression/goal-gradient-and-session-goals 09-Animation-VFX/game-feel-juice 11-Audio/sound-feedback-map`, and `brewix map 16-Market-Research` to pick the 1 or 2 teardowns closest to this game.
+
+Also run `brewix map 16-Market-Research` and `brewix node` the `reviews-<niche>` note for this game's genre plus `03-Game-Psychology/what-players-love-and-hate`; plan the loves in and the hates out.

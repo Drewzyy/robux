@@ -42,7 +42,7 @@ d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set
 view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
-    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 6 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 7, view()[:60])
+    check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 7 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 7, view()[:60])
     check("Dashboard shows one next step", len(d.find_elements(By.ID, "next-step")) == 1 and "Next step" in view() or "NEXT STEP" in view())
     d.find_element(By.ID, "search-hint").click(); time.sleep(0.5)
     d.find_element(By.ID, "palette-input").send_keys("thumb"); time.sleep(0.5)
@@ -92,6 +92,9 @@ try:
     d.find_element(By.ID, "brief-plan").click(); time.sleep(2.5)
     pr = d.find_element(By.ID, "prompt").get_attribute("value")
     check("Plan This Game sends the brief to Planner", "Collect sugar, upgrade shop, repeat" in pr and "ui-test-idea" in pr and "(not answered)" in pr)
+    d.execute_script("location.hash='#score'"); time.sleep(10)
+    check("Game Score rates the game out of 100 with what to add", "dawn-watch" in view() and "Keeps players playing" in view() and len(d.find_elements(By.CSS_SELECTOR, ".score-num")) >= 1, view()[:140].replace("\n", " "))
+    d.save_screenshot(str(SHOTS / "ui-score.png"))
     d.execute_script("location.hash='#chat'"); time.sleep(3)
     Select(d.find_element(By.ID, "chat-model")).select_by_value("claude-haiku-5-5"); time.sleep(2.5)
     saved = d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_get').then((s) => done(s.chat_model));")

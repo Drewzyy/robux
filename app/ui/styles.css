@@ -331,3 +331,11 @@ body { background: radial-gradient(900px 500px at 85% -10%, rgba(255, 99, 60, 0.
 .brief-text { width: 100%; margin-top: 8px; resize: vertical; }
 .brief-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .brief-thumb { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; background: #111; }
+
+/* Game Score */
+.score-ring { width: 110px; height: 110px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 6px solid #FF453A; flex: none; }
+.score-ring.ok { border-color: #30D158; }
+.score-num { font-size: 34px; font-weight: 700; line-height: 1; }
+.score-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px 20px; margin-top: 18px; }
+.score-part .plan-bar { margin: 6px 0; }
+.score-todo { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }

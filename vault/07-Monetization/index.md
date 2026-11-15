@@ -30,3 +30,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[07-Monetization/economy-pacing]] | Cost curves, rebirth and offline pacing targets, buy max, big numbers, odds rules, tested library. | draft |
 | [[07-Monetization/offer-pressure-limits]] | Prompt budget: buy prompts only from a Buy tap, offer limits, signs of too much, honest persuasion only. | draft |
 | [[07-Monetization/cosmetics-catalog]] | Hats, capes, wings, trails, auras, pets, movement styles: attach, earn versus sell, price ranges. | draft |
+| [[07-Monetization/rewarding-purchases]] | How to make a Robux purchase feel great and fair: instant visible reward, reveal animation, first-purchase bonus, bundles, shown boost timers, free play rich enough that buying is a shortcut. | draft |

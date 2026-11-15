@@ -583,6 +583,21 @@ async fn tuneup_fix(project: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || studio_core::tuneup::fix(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
+// ---------- game score ----------
+#[tauri::command]
+async fn scores_list() -> Result<Vec<Value>, String> {
+    let r = root()?;
+    Ok(std::fs::read_dir(r.join("projects")).into_iter().flatten().flatten().filter(|e| e.path().join("default.project.json").is_file()).map(|e| {
+        let n = e.file_name().to_string_lossy().to_string();
+        json!({ "project": n, "saved": studio_core::score::saved(&r, &n) })
+    }).collect())
+}
+#[tauri::command]
+async fn score_run(project: String) -> Result<Value, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::score::score(&r, &project)).await.map_err(|e| e.to_string())?
+}
+
 // ---------- game brief (idea checklist) ----------
 #[tauri::command]
 async fn brief_list() -> Result<Vec<Value>, String> {
@@ -734,6 +749,8 @@ fn main() {
             tuneup_fix,
             settings_patch,
             brief_list,
+            scores_list,
+            score_run,
             brief_create,
             brief_get,
             brief_set,

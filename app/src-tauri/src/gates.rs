@@ -622,6 +622,16 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 1
             }
         }),
+        ["score", project] => Some(match crate::paths::studio_root().and_then(|r| crate::score::score(&r, project)) {
+            Ok(v) => {
+                println!("{}", serde_json::to_string_pretty(&v).unwrap());
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["tuneup"] => Some(match crate::paths::studio_root().and_then(|r| crate::tuneup::run(&r)) {
             Ok(v) => {
                 println!("{}", serde_json::to_string_pretty(&v).unwrap());

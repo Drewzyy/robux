@@ -166,7 +166,7 @@ function runningSubtitle() {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -199,11 +199,11 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
   make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["runs", "Build"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
-  check: [["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
+  check: [["score", "Game Score"], ["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -269,6 +269,7 @@ async function viewDashboard() {
     invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
     invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
   ]);
+  invoke("scores_list").then((l) => { const n = $("score-widget"); if (!n) return; const s = l.map((g) => g.saved).filter(Boolean); n.textContent = s.length ? s.map((x) => `${x.project}: ${x.score}`).join(" · ") : "Not scored yet"; }).catch(() => {});
   invoke("tuneup_get", { force: false }).then((t) => { const n = $("tune-widget"); if (n && t) n.textContent = t.issues ? `${t.issues} to look at` : "All clean"; }).catch(() => {});
   const w = (title, href, ...body) => el("a", { class: "card widget", href }, el("div", { class: "k" }, title), ...body);
   const plan = plans[0];
@@ -297,6 +298,7 @@ async function viewDashboard() {
         el("div", { class: "note" }, plan ? `${plan.done} of ${plan.total} checked` : "Plan an idea first")),
       w("Building now", "#runs", el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "Nothing running"), el("div", { class: "note" }, "Open to see runs and start one")),
       w("Waiting for you", "#queue", el("div", { class: "v" }, String(waiting)), el("div", { class: "note" }, waiting ? "Items to approve or send back" : "Nothing to review")),
+      w("Game score", "#score", el("div", { class: "v small", id: "score-widget" }, "..."), el("div", { class: "note" }, "75 is the standard to publish")),
       w("Double-check", "#review", el("div", { class: "v small" }, verdict || "Not checked yet"), el("div", { class: "note" }, last ? last.title : "Have another AI check the code")),
       w("Tune-up", "#tuneup", el("div", { class: "v small", id: "tune-widget" }, "Checking..."), el("div", { class: "note" }, "Free bug, lag and map check")))));
 }
@@ -344,6 +346,35 @@ async function viewBrief(arg) {
       el("p", { class: "note" }, "Answer what you can, in your own words. Paste or add images on any item (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
       el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, plan, el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
     ...groups.map((g) => el("div", { class: "card plan-sec" }, el("h2", {}, g), b.items.filter((i) => i.group === g).map(item)))));
+}
+
+// =====================================================================
+// Game Score: one number out of 100; under the standard, keep working
+// =====================================================================
+function scoreCard(v) {
+  const ring = el("div", { class: "score-ring " + (v.ready ? "ok" : "low") }, el("div", { class: "score-num" }, String(v.score)), el("div", { class: "note" }, `Grade ${v.grade}`));
+  const keep = el("button", { class: "btn primary", onclick: () => {
+    state.composer = { ...state.composer, mode: "pipeline", pipeline: "improve-build", project: `projects/${v.project}`, prompt: `Raise this game's score from ${v.score} to at least ${v.standard}. Do these, most valuable first, without breaking what works:\n` + v.todo.slice(0, 12).map((t) => `- ${t}`).join("\n") };
+    state.runsTab = "new"; location.hash = "#runs"; } }, "Keep Working on It");
+  return el("div", { class: "card" },
+    el("div", { class: "inline", style: "gap:22px;align-items:center" }, ring,
+      el("div", { style: "flex:1" }, el("h2", { style: "margin:0" }, v.project),
+        el("div", { class: "note" }, v.ready ? `Meets the standard (${v.standard}). Keep polishing, or move on to publishing.` : `Below the standard of ${v.standard}. ${v.todo.length} thing(s) to do before it is ready.`),
+        el("div", { class: "inline", style: "margin-top:10px" }, !v.ready ? keep : null, el("button", { class: "btn secondary", onclick: () => viewScore(v.project) }, "Score Again")))),
+    el("div", { class: "score-parts" }, v.parts.map((p) => el("div", { class: "score-part" },
+      el("div", { class: "inline", style: "justify-content:space-between" }, el("span", {}, p.name), el("span", { class: "note" }, `${p.got} / ${p.max}`)),
+      el("div", { class: "plan-bar" }, el("div", { class: "plan-fill", style: `width:${Math.round((100 * p.got) / p.max)}%;background:${p.got / p.max >= 0.75 ? "#30D158" : p.got / p.max >= 0.5 ? "#FF9F0A" : "#FF453A"}` })),
+      p.missing.length ? el("ul", { class: "score-todo" }, p.missing.map((m) => el("li", {}, m))) : null))));
+}
+async function viewScore(project) {
+  const nav = navSeq;
+  const list = await invoke("scores_list");
+  if (!list.length) { showIf(nav, page(head("Game Score"), el("div", { class: "card" }, "No game projects yet. Build one first."))); return; }
+  const target = project || null;
+  const cards = await Promise.all(list.map(async (g) => (target === g.project || !g.saved) ? await invoke("score_run", { project: g.project }).catch((e) => ({ error: String(e), project: g.project })) : g.saved));
+  showIf(nav, page(head("Game Score", "How ready each game is, out of 100. 75 is the standard to publish."),
+    el("div", { class: "card note" }, "Scored from what the studio can check itself: does it build, is the code clean, graphics and feel (lighting, materials, motion, particles, sound, UI), what keeps players playing (saves, daily streaks, playtime gifts, goals, leaderboards, friends, favorite reminder, badges), fair monetization, plus the latest Player Test and Second Opinion. Free, no AI."),
+    ...cards.map((v) => v.error ? el("div", { class: "card" }, `${v.project}: ${v.error}`) : scoreCard(v))));
 }
 
 // A Claude model picker: cheapest first, with a plain hint of size.

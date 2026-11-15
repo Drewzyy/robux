@@ -125,7 +125,8 @@
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix score:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -245,7 +246,8 @@
         "Bash(brewix gate build:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix score:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -505,7 +507,8 @@
         "Bash(brewix search:*)",
         "Bash(ls:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix score:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
