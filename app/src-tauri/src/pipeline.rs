@@ -215,9 +215,20 @@ pub fn approve(root: &Path, id: &str, confirmed_cap_usd: f64) -> Result<Pipeline
         ));
     }
     crate::budget::check(root, p.cap_usd)?;
+    let mut done: Vec<String> = vec![];
     for s in &p.stages {
-        let req = runs::load(root, &s.run_id)?;
-        runs::approve_unchecked(root, &s.run_id, req.estimate.cap_usd)?;
+        let res = runs::load(root, &s.run_id).and_then(|req| runs::approve_unchecked(root, &s.run_id, req.estimate.cap_usd));
+        if let Err(e) = res {
+            // Put the stages already approved back, so nothing stays reserved.
+            for id in &done {
+                if let Ok(mut r) = runs::load(root, id) {
+                    r.status = "awaiting-approval".into();
+                    let _ = runs::save(root, &r);
+                }
+            }
+            return Err(e);
+        }
+        done.push(s.run_id.clone());
     }
     p.status = "approved".into();
     p.approved_at = Some(crate::now_rfc3339());
@@ -236,6 +247,35 @@ pub fn cancel(root: &Path, id: &str) -> Result<PipelineRun, String> {
     p.status = "cancelled".into();
     save(root, &p)?;
     Ok(p)
+}
+
+/// Pipelines left running or approved when the app closed are stopped,
+/// and their unfinished stage runs marked failed.
+pub fn recover_stale(root: &Path) -> usize {
+    let mut n = 0;
+    for e in fs::read_dir(root.join("runs")).into_iter().flatten().flatten() {
+        let id = e.file_name().to_string_lossy().to_string();
+        if !id.starts_with("pipe-") || id.contains("--") {
+            continue;
+        }
+        stop_unfinished(root, &id, "BrewixGames closed before this pipeline finished.");
+        n += 1;
+    }
+    n
+}
+
+/// Mark a pipeline that did not finish as stopped (no-op otherwise).
+pub fn stop_unfinished(root: &Path, id: &str, why: &str) {
+    let Ok(mut p) = load(root, id) else { return };
+    if p.status != "running" && p.status != "approved" {
+        return;
+    }
+    for s in &p.stages {
+        runs::fail_if_unfinished(root, &s.run_id, why);
+    }
+    p.status = "stopped".into();
+    p.finished_at = Some(crate::now_rfc3339());
+    let _ = save(root, &p);
 }
 
 /// Events reported while a pipeline runs.
@@ -291,7 +331,9 @@ pub fn run<F: FnMut(Event)>(root: &Path, id: &str, claude_bin: &Path, mut on: F)
         p.stages[i].gate = Some(gate.clone());
         on(Event::StageDone { index: i, agent: &agent, gate: &gate });
         save(root, &p)?;
-        if !output_exists {
+        // Stop when nothing usable came out, or the run itself failed (cap hit,
+        // error): later stages would spend their caps on bad input.
+        if !output_exists || !matches!(&outcome, Ok(o) if o.ok) {
             stopped = true;
         }
         prior_dirs.push(run_dir);
@@ -299,6 +341,7 @@ pub fn run<F: FnMut(Event)>(root: &Path, id: &str, claude_bin: &Path, mut on: F)
     p.actual_cost_usd = Some(round4(total));
     p.status = if stopped { "stopped".into() } else { "done".into() };
     p.finished_at = Some(crate::now_rfc3339());
+    save(root, &p)?; // final status first, before the queue item and notifications
 
     // One review item for the whole pipeline.
     let def_kind = load_config(root)?

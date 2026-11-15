@@ -142,7 +142,9 @@
         "03-Game-Psychology",
         "11-Audio",
         "19-Project-Memory",
-        "08-UI-UX"
+        "08-UI-UX",
+        "17-Development-Templates",
+        "04-Onboarding"
       ],
       "output": "build.md",
       "role": "Luau Engineering Agent"
@@ -171,7 +173,8 @@
         "03-Game-Psychology",
         "14-QA-Optimization",
         "19-Project-Memory",
-        "09-Animation-VFX"
+        "09-Animation-VFX",
+        "17-Development-Templates"
       ],
       "output": "lighting.md",
       "role": "World and Environment Artist"
@@ -228,7 +231,8 @@
         "07-Monetization",
         "03-Game-Psychology",
         "19-Project-Memory",
-        "13-Luau-Engineering"
+        "13-Luau-Engineering",
+        "17-Development-Templates"
       ],
       "output": "ui.md",
       "role": "UX/UI Designer"
@@ -299,7 +303,8 @@
         "01-Roblox-Fundamentals",
         "06-Retention",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "17-Development-Templates"
       ],
       "output": "splash.md",
       "role": "Thumbnails and Promo (support)"
@@ -325,7 +330,8 @@
         "07-Monetization",
         "01-Roblox-Fundamentals",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "08-UI-UX"
       ],
       "output": "shop.md",
       "role": "Monetization and Economy Specialist"

@@ -72,7 +72,8 @@ pub fn check(root: &Path, new_cap_usd: f64) -> Result<(), String> {
             "Monthly budget reached: ${:.2} spent and ${:.2} reserved this month, this run's cap is ${:.2}, budget is ${:.2}. Raise the budget in Settings to run it.",
             sp.spent_usd, sp.reserved_usd, new_cap_usd, s.monthly_budget_usd
         );
-        crate::notify::send_quiet(crate::notify::Kind::Budget, "Budget stopped a run", std::slice::from_ref(&msg));
+        let m = msg.clone();
+        std::thread::spawn(move || crate::notify::send_quiet(crate::notify::Kind::Budget, "Budget stopped a run", std::slice::from_ref(&m)));
         return Err(msg);
     }
     Ok(())

@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release
@@ -21,6 +21,31 @@ env:
   STUDIO_RELEASE: v0.1.${{ github.run_number }}
 
 jobs:
+  # Nothing is published unless the Rust tests, the vault checks and the
+  # vault's code templates pass.
+  test-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - name: Rust unit tests
+        run: cargo test --manifest-path app/src-tauri/Cargo.toml
+      - name: Vault structure (full)
+        run: python3 scripts/check_vault.py --full
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - run: cargo binstall -y --locked rojo@7.7.1 selene@0.31.0 stylua@2.6.0 lune@0.11.1
+      - name: Code templates in the vault build, lint, format, and pass their tests
+        run: python3 scripts/verify_vault_code.py
+
   build-mac:
     runs-on: macos-latest
     steps:
@@ -171,8 +196,10 @@ jobs:
           if ($g.ExitCode -ne 0) { Write-Host "::warning::Git Bash for Claude Code was not found on a machine that has Git" }
 
   publish:
-    needs: [build-mac, build-windows, test-windows-update]
+    needs: [test-linux, build-mac, build-windows, test-windows-update]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -185,6 +212,7 @@ jobs:
           ls -la out
           gh release create "$STUDIO_RELEASE" out/* \
             -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
             --title "BrewixGames $STUDIO_RELEASE" \
             --notes "Mac: download BrewixGames.dmg, open it, and drag BrewixGames to Applications.
 

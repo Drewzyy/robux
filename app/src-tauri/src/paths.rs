@@ -84,8 +84,13 @@ pub fn claude_bin() -> Result<PathBuf, String> {
     let mut candidates: Vec<PathBuf> = vec![app_dir("claude").join(if cfg!(windows) { "claude.exe" } else { "claude" })];
     if let Ok(path) = std::env::var("PATH") {
         for dir in std::env::split_paths(&path) {
-            candidates.push(dir.join("claude"));
-            candidates.push(dir.join("claude.exe"));
+            if cfg!(windows) {
+                // npm leaves an extensionless shell script here that Windows cannot run.
+                candidates.push(dir.join("claude.exe"));
+                candidates.push(dir.join("claude.cmd"));
+            } else {
+                candidates.push(dir.join("claude"));
+            }
         }
     }
     if let Some(h) = home() {

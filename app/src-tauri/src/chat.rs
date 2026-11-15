@@ -39,9 +39,13 @@ pub fn load(root: &Path) -> Chat {
     fs::read_to_string(file(root)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
 }
 
+/// Write to a temp file then swap, so a crash never leaves a half-written
+/// chat (which would read as empty and lose the history and session).
 fn save(root: &Path, c: &Chat) -> Result<(), String> {
     fs::create_dir_all(root.join("runs")).map_err(|e| e.to_string())?;
-    fs::write(file(root), serde_json::to_string_pretty(c).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+    let tmp = file(root).with_extension("json.tmp");
+    fs::write(&tmp, serde_json::to_string_pretty(c).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    fs::rename(&tmp, file(root)).map_err(|e| e.to_string())
 }
 
 /// Start a fresh conversation (the old one stays in run history).
@@ -61,7 +65,11 @@ pub fn cap(root: &Path) -> Result<f64, String> {
 }
 
 /// Record the user's message and prepare + approve the run. Returns run id.
+/// begin and finish each load, change and save chat.json: one at a time.
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub fn begin(root: &Path, text: &str) -> Result<String, String> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let text = text.trim();
     if text.is_empty() {
         return Err("Type a message first.".into());
@@ -123,6 +131,7 @@ pub fn finish<F: FnMut(&str)>(root: &Path, run_id: &str, claude_bin: &Path, mut 
         }
     }
     let run_id = run_id.as_str();
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut c = load(root);
     let session = fs::read_to_string(root.join("runs").join(run_id).join("result.json"))
         .ok()

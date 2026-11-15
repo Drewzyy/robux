@@ -261,6 +261,9 @@ async fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd
             })
         }))
         .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
+        if let Err(e) = &res {
+            runs::fail_if_unfinished(&r, &run_id, e);
+        }
         let item = pipeline::finish_single(&r, &run_id).ok().flatten();
         let payload = match res {
             Ok(o) => {
@@ -312,6 +315,9 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
             }
         })))
         .unwrap_or_else(|_| Err("the pipeline crashed inside the app".into()));
+        if let Err(e) = &res {
+            pipeline::stop_unfinished(&r, &pipeline_id, e);
+        }
         let payload = match res {
             Ok(p) => serde_json::to_value(p).unwrap_or(Value::Null),
             Err(e) => json!({"pipeline_id": pipeline_id, "status": "error", "error": e}),
@@ -754,6 +760,9 @@ fn main() {
         }
     }
     claude::export_git_bash();
+    if let Ok(r) = paths::studio_root() {
+        runs::recover_stale(&r);
+    }
     if settings::load().ollama_autostart {
         std::thread::spawn(ollama::ensure_running);
     }

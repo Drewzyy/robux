@@ -78,9 +78,8 @@ pub fn list(root: &Path) -> Result<Vec<QueueItem>, String> {
         if p.extension().and_then(|s| s.to_str()) != Some("json") {
             continue;
         }
-        let text = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
-        let item: QueueItem =
-            serde_json::from_str(&text).map_err(|e| format!("parse {}: {e}", p.display()))?;
+        // One damaged item must not hide the whole queue (and the Agents page).
+        let Some(item) = fs::read_to_string(&p).ok().and_then(|t| serde_json::from_str::<QueueItem>(&t).ok()) else { continue };
         out.push(item);
     }
     // Pending first, then newest first.

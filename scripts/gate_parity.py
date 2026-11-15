@@ -23,5 +23,6 @@ for agent, out in cases:
     print(("SAME " if same else "DIFF ") + agent.ljust(10) + Path(out).parent.name[:48] + "/" + Path(out).name, f"({len(b)} checks)")
     if not same:
         print("   python:", a); print("   rust:  ", b)
+ok = ok and len(cases) > 0  # nothing compared is not a pass
 print("PARITY:", "PASS" if ok else "FAIL", f"({len(cases)} outputs)")
 sys.exit(0 if ok else 1)

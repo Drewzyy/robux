@@ -95,6 +95,7 @@ pub fn prepare_with_id(
         estimate.low_usd = 0.0;
         estimate.expected_usd = 0.0;
         estimate.high_usd = 0.0;
+        estimate.cap_usd = 0.0; // free: reserves no budget
         estimate.assumptions = vec![format!("Runs on your computer with the local model {} through Ollama. No Claude usage, no cost.", st.ollama_model), "Local models are weaker than Claude: expect more failed checks and slower runs.".into()];
         estimate.subscription_note = "Free: local model.".into();
     }
@@ -182,6 +183,32 @@ pub(crate) fn approve_unchecked(root: &Path, run_id: &str, confirmed_cap_usd: f6
     Ok(req)
 }
 
+/// A run that never finished (app closed, crash, early error) is marked
+/// failed, so it stops counting as reserved budget and showing "working".
+pub fn fail_if_unfinished(root: &Path, run_id: &str, why: &str) {
+    if let Ok(mut r) = load(root, run_id) {
+        if r.status == "running" || r.status == "approved" {
+            r.status = "failed".into();
+            r.error = Some(why.to_string());
+            r.finished_at = Some(crate::now_rfc3339());
+            let _ = save(root, &r);
+        }
+    }
+}
+
+/// At startup nothing can still be running (runs live in this app's
+/// threads), so anything left running or approved was cut off.
+pub fn recover_stale(root: &Path) -> usize {
+    let mut n = 0;
+    for r in list(root).unwrap_or_default() {
+        if r.status == "running" || r.status == "approved" {
+            fail_if_unfinished(root, &r.run_id, "BrewixGames closed before this run finished.");
+            n += 1;
+        }
+    }
+    n + crate::pipeline::recover_stale(root)
+}
+
 pub fn cancel(root: &Path, run_id: &str) -> Result<RunRequest, String> {
     let mut req = load(root, run_id)?;
     if req.status != "awaiting-approval" {
@@ -191,3 +218,29 @@ pub fn cancel(root: &Path, run_id: &str) -> Result<RunRequest, String> {
     save(root, &req)?;
     Ok(req)
 }
+
+#[cfg(test)]
+mod stale_tests {
+    use super::*;
+    #[test]
+    fn cut_off_runs_are_marked_failed_and_free_their_budget() {
+        let d = std::env::temp_dir().join(format!("stale-t-{}", std::process::id()));
+        fs::create_dir_all(d.join("studio")).unwrap();
+        for f in ["agents.json", "pricing.json", "pipelines.json"] {
+            fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../studio").join(f), d.join("studio").join(f)).unwrap();
+        }
+        fs::create_dir_all(d.join("vault/.claude/agents")).unwrap();
+        fs::write(d.join("vault/.claude/agents/architect.md"), "---\nname: architect\n---\n").unwrap();
+        let r = prepare(&d, "architect", "test").unwrap();
+        let mut req = load(&d, &r.run_id).unwrap();
+        req.status = "running".into();
+        save(&d, &req).unwrap();
+        assert!(crate::budget::spend(&d, 100.0).reserved_usd > 0.0);
+        recover_stale(&d);
+        let after = load(&d, &r.run_id).unwrap();
+        assert_eq!(after.status, "failed");
+        assert_eq!(crate::budget::spend(&d, 100.0).reserved_usd, 0.0);
+        let _ = fs::remove_dir_all(&d);
+    }
+}
+

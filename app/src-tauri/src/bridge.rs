@@ -43,6 +43,8 @@ pub fn build_args(
 ) -> Vec<String> {
     let prompt = if has_skill {
         format!("/{} {}", req.agent, req.prompt)
+    } else if req.prompt.starts_with('-') {
+        format!(" {}", req.prompt) // a leading dash would be read as an option
     } else {
         req.prompt.clone()
     };
@@ -80,7 +82,8 @@ pub fn build_args(
         "stream-json".into(),
         "--verbose".into(),
         "--max-budget-usd".into(),
-        format!("{:.2}", req.estimate.cap_usd),
+        // Local runs cost nothing; give them a cap that never stops them.
+        if req.estimate.cap_usd > 0.0 { format!("{:.2}", req.estimate.cap_usd) } else { "1000".into() },
         // Only the vault's own settings (hooks, deny rules) and no MCP
         // servers: agents do not inherit plugins or tools from the user's
         // personal Claude Code setup.

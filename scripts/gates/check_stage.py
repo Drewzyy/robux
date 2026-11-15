@@ -143,7 +143,7 @@ def sounds_checks(text, project):
     text_of = lambda v: f"{v.get('id') or ''} {v.get('event') or ''}".lower() if isinstance(v, dict) else ""
     missing = [name for name, pat in UI_SOUNDS if not any(re.search(pat, text_of(v)) for v in sounds)]
     out.append(c("UI sound set covered (press, open, close, purchase, reward, error)", not missing, "all six" if not missing else "missing: " + ", ".join(missing)))
-    out.append(c("first 60 seconds has sounds requested", any(s.get("first_60_seconds") for s in sounds if isinstance(s, dict))))
+    out.append(c("first 60 seconds has sounds requested", any(s.get("first_60_seconds") is True for s in sounds if isinstance(s, dict))))
     return out
 
 
