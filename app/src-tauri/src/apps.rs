@@ -21,6 +21,8 @@ pub struct Status {
     pub dirs: std::collections::BTreeMap<String, String>,
     pub blender: Option<String>,
     pub obsidian: Option<String>,
+    /// Git Bash (Windows): Claude Code needs it.
+    pub git: Option<String>,
     pub can_install: bool,
     pub folder: String,
 }
@@ -51,9 +53,10 @@ pub fn obsidian_exe() -> Option<PathBuf> {
 
 pub fn status() -> Status {
     Status {
-        dirs: ["claude", "blender", "obsidian"].iter().map(|a| (a.to_string(), crate::paths::app_dir(a).display().to_string())).collect(),
+        dirs: ["claude", "blender", "obsidian", "git"].iter().map(|a| (a.to_string(), crate::paths::app_dir(a).display().to_string())).collect(),
         blender: blender_exe().map(|p| p.display().to_string()),
         obsidian: obsidian_exe().map(|p| p.display().to_string()),
+        git: crate::claude::git_bash().filter(|_| cfg!(windows)).map(|p| p.display().to_string()),
         can_install: cfg!(windows),
         folder: crate::paths::tools_dir().display().to_string(),
     }
@@ -134,6 +137,7 @@ pub fn install(app: &str, on_line: &mut dyn FnMut(&str)) -> Result<String, Strin
     match app {
         "blender" => install_blender(on_line),
         "obsidian" => install_obsidian(on_line),
+        "git" => install_git(on_line),
         _ => Err(format!("unknown app {app}")),
     }
 }
@@ -199,6 +203,44 @@ fn install_obsidian(on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
     match obsidian_exe() {
         Some(p) => Ok(format!("Obsidian {tag} is in {}.", p.parent().unwrap().display())),
         None => Err("Obsidian installed, but not in the Downloads folder: its installer ignored the chosen folder and used its usual place.".into()),
+    }
+}
+
+/// Git for Windows from its official GitHub releases, installed silently into
+/// the chosen folder (Inno Setup's /DIR), then handed to Claude Code.
+fn install_git(on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
+    let v: serde_json::Value = ureq::get("https://api.github.com/repos/git-for-windows/git/releases/latest")
+        .set("User-Agent", "BrewixGames")
+        .timeout(std::time::Duration::from_secs(30))
+        .call()
+        .map_err(|e| format!("could not reach GitHub: {e}"))?
+        .into_json()
+        .map_err(|e| e.to_string())?;
+    let arch = if cfg!(target_arch = "aarch64") { "arm64" } else { "64-bit" };
+    let re = regex::Regex::new(&format!(r"^Git-[\d.]+-{arch}\.exe$")).unwrap();
+    let url = v["assets"].as_array().and_then(|a| a.iter().find(|x| x["name"].as_str().map(|n| re.is_match(n)).unwrap_or(false))).and_then(|x| x["browser_download_url"].as_str()).ok_or("the latest Git for Windows release has no installer for this PC")?.to_string();
+    on_line(&format!("Git for Windows {}", v["tag_name"].as_str().unwrap_or("")));
+    let setup = crate::paths::tools_dir().join("downloads").join("git-setup.exe");
+    download(&url, &setup, on_line)?;
+    on_line("Installing...");
+    let dir = crate::paths::app_dir("git");
+    let _ = &dir;
+    let mut cmd = crate::paths::command(&setup);
+    cmd.args(["/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/SUPPRESSMSGBOXES", "/CURRENTUSER"]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.raw_arg(format!("/DIR=\"{}\"", dir.display()));
+    }
+    let st = cmd.status().map_err(|e| format!("could not run the Git installer: {e}"))?;
+    let _ = std::fs::remove_file(&setup);
+    if !st.success() {
+        return Err("the Git installer reported a problem".into());
+    }
+    crate::claude::export_git_bash();
+    match crate::claude::git_bash() {
+        Some(p) => Ok(format!("Git is installed ({}). Claude Code is connected to it.", p.display())),
+        None => Err("Git installed, but Git Bash was not found in the chosen folder. Press Check Again, or choose the folder Git went to.".into()),
     }
 }
 

@@ -652,6 +652,26 @@ pub fn cli(args: &[String]) -> Option<i32> {
                 1
             }
         }),
+        ["selftest-git"] => Some(match crate::claude::git_bash() {
+            Some(p) => {
+                println!("git bash: {}", p.display());
+                0
+            }
+            None => {
+                eprintln!("git bash: not found");
+                1
+            }
+        }),
+        ["studio-test"] => Some(match crate::studio_mcp::test_connection(&crate::settings::load()) {
+            Ok(m) => {
+                println!("{m}");
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["mock-studio-mcp"] => Some(crate::studio_mcp::mock_server()),
         ["selftest-handoff", ..] | ["selftest-ping", ..] => crate::update::selftest_cli(&a),
         ["selftest-install", app] => Some(match crate::apps::install(app, &mut |l| println!("{l}")) {

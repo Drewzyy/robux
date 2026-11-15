@@ -78,6 +78,8 @@ try:
         d.find_element(By.ID, "cancel-run").click(); time.sleep(1)
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: false, note: null}); done(); })();""")
+    import shutil as _shb; _shb.rmtree(ROOT / "projects/ui-test-idea", ignore_errors=True)
+    _shb.rmtree(ROOT / "vault/19-Project-Memory/references/ui-test-idea", ignore_errors=True); (ROOT / "vault/19-Project-Memory/ui-test-idea-references.md").unlink(missing_ok=True)
     d.execute_script("location.hash='#brief'"); time.sleep(2.5)
     d.find_element(By.ID, "brief-name").send_keys("UI Test Idea"); d.find_element(By.ID, "brief-new").click(); time.sleep(2.5)
     n_items = len(d.find_elements(By.CSS_SELECTOR, ".brief-item"))
@@ -131,6 +133,16 @@ try:
     check("a stray vault's notes copy into the vault without overwriting", merged.is_file())
     merged.unlink(missing_ok=True); _sh.rmtree(lost, ignore_errors=True)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
+    d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_patch', {patch: {studio_mcp: 'mock'}}).then(() => done());")
+    d.execute_script("location.hash='#home'"); time.sleep(1); d.execute_script("location.hash='#settings'"); time.sleep(3)
+    d.find_element(By.ID, "studio-test").click()
+    toast_txt = ""
+    for _ in range(40):
+        time.sleep(0.25); toast_txt = d.find_element(By.ID, "toast").text
+        if "Studio says" in toast_txt or "Studio's" in toast_txt: break
+    check("Studio Test Connection reports the connected Studio", "Connected. Studio says" in toast_txt and "mock-1" in toast_txt, toast_txt[:120])
+    d.execute_async_script("const done = arguments[arguments.length-1]; window.__TAURI__.core.invoke('settings_patch', {patch: {studio_mcp: 'off'}}).then(() => done());")
+    d.execute_script("location.hash='#home'"); time.sleep(1); d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Settings offers the optional Figma login", "Figma (optional login)" in view() and "no login, no limits" in view())
     d.execute_script("location.hash='#review'"); time.sleep(2.5)
     Select(d.find_element(By.ID, "review-target")).select_by_value("dawn-watch")

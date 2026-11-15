@@ -382,6 +382,12 @@ async fn studio_mcp_status() -> Value {
 }
 
 #[tauri::command]
+async fn studio_mcp_test() -> Result<String, String> {
+    let s = settings::load();
+    tauri::async_runtime::spawn_blocking(move || studio_core::studio_mcp::test_connection(&s)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 async fn blender_mcp_status() -> Value {
     json!({ "uvx": studio_core::blender_mcp::uvx().map(|p| p.display().to_string()), "package": studio_core::blender_mcp::PACKAGE })
 }
@@ -718,6 +724,7 @@ fn main() {
             eprintln!("{m}");
         }
     }
+    claude::export_git_bash();
     if settings::load().ollama_autostart {
         std::thread::spawn(ollama::ensure_running);
     }
@@ -783,6 +790,7 @@ fn main() {
             brief_list,
             scores_list,
             locate_scan,
+            studio_mcp_test,
             locate_use,
             locate_merge_vault,
             score_run,

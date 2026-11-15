@@ -78,6 +78,70 @@ pub fn server_command(s: &crate::settings::Settings) -> Option<(String, Vec<Stri
     }
 }
 
+/// Start the Studio server the way agent runs do and ask which Studio
+/// windows are connected. Returns a plain answer for each step that fails.
+pub fn test_connection(s: &crate::settings::Settings) -> Result<String, String> {
+    use std::io::{BufRead, BufReader, Write};
+    let mut st = s.clone();
+    if st.studio_mcp == "off" {
+        st.studio_mcp = "studio".into();
+    }
+    let Some((cmd, args)) = server_command(&st) else {
+        return Err(if cfg!(windows) {
+            "Studio's server file is missing (%LOCALAPPDATA%\\Roblox\\mcp.bat). Update Roblox Studio, open it once, then test again.".into()
+        } else {
+            "Studio's server was not found. Update Roblox Studio, open it once, then test again.".into()
+        });
+    };
+    let mut child = crate::paths::command(&cmd)
+        .args(&args)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Could not start Studio's server ({cmd}): {e}"))?;
+    let mut stdin = child.stdin.take().ok_or("no stdin")?;
+    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for l in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if tx.send(l).is_err() {
+                break;
+            }
+        }
+    });
+    let send = |w: &mut std::process::ChildStdin, v: serde_json::Value| writeln!(w, "{v}").and_then(|_| w.flush());
+    let wait = |id: i64, secs: u64| -> Option<serde_json::Value> {
+        let end = std::time::Instant::now() + std::time::Duration::from_secs(secs);
+        while let Some(left) = end.checked_duration_since(std::time::Instant::now()) {
+            let l = rx.recv_timeout(left).ok()?;
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&l) {
+                if v["id"] == id {
+                    return Some(v);
+                }
+            }
+        }
+        None
+    };
+    let result = (|| {
+        send(&mut stdin, serde_json::json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"BrewixGames","version":"1"}}})).map_err(|e| e.to_string())?;
+        wait(1, 20).ok_or("Studio's server started but did not answer. Open Roblox Studio, then in Assistant press ... then Manage MCP Servers and turn on Enable Studio as MCP server. Then test again.")?;
+        let _ = send(&mut stdin, serde_json::json!({"jsonrpc":"2.0","method":"notifications/initialized"}));
+        send(&mut stdin, serde_json::json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_roblox_studios","arguments":{}}})).map_err(|e| e.to_string())?;
+        let v = wait(2, 20).ok_or("Connected to the server, but no Studio answered. Open a place in Roblox Studio and make sure Enable Studio as MCP server is on.")?;
+        let text: String = v.pointer("/result/content").and_then(|c| c.as_array()).map(|a| a.iter().filter_map(|x| x["text"].as_str()).collect::<Vec<_>>().join(" ")).unwrap_or_default();
+        if v.get("error").is_some() || v.pointer("/result/isError") == Some(&serde_json::json!(true)) {
+            return Err(format!("Studio's server answered with a problem: {}", if text.is_empty() { v["error"].to_string() } else { text }));
+        }
+        if text.trim().is_empty() || text.contains("[]") || text.to_lowercase().contains("no studio") {
+            return Err("The server works, but no Studio window is connected. Open your place in Roblox Studio with Enable Studio as MCP server on, then test again.".into());
+        }
+        Ok(format!("Connected. Studio says: {}", text.chars().take(200).collect::<String>()))
+    })();
+    let _ = child.kill();
+    result
+}
+
 /// Things Studio code must never do from an agent run.
 const DENY: &[(&str, &str)] = &[
     (r"(?i)\bpublish", "publishing"),
@@ -150,6 +214,8 @@ pub fn mock_server() -> i32 {
         {"name": "insert_model", "description": "Inserts a model from the Roblox marketplace into the workspace.",
          "inputSchema": {"type": "object", "properties": {"query": {"type": "string", "description": "What to search for"}}, "required": ["query"]}},
         {"name": "get_studio_mode", "description": "Tells whether Studio is in edit or play mode.",
+         "inputSchema": {"type": "object", "properties": {}}},
+        {"name": "list_roblox_studios", "description": "Lists connected Studio windows with their studio_id.",
          "inputSchema": {"type": "object", "properties": {}}}
     ]);
     let mut workspace: Vec<String> = vec!["Baseplate".into(), "SpawnLocation".into()];
@@ -193,9 +259,11 @@ pub fn mock_server() -> i32 {
                         format!("[mock Studio] inserted {n} into Workspace.")
                     }
                     "get_studio_mode" => "[mock Studio] edit mode".into(),
+                    "list_roblox_studios" => r#"[{"studio_id": "mock-1", "name": "Test Place (mock Studio)"}]"#.into(),
                     other => format!("[mock Studio] unknown tool {other}"),
                 };
-                serde_json::json!({ "content": [{"type": "text", "text": text}], "isError": false })
+                let unknown = text.starts_with("[mock Studio] unknown tool");
+                serde_json::json!({ "content": [{"type": "text", "text": text}], "isError": unknown })
             }
             "ping" => serde_json::json!({}),
             _ => {

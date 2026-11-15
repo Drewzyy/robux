@@ -15,6 +15,45 @@ pub struct Connection {
     pub auth_method: String,
     pub uses_subscription: bool,
     pub message: String,
+    /// Windows: Git for Windows found (Claude Code needs it).
+    #[serde(default)]
+    pub git_ok: bool,
+}
+
+/// Claude Code on Windows needs Git for Windows (it runs commands through Git
+/// Bash). Where bash.exe is, if Git is installed. Always Some on macOS/Linux.
+pub fn git_bash() -> Option<std::path::PathBuf> {
+    if !cfg!(windows) {
+        return Some("/bin/bash".into());
+    }
+    if let Some(p) = std::env::var_os("CLAUDE_CODE_GIT_BASH_PATH").map(std::path::PathBuf::from).filter(|p| p.is_file()) {
+        return Some(p);
+    }
+    let mut c = vec![crate::paths::app_dir("git").join("bin/bash.exe")];
+    for var in ["ProgramFiles", "ProgramW6432", "ProgramFiles(x86)", "LOCALAPPDATA"] {
+        if let Some(d) = std::env::var_os(var) {
+            let d = std::path::PathBuf::from(d);
+            c.push(d.join("Git/bin/bash.exe"));
+            c.push(d.join("Programs/Git/bin/bash.exe"));
+        }
+    }
+    if let Some(git) = crate::paths::command("where").arg("git").output().ok().filter(|o| o.status.success()).and_then(|o| String::from_utf8_lossy(&o.stdout).lines().next().map(|l| std::path::PathBuf::from(l.trim()))) {
+        // ...\Git\cmd\git.exe -> ...\Git\bin\bash.exe
+        if let Some(root) = git.parent().and_then(|p| p.parent()) {
+            c.push(root.join("bin/bash.exe"));
+        }
+    }
+    c.into_iter().find(|p| p.is_file())
+}
+
+/// Tell every Claude Code the app starts where Git Bash is (it does not
+/// always find it on its own, for example in a custom install folder).
+pub fn export_git_bash() {
+    if cfg!(windows) {
+        if let Some(p) = git_bash() {
+            std::env::set_var("CLAUDE_CODE_GIT_BASH_PATH", p);
+        }
+    }
 }
 
 pub fn status() -> Connection {
@@ -29,6 +68,7 @@ pub fn status() -> Connection {
                 auth_method: String::new(),
                 uses_subscription: false,
                 message: e,
+                git_ok: git_bash().is_some(),
             }
         }
     };
@@ -58,7 +98,9 @@ pub fn status() -> Connection {
     } else {
         format!("Signed in with {auth_method}. Agent runs ignore API keys; sign in with your Claude account instead.")
     };
-    Connection { installed: true, bin: bin.display().to_string(), version, logged_in, auth_method, uses_subscription, message }
+    let git_ok = git_bash().is_some();
+    let message = if git_ok { message } else { "Claude Code needs Git for Windows to run. Press Install Git (free), or install it from git-scm.com with the default options.".to_string() };
+    Connection { installed: true, bin: bin.display().to_string(), version, logged_in, auth_method, uses_subscription, message, git_ok }
 }
 
 /// Install Claude Code with Anthropic's official installer

@@ -156,7 +156,7 @@ jobs:
           '{"agents":{}}' | Set-Content (Join-Path $studio 'studio\agents.json')
           $env:ROBUX_STUDIO_ROOT = $studio
           $results = @()
-          foreach ($app in 'obsidian','blender') {
+          foreach ($app in 'obsidian','blender','git') {
             $p = Start-Process -FilePath $exe -ArgumentList 'selftest-install',$app -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:RUNNER_TEMP\$app.out" -RedirectStandardError "$env:RUNNER_TEMP\$app.err"
             Write-Host "== $app exit $($p.ExitCode)"; Get-Content "$env:RUNNER_TEMP\$app.out","$env:RUNNER_TEMP\$app.err" -ErrorAction SilentlyContinue
             $results += "$app=$($p.ExitCode)"
@@ -164,7 +164,11 @@ jobs:
           Get-ChildItem (Join-Path $studio 'tools') -Depth 1 | Format-Table -AutoSize
           if (-not (Test-Path (Join-Path $studio 'tools\obsidian-app\Obsidian.exe'))) { Write-Host "::warning::Obsidian did not install into the chosen folder" }
           if (-not (Get-ChildItem (Join-Path $studio 'tools\blender-app') -Recurse -Depth 2 -Filter blender.exe -ErrorAction SilentlyContinue)) { Write-Host "::warning::Blender did not install into the chosen folder" }
+          if (-not (Test-Path (Join-Path $studio 'tools\git\bin\bash.exe'))) { Write-Host "::warning::Git did not install into the chosen folder" }
           Write-Host "Results: $($results -join ', ')"
+          $g = Start-Process -FilePath $exe -ArgumentList 'selftest-git' -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$env:RUNNER_TEMP\git.out" -RedirectStandardError "$env:RUNNER_TEMP\git.err"
+          Get-Content "$env:RUNNER_TEMP\git.out","$env:RUNNER_TEMP\git.err" -ErrorAction SilentlyContinue
+          if ($g.ExitCode -ne 0) { Write-Host "::warning::Git Bash for Claude Code was not found on a machine that has Git" }
 
   publish:
     needs: [build-mac, build-windows, test-windows-update]

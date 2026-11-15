@@ -1332,13 +1332,14 @@ function appRow(id, name, path, canInstall, hint, dir) {
     ev.target.disabled = true; status.textContent = "Starting...";
     try { await invoke("app_install", { name: id }); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
   } }, path ? "Reinstall" : "Install Here") : null;
-  const open = path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
+  const open = id === "git" ? null : path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
   const pick = el("button", { class: "btn secondary", id: `app-${id}-pick`, onclick: () => chooseAppFolder(id, name) }, "Choose Folder");
   return el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, name), status), el("div", { class: "inline" }, pick, install, open));
 }
 T.event.listen("app-line", (ev) => { const n = $(`app-${ev.payload.app}-status`); if (n) n.textContent = ev.payload.line; });
 T.event.listen("app-done", (ev) => {
   if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.message);
+  if (ev.payload.app === "git") refreshClaude();
   if ((location.hash || "") === "#settings") viewSettings();
 });
 
@@ -1372,6 +1373,7 @@ async function viewSettings() {
     el("div", { class: "list" },
       el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, c.logged_in ? "Connected" : "Not connected"), el("div", { class: "hint", id: "claude-msg" }, c.message || "Checking…")),
         el("button", { class: "btn secondary", onclick: async () => { await refreshClaude(); viewSettings(); } }, "Check Again"),
+        c.git_ok === false ? el("button", { class: "btn primary", id: "git-install", onclick: () => { location.hash = "#settings"; setTimeout(() => { const b = $("app-git-install"); if (b) { b.scrollIntoView({ behavior: "smooth", block: "center" }); b.click(); } }, 400); } }, "Install Git") : null,
         !c.installed ? el("button", { class: "btn primary", id: "install-claude", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Installing…"; try { toast(await invoke("claude_install")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Install Claude Code") : null,
         c.installed && !(c.logged_in && c.uses_subscription) ? el("button", { class: "btn primary", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Waiting for browser…"; try { toast(await invoke("claude_sign_in")); } catch (err) { toast(String(err), true); } await refreshClaude(); viewSettings(); } }, "Sign In to Claude") : null),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Login method"), el("span", { class: "note" }, c.auth_method ? (c.uses_subscription ? "Claude account login · uses your subscription, no API key" : c.auth_method) : "–")),
@@ -1394,6 +1396,7 @@ async function viewSettings() {
       el("div", { class: "list" },
         appRow("blender", "Blender", ap.blender, ap.can_install, "Portable Blender 5.2 LTS: the program, its settings and the MCP for Blender add-on all stay in its folder.", (ap.dirs || {}).blender),
         appRow("obsidian", "Obsidian", ap.obsidian, ap.can_install, "Obsidian for browsing the vault. Installed into its folder if its installer accepts it (BrewixGames checks).", (ap.dirs || {}).obsidian),
+        ap.can_install ? appRow("git", "Git for Windows", ap.git, ap.can_install, "Claude Code needs Git on Windows to run (and to reach Roblox Studio). Free, installed into this folder.", (ap.dirs || {}).git) : null,
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Roblox Studio"),
           el("div", { class: "hint" }, "Roblox always installs Studio in your user folder on C:, with no option to choose. Moving it with folder tricks is reported to break Studio on updates, so BrewixGames leaves it where Roblox puts it."))))),
 
@@ -1403,6 +1406,7 @@ async function viewSettings() {
             el("div", { class: "hint" }, s.studio_mcp === "studio" ? "Builder, Scenic, Frame, Playtest and Ask Claude can work inside your open Studio place. Publishing, uploads, purchases, web requests and DataStore writes are blocked."
               : s.studio_mcp === "mock" ? "Test mode: agents talk to a pretend Studio built into BrewixGames. Nothing touches Roblox."
               : "Off. Agents only write files in your projects folder.")),
+          el("button", { class: "btn secondary", id: "studio-test", onclick: async (e) => { e.target.disabled = true; e.target.textContent = "Testing..."; try { toast(await invoke("studio_mcp_test")); } catch (err) { toast(String(err), true); } e.target.disabled = false; e.target.textContent = "Test Connection"; } }, "Test Connection"),
           segmented([["off", "Off"], ["studio", "Roblox Studio"], ["mock", "Test"]], s.studio_mcp, async (v) => { await save({ studio_mcp: v, studio_mcp_path: ($("studio-mcp-path") || {}).value || s.studio_mcp_path }, v === "off" ? "Studio connection off." : v === "mock" ? "Using the test Studio." : "Connected to Roblox Studio."); viewSettings(); })),
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Studio MCP server"),
             el("div", { class: "hint" }, sm.found ? `Found: ${sm.found}. In Studio, also turn it on: Assistant, the ... menu, Manage MCP Servers, Enable Studio as MCP server.` : "Not found. Update Roblox Studio and open it once; the MCP server is built in. Then in Studio: Assistant, the ... menu, Manage MCP Servers, Enable Studio as MCP server. No Roblox login is stored.")),
