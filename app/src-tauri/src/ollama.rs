@@ -5,7 +5,30 @@
 use serde::Serialize;
 use std::io::{BufRead, BufReader};
 
-pub const BASE: &str = "http://localhost:11434";
+/// Where Ollama listens. Uses OLLAMA_HOST when set, and the IPv4 address
+/// rather than "localhost": on Windows "localhost" can resolve to IPv6
+/// first, which Ollama does not listen on, so it looked "not running".
+pub fn base() -> String {
+    static B: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    B.get_or_init(|| host_to_base(&std::env::var("OLLAMA_HOST").unwrap_or_default())).clone()
+}
+
+pub fn host_to_base(h: &str) -> String {
+    let h = h.trim().trim_end_matches('/');
+    if h.is_empty() {
+        return "http://127.0.0.1:11434".into();
+    }
+    let (scheme, rest) = h.split_once("://").map(|(s, r)| (s.to_string(), r.to_string())).unwrap_or(("http".into(), h.to_string()));
+    let (host, port) = match rest.rsplit_once(':') {
+        Some((a, p)) if p.chars().all(|c| c.is_ascii_digit()) && !p.is_empty() => (a.to_string(), p.to_string()),
+        _ => (rest.clone(), "11434".into()),
+    };
+    let host = match host.as_str() {
+        "" | "0.0.0.0" | "localhost" | "[::]" | "::" => "127.0.0.1".to_string(),
+        h => h.to_string(),
+    };
+    format!("{scheme}://{host}:{port}")
+}
 /// Oldest Ollama that speaks the Anthropic API Claude Code uses.
 pub const MIN_VERSION: (u32, u32) = (0, 14);
 
@@ -88,8 +111,8 @@ fn parse_version(v: &str) -> Option<(u32, u32)> {
 }
 
 fn get(path: &str) -> Result<serde_json::Value, String> {
-    ureq::get(&format!("{BASE}{path}"))
-        .timeout(std::time::Duration::from_millis(1500))
+    ureq::get(&format!("{}{path}", base()))
+        .timeout(std::time::Duration::from_millis(3000))
         .call()
         .map_err(|e| e.to_string())?
         .into_json()
@@ -138,7 +161,9 @@ pub fn ensure_running() -> bool {
 pub fn status() -> Status {
     let memory_gb = memory_gb();
     let recommended = recommend(memory_gb);
-    let version = get("/api/version").ok().and_then(|v| v.get("version").and_then(|x| x.as_str()).map(String::from));
+    let probe = get("/api/version");
+    let probe_err = probe.as_ref().err().cloned().unwrap_or_default();
+    let version = probe.ok().and_then(|v| v.get("version").and_then(|x| x.as_str()).map(String::from));
     let running = version.is_some();
     let version_ok = version.as_deref().and_then(parse_version).map(|v| v >= MIN_VERSION).unwrap_or(false);
     // Skip the second call when Ollama is not there (saves the timeout).
@@ -152,7 +177,11 @@ pub fn status() -> Status {
         .collect();
     installed.sort();
     let message = if !running {
-        "Ollama is not running. Install it from ollama.com (free), open it, then come back.".to_string()
+        if binary().is_some() {
+            format!("Ollama is installed but did not answer at {} ({}). Quit Ollama from its tray icon and open it again, then press Check Again.", base(), probe_err.chars().take(80).collect::<String>())
+        } else {
+            "Ollama is not running. Install it from ollama.com (free), open it, then come back.".to_string()
+        }
     } else if !version_ok {
         format!("Ollama {} is too old. Update to {}.{} or newer.", version.clone().unwrap_or_default(), MIN_VERSION.0, MIN_VERSION.1)
     } else if installed.is_empty() {
@@ -169,7 +198,7 @@ pub fn pull(model: &str, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
     if !choices().iter().any(|c| c.model == model) {
         return Err(format!("{model} is not on the list of supported local models"));
     }
-    let resp = ureq::post(&format!("{BASE}/api/pull"))
+    let resp = ureq::post(&format!("{}/api/pull", base()))
         .timeout(std::time::Duration::from_secs(6 * 3600))
         .send_json(serde_json::json!({ "model": model, "stream": true }))
         .map_err(|e| format!("could not reach Ollama: {e}"))?;
@@ -210,5 +239,13 @@ mod tests {
     #[test]
     fn unknown_model_is_refused() {
         assert!(pull("some-huge-model:400b", &mut |_| {}).is_err());
+    }
+    #[test]
+    fn ollama_host_forms() {
+        assert_eq!(host_to_base(""), "http://127.0.0.1:11434");
+        assert_eq!(host_to_base("0.0.0.0"), "http://127.0.0.1:11434");
+        assert_eq!(host_to_base("0.0.0.0:11500"), "http://127.0.0.1:11500");
+        assert_eq!(host_to_base("http://localhost:11434/"), "http://127.0.0.1:11434");
+        assert_eq!(host_to_base("192.168.1.5"), "http://192.168.1.5:11434");
     }
 }

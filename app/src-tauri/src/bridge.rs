@@ -204,7 +204,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     let mut cmd = crate::paths::command(claude_bin);
     if req.engine.as_deref() == Some("ollama") {
         // Free local engine: Ollama 0.14+ speaks the Anthropic Messages API.
-        cmd.env("ANTHROPIC_BASE_URL", "http://localhost:11434").env("ANTHROPIC_AUTH_TOKEN", "ollama");
+        cmd.env("ANTHROPIC_BASE_URL", crate::ollama::base()).env("ANTHROPIC_AUTH_TOKEN", "ollama");
     }
     let mut child = cmd
         .args(&args)

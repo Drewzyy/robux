@@ -121,7 +121,7 @@ pub fn local_model() -> Option<String> {
 }
 
 fn ask_local(model: &str, text: &str) -> Result<String, String> {
-    let v: Value = ureq::post(&format!("{}/api/chat", crate::ollama::BASE))
+    let v: Value = ureq::post(&format!("{}/api/chat", crate::ollama::base()))
         .timeout(std::time::Duration::from_secs(1800))
         .send_json(json!({ "model": model, "stream": false, "options": { "num_ctx": 16384 },
             "messages": [{ "role": "system", "content": PROMPT }, { "role": "user", "content": text }] }))
