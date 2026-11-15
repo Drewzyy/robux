@@ -546,8 +546,12 @@ async fn plan_build_prepare(run_id: String) -> Result<pipeline::PipelineRun, Str
 }
 
 #[tauri::command]
-async fn reviews_list() -> Result<Value, String> {
+async fn reviews_list(engines: Option<bool>) -> Result<Value, String> {
     let r = root()?;
+    if !engines.unwrap_or(false) {
+        // Fast path (Dashboard): no Ollama or Codex checks, which can wait on timeouts.
+        return Ok(json!({ "reviews": studio_core::review::list(&r) }));
+    }
     let projects: Vec<String> = std::fs::read_dir(r.join("projects")).into_iter().flatten().flatten().filter(|e| e.path().is_dir()).map(|e| e.file_name().to_string_lossy().to_string()).collect();
     Ok(json!({ "reviews": studio_core::review::list(&r), "projects": projects, "local_model": studio_core::review::local_model(), "codex": studio_core::review::codex_installed() }))
 }

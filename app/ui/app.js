@@ -541,7 +541,7 @@ async function viewTuneup(arg) {
 // =====================================================================
 async function viewReview() {
   const nav = navSeq;
-  const d = await invoke("reviews_list");
+  const d = await invoke("reviews_list", { engines: true });
   const target = el("select", { id: "review-target" }, d.projects.map((p) => el("option", { value: p }, `Game: ${p}`)), el("option", { value: "app" }, "The BrewixGames app itself"));
   const status = el("div", { class: "hint", id: "review-status" }, "");
   const start = (engine) => async () => {

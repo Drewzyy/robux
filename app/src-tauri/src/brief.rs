@@ -188,8 +188,20 @@ pub fn autofill(root: &Path, slug: &str, dump: &str) -> Result<usize, String> {
     stored["dump"] = json!(dump);
     let f = file(root, slug)?;
     fs::write(&f, serde_json::to_string_pretty(&stored).unwrap()).map_err(|e| e.to_string())?;
-    let b = get(root, slug)?;
-    let reply = ask_model(&autofill_prompt(&b, dump))?;
+    let mut n = 0;
+    // A model sometimes skips an item; ask once more for just those.
+    for _ in 0..2 {
+        let b = get(root, slug)?;
+        if b["done"] == b["total"] {
+            break;
+        }
+        n += fill_once(root, slug, &b, dump)?;
+    }
+    Ok(n)
+}
+
+fn fill_once(root: &Path, slug: &str, b: &Value, dump: &str) -> Result<usize, String> {
+    let reply = ask_model(&autofill_prompt(b, dump))?;
     let v = json_in(&reply).ok_or("The model's answer was not readable. Try again.")?;
     let answers = v["answers"].as_object().cloned().unwrap_or_default();
     let mut n = 0;
