@@ -3,14 +3,14 @@ description: Visual references from Roblox roleplay, social and fashion: what to
 type: reference
 status: draft
 last_checked: 2026-11-17
-keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Adopt Me!, Brookhaven RP, Welcome to Bloxburg, Royale High, Livetopia RP, Dress To Impress, Work at a Pizza Place
+keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Adopt Me!, Brookhaven RP, Welcome to Bloxburg, Royale High, Livetopia RP, Dress To Impress, Work at a Pizza Place, MIC UP, Greenville RP, Emergency Response: Liberty County
 sources: Store pages and screenshots of each game (Roblox game pages, Steam, App Store, Wikipedia), checked live 2026-11-17; observations are from playing and watching these games
 verify: Medium. Game IDs were checked against each store on 2026-11-17. Design notes are observations, not developer statements.
 tags: [16-market-research, visual-refs, roblox-social]
 ---
 # Visual references: Roblox roleplay, social and fashion
 
-7 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
+10 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
 
 ## Do this
 - Pick 2 or 3 games below that match the game you are making, open their pictures, and name the exact thing you are borrowing (a button style, a silhouette rule, a map layout).
@@ -73,3 +73,27 @@ tags: [16-market-research, visual-refs, roblox-social]
 - **Characters and shapes:** Plain avatars in job hats.
 - **World:** A small town where the shop is the centre and houses ring it.
 - **Steal this:** Teach with objects in the world, not text: a station's shape says what it does.
+
+## MIC UP
+`mic-up` · pictures from Roblox · good for: world
+
+- **UI:** Almost no UI; voice chat is the game.
+- **Characters and shapes:** Plain avatars; emotes and dances.
+- **World:** A hangout map with stages, seats and photo spots.
+- **Steal this:** A hangout needs places to sit, stand on stage and pose; that is the content.
+
+## Greenville RP
+`greenville` · pictures from Roblox · good for: world, ui
+
+- **UI:** Phone UI for jobs and cars.
+- **Characters and shapes:** Plain avatars; cars are the stars.
+- **World:** A realistic small American town with roads designed for driving roleplay.
+- **Steal this:** Real-life road layouts make driving roleplay feel right.
+
+## Emergency Response: Liberty County
+`emergency-response-liberty-county` · pictures from Roblox · good for: ui, world
+
+- **UI:** Team select screen with police, fire, EMS and criminal roles; radio and callout UI.
+- **Characters and shapes:** Uniforms by team; vehicles with lights.
+- **World:** A county map with stations and hotspots for calls.
+- **Steal this:** Team roles with clear uniforms give roleplay structure.

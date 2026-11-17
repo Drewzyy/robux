@@ -3,14 +3,14 @@ description: Visual references from Roblox simulators and tycoons: what to copy 
 type: reference
 status: draft
 last_checked: 2026-11-17
-keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Pet Simulator 99, Bee Swarm Simulator, Grow a Garden, Bubble Gum Simulator INFINITY, Bubble Gum Simulator (original), Theme Park Tycoon 2, Lumber Tycoon 2, Restaurant Tycoon 2, Military Tycoon, Steal a Brainrot, Fisch, PLS DONATE, Sol's RNG, Anime Defenders, Toilet Tower Defense, Anime Adventures, Islands
+keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Pet Simulator 99, Bee Swarm Simulator, Grow a Garden, Bubble Gum Simulator INFINITY, Bubble Gum Simulator (original), Theme Park Tycoon 2, Lumber Tycoon 2, Restaurant Tycoon 2, Military Tycoon, Steal a Brainrot, Fisch, PLS DONATE, Sol's RNG, Anime Defenders, Toilet Tower Defense, Anime Adventures, Islands, Car Dealership Tycoon, Arm Wrestle Simulator, Ninja Legends, DIG
 sources: Store pages and screenshots of each game (Roblox game pages, Steam, App Store, Wikipedia), checked live 2026-11-17; observations are from playing and watching these games
 verify: Medium. Game IDs were checked against each store on 2026-11-17. Design notes are observations, not developer statements.
 tags: [16-market-research, visual-refs, roblox-simulators]
 ---
 # Visual references: Roblox simulators and tycoons
 
-17 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
+21 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
 
 ## Do this
 - Pick 2 or 3 games below that match the game you are making, open their pictures, and name the exact thing you are borrowing (a button style, a silhouette rule, a map layout).
@@ -153,3 +153,35 @@ tags: [16-market-research, visual-refs, roblox-simulators]
 - **Characters and shapes:** Plain avatars; resources and machines carry the look.
 - **World:** Your own floating island, plus shared hub islands for trading and bosses.
 - **Steal this:** Give each player a private home that grows, and a shared place to show it off.
+
+## Car Dealership Tycoon
+`car-dealership-tycoon` · pictures from Roblox · good for: ui, world
+
+- **UI:** Car shop as a showroom grid with big car renders, price and stats bars.
+- **Characters and shapes:** Cars are the characters; licensed-looking but original models.
+- **World:** Your dealership on a lot beside a big driving map, so you test what you sell.
+- **Steal this:** Let players use what they earn right away, next to where they earned it.
+
+## Arm Wrestle Simulator
+`arm-wrestle-simulator` · pictures from Roblox · good for: ui, characters, thumbnail
+
+- **UI:** One big click-to-win meter in the middle during a match; huge strength numbers.
+- **Characters and shapes:** Avatars with arms that visibly grow; bosses are giant and silly.
+- **World:** Zones with a boss to beat at the end of each.
+- **Steal this:** Show growth on the character's body, not only in a number.
+
+## Ninja Legends
+`ninja-legends` · pictures from Roblox · good for: ui, world
+
+- **UI:** Classic simulator column of buttons and big rank titles.
+- **Characters and shapes:** Ninja avatars with glowing swords; ranks shown as names over heads.
+- **World:** Floating islands stacked up into the sky; jump higher to reach the next.
+- **Steal this:** A rank title over each head is free status for players.
+
+## DIG
+`dig` · pictures from Roblox · good for: ui, world
+
+- **UI:** Simple dig bar and a sell button; depth counter.
+- **Characters and shapes:** Plain avatars with shovels.
+- **World:** One plot of ground you dig down through, with layers that change colour as you go deeper.
+- **Steal this:** Make depth visible as colour layers; deeper equals rarer.

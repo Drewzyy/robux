@@ -347,6 +347,79 @@
    }
   },
   {
+   "id": "car-dealership-tycoon",
+   "name": "Car Dealership Tycoon",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 1554960397
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Car shop as a showroom grid with big car renders, price and stats bars.",
+    "characters": "Cars are the characters; licensed-looking but original models.",
+    "world": "Your dealership on a lot beside a big driving map, so you test what you sell.",
+    "steal": "Let players use what they earn right away, next to where they earned it."
+   }
+  },
+  {
+   "id": "arm-wrestle-simulator",
+   "name": "Arm Wrestle Simulator",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 13127800756
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "One big click-to-win meter in the middle during a match; huge strength numbers.",
+    "characters": "Avatars with arms that visibly grow; bosses are giant and silly.",
+    "world": "Zones with a boss to beat at the end of each.",
+    "steal": "Show growth on the character's body, not only in a number."
+   }
+  },
+  {
+   "id": "ninja-legends",
+   "name": "Ninja Legends",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 3956818381
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Classic simulator column of buttons and big rank titles.",
+    "characters": "Ninja avatars with glowing swords; ranks shown as names over heads.",
+    "world": "Floating islands stacked up into the sky; jump higher to reach the next.",
+    "steal": "A rank title over each head is free status for players."
+   }
+  },
+  {
+   "id": "dig",
+   "name": "DIG",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 126244816328678
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Simple dig bar and a sell button; depth counter.",
+    "characters": "Plain avatars with shovels.",
+    "world": "One plot of ground you dig down through, with layers that change colour as you go deeper.",
+    "steal": "Make depth visible as colour layers; deeper equals rarer."
+   }
+  },
+  {
    "id": "adopt-me",
    "name": "Adopt Me!",
    "group": "roblox-social",
@@ -476,6 +549,59 @@
     "characters": "Plain avatars in job hats.",
     "world": "A small town where the shop is the centre and houses ring it.",
     "steal": "Teach with objects in the world, not text: a station's shape says what it does."
+   }
+  },
+  {
+   "id": "mic-up",
+   "name": "MIC UP",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 6884319169
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost no UI; voice chat is the game.",
+    "characters": "Plain avatars; emotes and dances.",
+    "world": "A hangout map with stages, seats and photo spots.",
+    "steal": "A hangout needs places to sit, stand on stage and pose; that is the content."
+   }
+  },
+  {
+   "id": "greenville",
+   "name": "Greenville RP",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 891852901
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Phone UI for jobs and cars.",
+    "characters": "Plain avatars; cars are the stars.",
+    "world": "A realistic small American town with roads designed for driving roleplay.",
+    "steal": "Real-life road layouts make driving roleplay feel right."
+   }
+  },
+  {
+   "id": "emergency-response-liberty-county",
+   "name": "Emergency Response: Liberty County",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 2534724415
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Team select screen with police, fire, EMS and criminal roles; radio and callout UI.",
+    "characters": "Uniforms by team; vehicles with lights.",
+    "world": "A county map with stations and hotspots for calls.",
+    "steal": "Team roles with clear uniforms give roleplay structure."
    }
   },
   {
@@ -1025,6 +1151,256 @@
     "characters": "Avatars plus big fruit-power effects.",
     "world": "Arena islands.",
     "steal": "Signature effect per power; reuse one avatar base."
+   }
+  },
+  {
+   "id": "tower-defense-simulator",
+   "name": "Tower Defense Simulator",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 3260590327
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Tower hotbar at the bottom with cost; wave counter and base health top.",
+    "characters": "Towers are soldiers with clear role silhouettes (minigunner, sniper, farm).",
+    "world": "Lane maps with clear paths and good spots for towers.",
+    "steal": "Give support towers (farms) a different look from damage towers."
+   }
+  },
+  {
+   "id": "ultimate-tower-defense",
+   "name": "Ultimate Tower Defense",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 5902977746
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Unit bar at the bottom, upgrade panel to the side.",
+    "characters": "Anime-style units.",
+    "world": "Lane maps.",
+    "steal": "Compare with TDS for how anime theming changes the same loop."
+   }
+  },
+  {
+   "id": "anime-vanguards",
+   "name": "Anime Vanguards",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 16146832113
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Polished summon banner and unit cards with rarity frames.",
+    "characters": "Anime units with big effects.",
+    "world": "Lane maps with themes.",
+    "steal": "Rarity frames on unit cards (colour and glow) do the selling."
+   }
+  },
+  {
+   "id": "driving-empire",
+   "name": "Driving Empire",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 3351674303
+   },
+   "tags": [
+    "ui",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Car shop with big renders; race HUD with speed and position.",
+    "characters": "Cars as characters.",
+    "world": "A big city with highways and tracks.",
+    "steal": "A speedometer and position number are all a racing HUD needs."
+   }
+  },
+  {
+   "id": "mad-city",
+   "name": "Mad City",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 1224212277
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Team select (hero, villain, police, prisoner).",
+    "characters": "Superpowers on plain avatars.",
+    "world": "City with heist locations spread out.",
+    "steal": "Heroes and villains as teams turn cops-and-robbers into something new."
+   }
+  },
+  {
+   "id": "creatures-of-sonaria",
+   "name": "Creatures of Sonaria",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 5233782396
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Survival bars (hunger, thirst) and a creature selector.",
+    "characters": "Large original creatures with strong animal silhouettes and wild colours.",
+    "world": "Big biome map with water and food spots.",
+    "steal": "Original creature designs built from animal parts read instantly."
+   }
+  },
+  {
+   "id": "a-dusty-trip",
+   "name": "a dusty trip",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 16389395869
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Distance counter; car parts menu.",
+    "characters": "Plain avatars; the car is the hero.",
+    "world": "A long desert road with stops and dangers.",
+    "steal": "One long road with events gives a road-trip story."
+   }
+  },
+  {
+   "id": "apeirophobia",
+   "name": "Apeirophobia",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 10277607801
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Minimal: level names and hints.",
+    "characters": "Entities with uncanny shapes.",
+    "world": "Backrooms-style liminal levels with yellow halls.",
+    "steal": "Liminal spaces: plain repeated rooms are scary on their own."
+   }
+  },
+  {
+   "id": "blue-lock-rivals",
+   "name": "Blue Lock: Rivals",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 18668065416
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Ability bar with anime move names; score at top.",
+    "characters": "Players styled after anime football heroes with flashy effects.",
+    "world": "A football pitch.",
+    "steal": "Big named special moves turn a sport into a fighting game."
+   }
+  },
+  {
+   "id": "basketball-legends",
+   "name": "Basketball Legends",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 14259168147
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Shot meter by the player; score and timer.",
+    "characters": "Plain avatars in jerseys.",
+    "world": "Courts.",
+    "steal": "A shot meter by the player teaches timing."
+   }
+  },
+  {
+   "id": "volleyball-legends",
+   "name": "Volleyball Legends",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 73956553001240
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Timing bar for hits; score top.",
+    "characters": "Anime-style volleyball styles as unlockable abilities.",
+    "world": "A court.",
+    "steal": "Unlockable play styles add depth to a simple sport."
+   }
+  },
+  {
+   "id": "murderers-vs-sheriffs-duels",
+   "name": "Murderers VS Sheriffs Duels",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 12355337193
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Fast round UI with score and kill feed.",
+    "characters": "Plain avatars; knife and gun skins.",
+    "world": "Small duel maps.",
+    "steal": "Take a known game's best moment and make it the whole game."
+   }
+  },
+  {
+   "id": "type-soul",
+   "name": "TYPE://SOUL",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 14069122388
+   },
+   "tags": [
+    "characters",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Stylish dark UI.",
+    "characters": "Anime-inspired races with strong effects.",
+    "world": "Large world.",
+    "steal": "Reference for flashy older-teen combat."
+   }
+  },
+  {
+   "id": "deepwoken",
+   "name": "Deepwoken",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 4111023553
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Very minimal, moody UI.",
+    "characters": "Detailed fantasy characters.",
+    "world": "Dark, atmospheric islands and depths.",
+    "steal": "Mood and lighting can carry a whole game's feel."
    }
   },
   {

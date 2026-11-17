@@ -66,7 +66,7 @@ Load only the note your task needs. Do not read every note in this section.
 | [[16-Market-Research/solo-dev-lessons]] | Workflow, scope, burnout and release-cadence lessons for a one-person Roblox studio, drawn from DevForum threads and solo-dev write-ups, with rules an agent can apply to its own plans. | draft |
 | [[16-Market-Research/what-players-say-on-reddit]] | Ranked list of what Roblox players praise and complain about in games, built from secondhand Reddit quotes, news and forum threads, with a clear note that no Reddit thread was opened directly. | draft |
 | [[16-Market-Research/visual-refs-shape-language]] | Shape language sheet: circle, square, triangle, silhouette test, for characters, worlds and UI. | draft |
-| [[16-Market-Research/visual-refs-roblox-simulators]] | What to copy from 17 Roblox simulators and tycoons (UI, pets, zones), with downloaded pictures. | draft |
+| [[16-Market-Research/visual-refs-roblox-simulators]] | What to copy from 21 Roblox simulators and tycoons (UI, pets, zones), with downloaded pictures. | draft |
 | [[16-Market-Research/visual-refs-roblox-social]] | What to copy from Roblox roleplay, social and fashion hits (Adopt Me, Bloxburg, Royale High). | draft |
 | [[16-Market-Research/visual-refs-roblox-action]] | What to copy from Roblox action, horror, obby and party hits (Doors, Blox Fruits, BedWars). | draft |
 | [[16-Market-Research/visual-refs-mobile]] | What to copy from 38 mobile hits (Supercell, Pokémon, casual) for UI and characters. | draft |

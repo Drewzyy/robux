@@ -3,14 +3,14 @@ description: Visual references from Roblox action, horror, obby and party: what 
 type: reference
 status: draft
 last_checked: 2026-11-17
-keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Blox Fruits, The Strongest Battlegrounds, DOORS, Murder Mystery 2, Tower of Hell, Jailbreak, Arsenal, Natural Disaster Survival, Piggy, BedWars, Blade Ball, Phantom Forces, Evade, Rainbow Friends, Dead Rails, 99 Nights in the Forest, Build A Boat For Treasure, Flee the Facility, Epic Minigames, Speed Run 4, Shindo Life, Funky Friday, Hide and Seek Extreme, Combat Warriors, Slap Battles, Forsaken, Pressure, RIVALS, The Mimic, Fruit Battlegrounds
+keywords: visual reference, ui reference, character design, shape language, world design, screenshots, Blox Fruits, The Strongest Battlegrounds, DOORS, Murder Mystery 2, Tower of Hell, Jailbreak, Arsenal, Natural Disaster Survival, Piggy, BedWars, Blade Ball, Phantom Forces, Evade, Rainbow Friends, Dead Rails, 99 Nights in the Forest, Build A Boat For Treasure, Flee the Facility, Epic Minigames, Speed Run 4, Shindo Life, Funky Friday, Hide and Seek Extreme, Combat Warriors, Slap Battles, Forsaken, Pressure, RIVALS, The Mimic, Fruit Battlegrounds, Tower Defense Simulator, Ultimate Tower Defense, Anime Vanguards, Driving Empire, Mad City, Creatures of Sonaria, a dusty trip, Apeirophobia, Blue Lock: Rivals, Basketball Legends, Volleyball Legends, Murderers VS Sheriffs Duels, TYPE://SOUL, Deepwoken
 sources: Store pages and screenshots of each game (Roblox game pages, Steam, App Store, Wikipedia), checked live 2026-11-17; observations are from playing and watching these games
 verify: Medium. Game IDs were checked against each store on 2026-11-17. Design notes are observations, not developer statements.
 tags: [16-market-research, visual-refs, roblox-action]
 ---
 # Visual references: Roblox action, horror, obby and party
 
-30 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
+44 games. Pictures are in `attachments/game-refs/<id>/` once downloaded (BrewixGames: Make the Game, Knowledge, Game References, Download Pictures). Open the pictures with Read to look at them; they are other companies' art, for study only, never to copy or upload.
 
 ## Do this
 - Pick 2 or 3 games below that match the game you are making, open their pictures, and name the exact thing you are borrowing (a button style, a silhouette rule, a map layout).
@@ -257,3 +257,115 @@ tags: [16-market-research, visual-refs, roblox-action]
 - **Characters and shapes:** Avatars plus big fruit-power effects.
 - **World:** Arena islands.
 - **Steal this:** Signature effect per power; reuse one avatar base.
+
+## Tower Defense Simulator
+`tower-defense-simulator` · pictures from Roblox · good for: ui, characters
+
+- **UI:** Tower hotbar at the bottom with cost; wave counter and base health top.
+- **Characters and shapes:** Towers are soldiers with clear role silhouettes (minigunner, sniper, farm).
+- **World:** Lane maps with clear paths and good spots for towers.
+- **Steal this:** Give support towers (farms) a different look from damage towers.
+
+## Ultimate Tower Defense
+`ultimate-tower-defense` · pictures from Roblox · good for: ui, characters
+
+- **UI:** Unit bar at the bottom, upgrade panel to the side.
+- **Characters and shapes:** Anime-style units.
+- **World:** Lane maps.
+- **Steal this:** Compare with TDS for how anime theming changes the same loop.
+
+## Anime Vanguards
+`anime-vanguards` · pictures from Roblox · good for: ui, characters
+
+- **UI:** Polished summon banner and unit cards with rarity frames.
+- **Characters and shapes:** Anime units with big effects.
+- **World:** Lane maps with themes.
+- **Steal this:** Rarity frames on unit cards (colour and glow) do the selling.
+
+## Driving Empire
+`driving-empire` · pictures from Roblox · good for: ui, world, thumbnail
+
+- **UI:** Car shop with big renders; race HUD with speed and position.
+- **Characters and shapes:** Cars as characters.
+- **World:** A big city with highways and tracks.
+- **Steal this:** A speedometer and position number are all a racing HUD needs.
+
+## Mad City
+`mad-city` · pictures from Roblox · good for: world, characters
+
+- **UI:** Team select (hero, villain, police, prisoner).
+- **Characters and shapes:** Superpowers on plain avatars.
+- **World:** City with heist locations spread out.
+- **Steal this:** Heroes and villains as teams turn cops-and-robbers into something new.
+
+## Creatures of Sonaria
+`creatures-of-sonaria` · pictures from Roblox · good for: characters, world
+
+- **UI:** Survival bars (hunger, thirst) and a creature selector.
+- **Characters and shapes:** Large original creatures with strong animal silhouettes and wild colours.
+- **World:** Big biome map with water and food spots.
+- **Steal this:** Original creature designs built from animal parts read instantly.
+
+## a dusty trip
+`a-dusty-trip` · pictures from Roblox · good for: world
+
+- **UI:** Distance counter; car parts menu.
+- **Characters and shapes:** Plain avatars; the car is the hero.
+- **World:** A long desert road with stops and dangers.
+- **Steal this:** One long road with events gives a road-trip story.
+
+## Apeirophobia
+`apeirophobia` · pictures from Roblox · good for: world
+
+- **UI:** Minimal: level names and hints.
+- **Characters and shapes:** Entities with uncanny shapes.
+- **World:** Backrooms-style liminal levels with yellow halls.
+- **Steal this:** Liminal spaces: plain repeated rooms are scary on their own.
+
+## Blue Lock: Rivals
+`blue-lock-rivals` · pictures from Roblox · good for: ui, characters, effects
+
+- **UI:** Ability bar with anime move names; score at top.
+- **Characters and shapes:** Players styled after anime football heroes with flashy effects.
+- **World:** A football pitch.
+- **Steal this:** Big named special moves turn a sport into a fighting game.
+
+## Basketball Legends
+`basketball-legends` · pictures from Roblox · good for: ui
+
+- **UI:** Shot meter by the player; score and timer.
+- **Characters and shapes:** Plain avatars in jerseys.
+- **World:** Courts.
+- **Steal this:** A shot meter by the player teaches timing.
+
+## Volleyball Legends
+`volleyball-legends` · pictures from Roblox · good for: ui, characters
+
+- **UI:** Timing bar for hits; score top.
+- **Characters and shapes:** Anime-style volleyball styles as unlockable abilities.
+- **World:** A court.
+- **Steal this:** Unlockable play styles add depth to a simple sport.
+
+## Murderers VS Sheriffs Duels
+`murderers-vs-sheriffs-duels` · pictures from Roblox · good for: ui
+
+- **UI:** Fast round UI with score and kill feed.
+- **Characters and shapes:** Plain avatars; knife and gun skins.
+- **World:** Small duel maps.
+- **Steal this:** Take a known game's best moment and make it the whole game.
+
+## TYPE://SOUL
+`type-soul` · pictures from Roblox · good for: characters, effects
+
+- **UI:** Stylish dark UI.
+- **Characters and shapes:** Anime-inspired races with strong effects.
+- **World:** Large world.
+- **Steal this:** Reference for flashy older-teen combat.
+
+## Deepwoken
+`deepwoken` · pictures from Roblox · good for: ui, world
+
+- **UI:** Very minimal, moody UI.
+- **Characters and shapes:** Detailed fantasy characters.
+- **World:** Dark, atmospheric islands and depths.
+- **Steal this:** Mood and lighting can carry a whole game's feel.
