@@ -65,6 +65,16 @@ try:
     d.find_elements(By.CSS_SELECTOR, ".design-this")[0].click(); time.sleep(2.5)
     pr = d.find_element(By.ID, "prompt").get_attribute("value")
     check("Plan This Game opens Planner with the pitch", "Plan this pitch from Pulse" in pr, pr[:80])
+    # Autopilot: Make This Game asks once, with a budget for the whole game (nothing starts here)
+    d.execute_script("location.hash='#ideas'"); time.sleep(2.5)
+    mk = d.find_elements(By.CSS_SELECTOR, ".make-this")
+    if mk:
+        mk[0].click(); time.sleep(2.5)
+        sh = d.find_element(By.ID, "sheet").text
+        check("Make This Game shows every milestone and one budget", all(t in sh for t in ["Game plan", "UI drafts", "Rough build to test in Roblox Studio", "Budget for the whole game"]) and len(d.find_elements(By.ID, "ap-go")) == 1, sh[:120])
+        d.execute_script("closeSheet()"); time.sleep(0.3)
+    d.execute_script("location.hash='#autopilot'"); time.sleep(2.5)
+    check("Autopilot page lets you start from an idea", len(d.find_elements(By.ID, "ap-new")) == 1 or len(d.find_elements(By.ID, "ap-note")) == 1, view()[:100])
     d.execute_script("location.hash='#plans'"); time.sleep(3)
     boxes = d.find_elements(By.CSS_SELECTOR, ".plan-check")
     if boxes:

@@ -37,6 +37,115 @@ pub struct Change {
     pub checks: Vec<crate::queue::GateCheck>,
     #[serde(default)]
     pub cost_usd: Option<f64>,
+    /// "change" (one tweak) or "task" (a full job for an autopilot milestone).
+    #[serde(default = "kind_change")]
+    pub kind: String,
+    /// The autopilot (game slug) this belongs to, if any.
+    #[serde(default)]
+    pub autopilot: Option<String>,
+    #[serde(default)]
+    pub milestone: Option<String>,
+    /// Same key = same piece of work; the latest attempt counts.
+    #[serde(default)]
+    pub key: Option<String>,
+    #[serde(default)]
+    pub attempt: u32,
+    /// "andrew", "autopilot" or "agent:<name>".
+    #[serde(default = "source_andrew")]
+    pub source: String,
+}
+
+fn kind_change() -> String {
+    "change".into()
+}
+fn source_andrew() -> String {
+    "andrew".into()
+}
+
+/// A piece of work an autopilot (or an agent through it) asks for.
+pub struct Spec {
+    pub target: String,
+    pub text: String,
+    pub prompt: String,
+    pub agent: String,
+    pub kind: String,
+    pub autopilot: Option<String>,
+    pub milestone: Option<String>,
+    pub key: Option<String>,
+    pub attempt: u32,
+    pub source: String,
+    /// A stronger model for a hard retry.
+    pub model: Option<String>,
+}
+
+/// Queue one approved run for a spec. The caller has checked its budget.
+pub fn enqueue(root: &Path, spec: Spec) -> Result<Change, String> {
+    let mut req = crate::runs::prepare(root, &spec.agent, &spec.prompt)?;
+    if let Some(m) = spec.model.filter(|m| *m != req.estimate.model && crate::settings::load().engine != "ollama") {
+        let agents = crate::cost::load_agents(root)?;
+        let pricing = crate::cost::load_pricing(root)?;
+        if let Some(mut prof) = agents.agents.get(&spec.agent).cloned() {
+            prof.model = m;
+            if let Ok(e) = crate::cost::estimate(&spec.agent, &prof, &spec.prompt, &pricing) {
+                req.estimate = e;
+            }
+        }
+    }
+    let id = format!("chg-{}", req.run_id.trim_start_matches("run-"));
+    req.change = Some(id.clone());
+    crate::runs::save(root, &req)?;
+    if let Err(e) = crate::runs::approve(root, &req.run_id, req.estimate.cap_usd) {
+        let _ = crate::runs::cancel(root, &req.run_id);
+        return Err(e);
+    }
+    let c = Change {
+        id,
+        target: spec.target,
+        item: None,
+        text: spec.text,
+        agent: spec.agent,
+        status: "queued".into(),
+        run_id: req.run_id,
+        created_at: crate::now_rfc3339(),
+        finished_at: None,
+        summary: None,
+        checks: vec![],
+        cost_usd: None,
+        kind: spec.kind,
+        autopilot: spec.autopilot,
+        milestone: spec.milestone,
+        key: spec.key,
+        attempt: spec.attempt,
+        source: spec.source,
+    };
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    all.push(c.clone());
+    save_all(root, &all)?;
+    Ok(c)
+}
+
+/// Cancel queued (not yet started) work, e.g. when an agent asks another
+/// to stop. Returns how many were cancelled.
+pub fn cancel_queued<F: Fn(&Change) -> bool>(root: &Path, pick: F) -> usize {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let mut n = 0;
+    for c in all.iter_mut().filter(|c| c.status == "queued" && pick(c)) {
+        c.status = "cancelled".into();
+        c.finished_at = Some(crate::now_rfc3339());
+        if let Ok(mut r) = crate::runs::load(root, &c.run_id) {
+            if r.status == "approved" {
+                r.status = "cancelled".into();
+                let _ = crate::runs::save(root, &r);
+            }
+        }
+        n += 1;
+    }
+    if n > 0 {
+        let _ = save_all(root, &all);
+    }
+    n
 }
 
 fn path(root: &Path) -> PathBuf {
@@ -87,7 +196,7 @@ pub fn agent_for_text(text: &str) -> &'static str {
         "splash"
     } else if any(&["sound", "music", "sfx", "audio", "volume"]) {
         "librarian"
-    } else if any(&["animation", "animate", " vfx", "effect", "particle", "tween", "juice", "shake", "bounce", "glow"]) {
+    } else if any(&["animation", "animate", " vfx", "effect", "particle", "tween", "juice", "shake", "bounce", "glow", "sparkle", "shine", "glitter", "flash", "trail", "pop "]) {
         "motion"
     } else if any(&["button", " ui", "ui ", "menu", "hud", "screen", "font", "popup", "pop-up", "text size", "layout", "icon"]) {
         "frame"
@@ -121,6 +230,11 @@ fn check_target(root: &Path, target: &str) -> Result<(), String> {
     if let Some(p) = target.strip_prefix("project:") {
         if !crate::paths::valid_id(p) || !root.join("projects").join(p).join("default.project.json").is_file() {
             return Err(format!("no game project named {p}"));
+        }
+        Ok(())
+    } else if let Some(g) = target.strip_prefix("game:") {
+        if !crate::paths::valid_id(g) {
+            return Err("bad game id".into());
         }
         Ok(())
     } else if let Some(r) = target.strip_prefix("plan:") {
@@ -231,6 +345,12 @@ pub fn submit(root: &Path, target: &str, reqs: &[Request]) -> Result<Vec<Change>
             summary: None,
             checks: vec![],
             cost_usd: None,
+            kind: "change".into(),
+            autopilot: None,
+            milestone: None,
+            key: None,
+            attempt: 0,
+            source: "andrew".into(),
         };
         {
             let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -270,6 +390,9 @@ pub fn take_next(root: &Path) -> Vec<Change> {
 
 /// Folders the agent may read besides its own: the plan's run folder.
 pub fn extra_dirs(root: &Path, c: &Change) -> Vec<PathBuf> {
+    if let Some(a) = &c.autopilot {
+        return crate::autopilot::context_dirs(root, a);
+    }
     c.target.strip_prefix("plan:").map(|p| vec![root.join("runs").join(p)]).unwrap_or_default()
 }
 
@@ -291,7 +414,18 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
         let (ok, detail) = crate::pipeline::loads_within(root, &dir, &c.agent, &prof.allowed_sections, &extra_dirs(root, &c));
         checks.push(crate::queue::GateCheck { name: "loaded only allowed vault sections".into(), passed: ok, detail });
     }
-    if let Some(p) = c.target.strip_prefix("project:") {
+    if c.kind == "task" {
+        // A full job: the agent's own output and checks, like a pipeline stage.
+        let slug = c.autopilot.clone().unwrap_or_default();
+        let project = root.join("projects").join(&slug).join("default.project.json").is_file().then(|| format!("projects/{slug}"));
+        if let Some(prof) = agents.as_ref().and_then(|a| a.agents.get(&c.agent)) {
+            if let Some(out) = prof.output.clone() {
+                let g = crate::pipeline::evaluate_stage(root, &dir, &c.agent, Some(prof), &out, &extra_dirs(root, &c), project.as_deref());
+                checks.retain(|k| k.name == "the agent finished");
+                checks.extend(g.checks);
+            }
+        }
+    } else if let Some(p) = c.target.strip_prefix("project:").or_else(|| c.target.strip_prefix("game:").filter(|p| root.join("projects").join(p).join("default.project.json").is_file())) {
         // Code changed: the game must still build.
         if ["builder", "motion", "tuner", "frame", "crowd", "merchant"].contains(&c.agent.as_str()) && req.status == "done" {
             checks.extend(crate::gates::build_gate(root, &format!("projects/{p}")));
@@ -301,6 +435,11 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
         checks.push(crate::queue::GateCheck { name: "merged into the plan".into(), passed: applied.is_ok(), detail: applied.err().unwrap_or_default() });
     }
     let ok = checks.iter().all(|x| x.passed);
+    let note = if note.trim().is_empty() && c.kind == "task" {
+        agents.as_ref().and_then(|a| a.agents.get(&c.agent)).and_then(|p| p.output.clone()).and_then(|o| fs::read_to_string(dir.join(o)).ok()).unwrap_or_default()
+    } else {
+        note
+    };
     let summary = note.lines().map(|l| l.trim_start_matches('#').trim()).find(|l| !l.is_empty()).map(|l| l.chars().take(240).collect());
     update(root, change_id, |x| {
         x.status = if ok { "done".into() } else { "failed".into() };
@@ -309,6 +448,15 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
         x.checks = checks;
         x.cost_usd = req.actual_cost_usd;
     })
+}
+
+/// Record a result directly (tests, and changes whose run cannot start).
+pub fn set_result(root: &Path, id: &str, status: &str, checks: Vec<crate::queue::GateCheck>) {
+    update(root, id, |x| {
+        x.status = status.into();
+        x.checks = checks;
+        x.finished_at = Some(crate::now_rfc3339());
+    });
 }
 
 /// A change whose run was paused by the usage limit goes back to working.
@@ -350,6 +498,7 @@ mod tests {
         assert_eq!(agent_for_text("the spawn island needs more fog and warmer lighting"), "scenic");
         assert_eq!(agent_for_text("add a little bounce animation when a coin is picked up"), "motion");
         assert_eq!(agent_for_text("the game lags on phones"), "tuner");
+        assert_eq!(agent_for_text("Make the stars sparkle when they are ready to harvest"), "motion");
         assert_eq!(agent_for_text("lower the price of the VIP gamepass"), "merchant");
         assert_eq!(agent_for_text("double jump should reset on walls"), "builder");
         assert_eq!(agent_for_section("ui"), "frame");
@@ -358,7 +507,7 @@ mod tests {
     }
 
     fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
-        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None }
+        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into() }
     }
 
     #[test]

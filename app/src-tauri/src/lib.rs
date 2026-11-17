@@ -20,6 +20,7 @@ pub mod studio_mcp;
 pub mod textures;
 pub mod refs;
 pub mod changes;
+pub mod autopilot;
 pub mod plan;
 pub mod graph;
 pub mod review;

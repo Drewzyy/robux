@@ -380,9 +380,67 @@ fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, 
             runs::fail_if_unfinished(&r, &run_id, e);
         }
         let done = studio_core::changes::finish(&r, &id);
+        // Autopilot: retry with feedback, start agents it asked for, move on.
+        if let Some(c) = &done {
+            studio_core::autopilot::on_finish(&r, c);
+        }
         let _ = app.emit("change-update", serde_json::to_value(&done).unwrap_or(Value::Null));
         dispatch_changes(&app);
     });
+}
+
+// ---------- Autopilot ----------
+
+#[tauri::command]
+async fn autopilot_list() -> Result<Value, String> {
+    let r = root()?;
+    Ok(json!(studio_core::autopilot::list(&r).into_iter().map(|a| json!({ "slug": a.slug, "title": a.title, "status": a.status, "milestones": a.milestones })).collect::<Vec<_>>()))
+}
+
+#[tauri::command]
+async fn autopilot_estimate(idea: String) -> Result<Value, String> {
+    studio_core::autopilot::estimate(&root()?, &idea)
+}
+
+/// Andrew approves an idea and its budget: the agents take it from here.
+#[tauri::command]
+async fn autopilot_start(app: AppHandle, title: String, idea: String, budget_usd: f64, slug: Option<String>) -> Result<Value, String> {
+    let r = root()?;
+    paths::claude_bin()?;
+    let a = studio_core::autopilot::start(&r, &title, &idea, budget_usd, slug.as_deref().filter(|s| !s.is_empty()))?;
+    dispatch_changes(&app);
+    let _ = app.emit("change-update", json!({ "autopilot": a.slug }));
+    Ok(json!({ "slug": a.slug }))
+}
+
+#[tauri::command]
+async fn autopilot_view(slug: String) -> Result<Value, String> {
+    studio_core::autopilot::view(&root()?, &slug)
+}
+
+#[tauri::command]
+async fn autopilot_note(app: AppHandle, slug: String, text: String, agent: Option<String>) -> Result<(), String> {
+    studio_core::autopilot::note(&root()?, &slug, &text, agent.as_deref(), None)?;
+    studio_core::autopilot::advance(&root()?, &slug);
+    dispatch_changes(&app);
+    let _ = app.emit("change-update", json!({ "autopilot": slug }));
+    Ok(())
+}
+
+#[tauri::command]
+async fn autopilot_review(app: AppHandle, slug: String, milestone: String, approve: bool, notes: String) -> Result<(), String> {
+    studio_core::autopilot::review(&root()?, &slug, &milestone, approve, &notes)?;
+    dispatch_changes(&app);
+    let _ = app.emit("change-update", json!({ "autopilot": slug }));
+    Ok(())
+}
+
+#[tauri::command]
+async fn autopilot_control(app: AppHandle, slug: String, action: String, budget_usd: Option<f64>) -> Result<(), String> {
+    studio_core::autopilot::control(&root()?, &slug, &action, budget_usd)?;
+    dispatch_changes(&app);
+    let _ = app.emit("change-update", json!({ "autopilot": slug }));
+    Ok(())
 }
 
 #[tauri::command]
@@ -438,6 +496,11 @@ fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
     };
     for x in solo {
         if let Some(cid) = x.change.clone() {
+            // A game Andrew paused (or that hit its budget) waits for him.
+            let held = studio_core::changes::list(&r).into_iter().find(|c| c.id == cid).and_then(|c| c.autopilot).and_then(|g| studio_core::autopilot::load(&r, &g).ok()).map(|a| a.status != "running").unwrap_or(false);
+            if held && id.is_none() {
+                continue;
+            }
             runs::ready_to_continue(&r, &x.run_id)?;
             studio_core::changes::resumed(&r, &cid);
             if let Some(c) = studio_core::changes::list(&r).into_iter().find(|c| c.id == cid) {
@@ -988,6 +1051,13 @@ fn main() {
             pipeline_approve_and_start,
             continue_now,
             changes_list,
+            autopilot_list,
+            autopilot_estimate,
+            autopilot_start,
+            autopilot_view,
+            autopilot_note,
+            autopilot_review,
+            autopilot_control,
             changes_preview,
             changes_send,
             paused_work,
@@ -1067,6 +1137,13 @@ fn main() {
                 // Change requests sent before the app closed carry on.
                 dispatch_changes(&h);
                 loop {
+                    // Keep every running game moving (also after a restart).
+                    if let Ok(r) = paths::studio_root() {
+                        for a in studio_core::autopilot::list(&r).into_iter().filter(|a| a.status == "running") {
+                            studio_core::autopilot::advance(&r, &a.slug);
+                        }
+                        dispatch_changes(&h);
+                    }
                     if let Err(e) = continue_paused(&h, None) {
                         eprintln!("continue paused work: {e}");
                     }

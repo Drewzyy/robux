@@ -718,8 +718,9 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
             if !allowed.iter().any(|a| a == &first) {
                 bad.push(format!("section {first} not allowed for {agent}"));
             }
-        } else if rel.starts_with(&format!(".claude/skills/{agent}")) || rel == "CLAUDE.md" || rel.is_empty() {
-            // own skill or the vault's tiny CLAUDE.md
+        } else if rel.starts_with(&format!(".claude/skills/{agent}")) || rel == "CLAUDE.md" || rel.is_empty() || rel.starts_with("attachments/") {
+            // own skill, the vault's tiny CLAUDE.md, or shared pictures
+            // (example sheets and game reference pictures every agent may study)
         } else {
             bad.push(format!("{tool} {rel}"));
         }
@@ -748,6 +749,24 @@ mod tests {
         outs.insert("pulse".to_string(), PathBuf::from("/r/runs/a/pitch.md"));
         let s = render("Do {input} in {project} using {out:pulse}", "X", Some("projects/g"), &outs);
         assert_eq!(s, "Do X in projects/g using /r/runs/a/pitch.md");
+    }
+
+    #[test]
+    fn reading_shared_pictures_is_allowed() {
+        let d = std::env::temp_dir().join(format!("loads-att-{}", std::process::id()));
+        let root = d.join("studio");
+        fs::create_dir_all(root.join("vault/00-Start-Here")).unwrap();
+        fs::create_dir_all(root.join("vault/attachments/game-refs/adopt-me")).unwrap();
+        let run = root.join("runs/r1");
+        fs::create_dir_all(&run).unwrap();
+        let v = root.join("vault");
+        fs::write(run.join("loads.jsonl"), format!(
+            "{{\"tool\":\"Read\",\"target\":\"{0}/00-Start-Here/index.md\"}}\n{{\"tool\":\"Read\",\"target\":\"{0}/attachments/examples/good-hud.svg\"}}\n{{\"tool\":\"Read\",\"target\":\"{0}/attachments/game-refs/adopt-me/01-icon.png\"}}\n",
+            v.display()
+        )).unwrap();
+        let (ok, detail) = loads_within(&root, &run, "planner", &["00-Start-Here".into()], &[]);
+        assert!(ok, "{detail}");
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

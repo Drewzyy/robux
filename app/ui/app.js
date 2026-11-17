@@ -183,7 +183,7 @@ function dropZone(node, onFiles, accept = /^image\//) {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Inspiration (game pictures)", "inspo"], ["Change Requests", "changes"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Inspiration (game pictures)", "inspo"], ["Change Requests", "changes"], ["Autopilot (supervise)", "autopilot"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -215,12 +215,12 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 // Six places in the sidebar; grouped pages get tabs along the top.
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
-  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["inspo", "Inspiration"], ["runs", "Build"], ["changes", "Changes"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
+  make: [["autopilot", "Autopilot"], ["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["inspo", "Inspiration"], ["runs", "Build"], ["changes", "Changes"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
   check: [["score", "Game Score"], ["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, changes: viewChanges, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, changes: viewChanges, autopilot: viewAutopilot, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -271,7 +271,7 @@ async function viewHome() {
         el("span", { class: risk[x.policy_risk] || "pill" }, `Policy risk: ${x.policy_risk}`)),
       field("Core verb", x.core_verb), field("Twist", x.twist), field("Why now", x.why_now), field("First 60 seconds", x.first_60_seconds),
       field("Like", x.comps), field("Money", x.monetization), field("Stays original", x.originality),
-      el("div", { class: "inline", style: "margin-top:12px" }, el("button", { class: "btn primary design-this", onclick: () => design(x) }, "Plan This Game"))))),
+      el("div", { class: "inline", style: "margin-top:12px" }, el("button", { class: "btn primary make-this", onclick: () => startAutopilot(x.title, `${x.title}. ${x.one_liner} Core verb: ${x.core_verb}. Twist: ${x.twist}. Audience: ${x.audience}. First 60 seconds: ${x.first_60_seconds}. Keep it original: ${x.originality}`) }, "Make This Game"), el("button", { class: "btn secondary design-this", onclick: () => design(x) }, "Plan Only"))))),
     p.sources && p.sources.length ? el("details", { class: "sources" }, el("summary", {}, `Sources (${p.sources.length}) · studied ${p.top_games_studied || "?"} top games`),
       el("ul", {}, p.sources.map((s) => el("li", {}, `${s.name} · ${s.date || ""} · ${s.url || ""}`)))) : null,
   ];
@@ -364,17 +364,22 @@ async function viewBrief(arg) {
     return dropZone(el("div", { class: "plan-item brief-item", "data-id": it.id }, el("div", { class: "inline", style: "gap:10px" }, tick, el("strong", {}, it.title), el("button", { class: "link", style: "margin-left:auto", onclick: () => pick.click() }, "Add image"), pick), ta, thumbs, el("div", { class: "drop-hint" }, "Drop screenshots here")), (fs) => fs.forEach(upload));
   };
   const groups = [...new Set(b.items.map((i) => i.group))];
-  const plan = el("button", { class: "btn primary", id: "brief-plan", onclick: async () => {
+  const plan = el("button", { class: "btn secondary", id: "brief-plan", onclick: async () => {
     // Save the box still being typed in, then wait for saves, then read.
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     await new Promise((r) => setTimeout(r, 0));
     try { await state.briefSave; } catch {}
-    try { const prompt = await invoke("brief_prompt", { slug }); state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt }; state.runsTab = "new"; location.hash = "#runs"; } catch (e) { toast(String(e), true); } } }, "Plan This Game");
+    try { const prompt = await invoke("brief_prompt", { slug }); state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt }; state.runsTab = "new"; location.hash = "#runs"; } catch (e) { toast(String(e), true); } } }, "Plan Only");
+  const make = el("button", { class: "btn primary", id: "brief-make", onclick: async () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    await new Promise((r) => setTimeout(r, 0));
+    try { await state.briefSave; } catch {}
+    try { const idea = await invoke("brief_prompt", { slug }); startAutopilot(b.title, idea, slug); } catch (e) { toast(String(e), true); } } }, "Make This Game");
   const pickBrief = briefs.length > 1 ? el("select", { onchange: (e) => viewBrief(e.target.value) }, briefs.map((x) => el("option", { value: x.slug, selected: x.slug === slug }, `${x.title} · ${x.done}/${x.total}`))) : null;
   showIf(nav, page(head(b.title, count, pickBrief),
     el("div", { class: "card" }, el("div", { class: "plan-bar" }, fill),
       el("p", { class: "note" }, "Answer what you can, in your own words. Drag screenshots onto any item, paste them, or use Add image (they are saved to the vault for the whole team). Answers save when you click out of a box. Empty items are fine: Planner decides those and asks you to confirm."),
-      el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, plan, el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
+      el("div", { class: "inline", style: "justify-content:space-between;flex-wrap:wrap;gap:10px" }, el("div", { class: "inline" }, make, plan), el("details", {}, el("summary", { class: "link" }, "Start another idea"), el("div", { style: "margin-top:8px" }, newRow)))),
     ideaDump({ slug, dump: b.dump || "" }),
     ...groups.map((g) => el("div", { class: "card plan-sec" }, el("h2", {}, g), b.items.filter((i) => i.group === g).map(item)))));
 }
@@ -1128,6 +1133,112 @@ T.event.listen("tex-done", (ev) => {
   if ((location.hash || "") === "#vault") viewVault();
 });
 
+// Autopilot: Andrew approves an idea once (with a budget for the whole game);
+// the agents make it milestone by milestone. He watches, chimes in, and only
+// approves finished milestones.
+async function startAutopilot(title, idea, slug) {
+  let est;
+  try { est = await invoke("autopilot_estimate", { idea }); } catch (e) { toast(String(e), true); return; }
+  const name = el("input", { type: "text", id: "ap-title", value: title || "" });
+  const budget = el("input", { type: "number", id: "ap-budget", min: "0", step: "0.5", value: est.budget_usd.toFixed(2) });
+  const go = el("button", { class: "btn primary", id: "ap-go" }, "Approve and Start");
+  go.addEventListener("click", async () => {
+    go.disabled = true;
+    try {
+      const r = await invoke("autopilot_start", { title: name.value.trim() || "My game", idea, budgetUsd: parseFloat(budget.value) || 0, slug: slug || null });
+      closeSheet(); toast("Approved. The agents are starting on the plan."); location.hash = "#autopilot/" + r.slug;
+    } catch (e) { toast(String(e), true); go.disabled = false; }
+  });
+  sheet("Make this game",
+    el("p", { class: "prose" }, "The agents make the whole game from here, milestone by milestone, and keep going on their own: failed checks are retried, and agents call in other agents when they need them. You only approve finished milestones, and you can send notes any time. Nothing is ever published."),
+    el("div", { class: "field" }, el("label", { for: "ap-title" }, "Game name"), name),
+    el("div", { class: "list" }, est.milestones.map((m) => el("div", { class: "srow" }, el("div", { class: "grow label" }, m.title), el("span", { class: "note" }, `about ${usd(m.cap_usd)}`)))),
+    el("div", { class: "field", style: "margin-top:12px" }, el("label", { for: "ap-budget" }, "Budget for the whole game ($ of plan usage)"), budget,
+      el("div", { class: "note" }, `The jobs add up to ${usd(est.jobs_usd)}; the default doubles that for retries (some on a stronger model) and your notes. The agents stop and ask before going over it. Your monthly budget still applies.`)),
+    el("div", { class: "inline", style: "margin-top:12px" }, go, el("span", { class: "note" }, "Approving starts the agents.")));
+}
+const AP_STATUS = { running: "Running", paused: "Paused by you", budget: "Stopped at the budget", done: "Done", stopped: "Stopped" };
+const MS_PILL = (st) => el("span", { class: st === "working" || st === "revising" ? "pill red" : st === "review" ? "pill white" : st === "approved" ? "pill white" : "pill" }, ({ waiting: "Waiting", working: "Agents working", revising: "Revising from your notes", review: "Ready for your review", approved: "Approved" })[st] || cap(st));
+function jobRow(j) {
+  return el("div", { class: "row ap-job", "data-run": j.run_id },
+    el("div", { class: "grow" },
+      el("div", { class: "row-title" }, `${cap(j.agent)}${j.source.startsWith("agent:") ? " (asked by " + cap(j.source.slice(6)) + ")" : j.source === "andrew" ? " (your note)" : ""}`),
+      el("div", { class: "row-sub" }, j.status === "working" ? el("span", { class: "ap-live", id: "live-" + j.run_id }, state.apLive[j.run_id] || "Working…") : (j.summary || j.text)),
+      j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}`) : null),
+    el("span", { class: j.stuck ? "pill red-soft" : j.status === "working" ? "pill red" : j.status === "done" ? "pill white" : "pill" }, j.stuck ? "Stuck" : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
+    j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Open") : null,
+    el("button", { class: "link", onclick: () => (location.hash = "#run/" + j.run_id) }, "Details"));
+}
+async function viewAutopilot(slug) {
+  const nav = navSeq;
+  await freshStatus();
+  state.apLive ||= {};
+  const games = await invoke("autopilot_list");
+  if (!games.length) {
+    const t = el("input", { type: "text", id: "ap-new-title", placeholder: "Game name" });
+    const idea = el("textarea", { id: "ap-new-idea", rows: 4, placeholder: "Your idea, in your own words. A sentence is enough; the planner fills in the rest and you approve the plan." });
+    return showIf(nav, page(head("Autopilot", "Approve an idea and the agents make the whole game. You supervise."),
+      el("div", { class: "card" }, el("div", { class: "field" }, el("label", { for: "ap-new-title" }, "Game name"), t), idea,
+        el("div", { class: "inline", style: "margin-top:10px" }, el("button", { class: "btn primary", id: "ap-new", onclick: () => startAutopilot(t.value.trim(), idea.value.trim()) }, "Make This Game"),
+          el("span", { class: "note" }, "Or press Make This Game on an idea in Game Ideas or Game Brief.")))));
+  }
+  const cur = games.find((g) => g.slug === slug) || games[0];
+  let v;
+  try { v = await invoke("autopilot_view", { slug: cur.slug }); } catch (e) { return showIf(nav, page(head("Autopilot"), el("div", { class: "card" }, String(e)))); }
+  const pick = games.length > 1 ? el("select", { onchange: (e) => (location.hash = "#autopilot/" + e.target.value) }, games.map((g) => el("option", { value: g.slug, selected: g.slug === v.slug }, g.title))) : null;
+  const used = v.spent_usd + v.reserved_usd;
+  const ctl = (action, label, extra) => el("button", { class: "btn secondary", id: "ap-" + action, onclick: async () => { try { await invoke("autopilot_control", { slug: v.slug, action, budgetUsd: extra ? extra() : null }); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } } }, label);
+  const anyStuck = v.milestones.some((m) => m.jobs.some((j) => j.stuck));
+  const reviews = v.milestones.filter((m) => m.status === "review").map((m) => {
+    const notes = el("textarea", { class: "ap-review-notes", rows: 2, placeholder: "Notes for a revision (one per line). Leave empty to approve as it is." });
+    const drafts = m.jobs.filter((j) => j.status === "done");
+    return el("div", { class: "card ap-review", "data-milestone": m.id },
+      el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, `Ready for your review: ${m.title}`), MS_PILL(m.status)),
+      el("p", { class: "note" }, m.review),
+      m.id === "plan" && v.plan_run ? el("button", { class: "btn secondary", onclick: () => (location.hash = "#plans/" + v.plan_run) }, "Open the Game Plan") : null,
+      m.id === "build" && v.project ? el("button", { class: "btn secondary", onclick: async () => { try { const pth = await invoke("project_open_in_studio", { project: v.project }); toast(`Opened in Studio: ${pth.split(/[\\/]/).pop()}. Nothing was published.`); } catch (e) { toast(String(e), true); } } }, "Play It in Roblox Studio") : null,
+      el("div", { class: "ap-drafts" }, drafts.map((j) => el("div", { class: "ap-draft" },
+        el("div", { class: "row-title" }, cap(j.agent)), el("div", { class: "note" }, j.summary || ""),
+        j.mockups.length ? el("div", { class: "ap-mocks" }, j.mockups.slice(0, 6).map((mk) => el("button", { class: "ap-mock", onclick: async () => sheet(mk.split("/").pop(), lazyImg(mk, { class: "plan-mock" })) }, lazyImg(mk)))) : null,
+        j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Read it") : null))),
+      notes,
+      el("div", { class: "inline", style: "margin-top:8px" },
+        el("button", { class: "btn primary ap-approve", onclick: async (e) => { e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: true, notes: notes.value }); toast(`Approved: ${m.title}.`); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Approve"),
+        el("button", { class: "btn secondary ap-revise", onclick: async (e) => { if (!notes.value.trim()) { toast("Write what to change first.", true); return; } e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: false, notes: notes.value }); toast("Sent. The agents are revising it."); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Send Notes for a Revision")));
+  });
+  const chime = el("textarea", { id: "ap-note", rows: 2, placeholder: "Chime in any time: what you want changed or added. Enter sends." });
+  chime.value = state.apNote || "";
+  chime.addEventListener("input", () => { state.apNote = chime.value; });
+  const sendNote = async () => { const t = chime.value.trim(); if (!t) return; try { await invoke("autopilot_note", { slug: v.slug, text: t, agent: null }); state.apNote = ""; chime.value = ""; toast("Sent to the team."); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } };
+  chime.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendNote(); } });
+  const nowM = v.milestones.find((m) => m.status === "working" || m.status === "revising");
+  showIf(nav, page(
+    head(v.title, el("span", {}, `${AP_STATUS[v.status] || v.status}${nowM ? " · " + nowM.title : ""} · ${v.working} agent${v.working === 1 ? "" : "s"} working`), pick),
+    v.why ? el("div", { class: "card warn-card" }, v.why) : null,
+    el("div", { class: "card" },
+      el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, `Budget: ${usd(v.spent_usd, 2)} spent${v.reserved_usd ? ", " + usd(v.reserved_usd, 2) + " running" : ""} of ${usd(v.budget_usd, 2)}`),
+        el("div", { class: "inline" }, v.status === "running" ? ctl("pause", "Pause") : v.status !== "done" ? ctl("resume", "Resume") : null,
+          ctl("budget", "Raise Budget", () => { const n = parseFloat(prompt("New budget for this game ($)", (v.budget_usd * 1.5).toFixed(2))); return isNaN(n) ? v.budget_usd : n; }),
+          anyStuck ? ctl("retry", "Try Again") : null)),
+      el("div", { class: "bar", style: "margin-top:8px" }, el("div", { style: `width:${Math.min(100, (100 * used) / Math.max(0.01, v.budget_usd))}%` }))),
+    ...reviews,
+    el("div", { class: "card" }, el("div", { class: "row-title" }, "Chime in"), chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", id: "ap-send", onclick: sendNote }, "Send"), el("span", { class: "note" }, "The right agent picks it up, and every later job reads it."))),
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Milestones"),
+      ...v.milestones.map((m) => el("details", { class: "card ap-ms", open: m.status === "working" || m.status === "revising", "data-ms": m.id },
+        el("summary", { class: "inline", style: "justify-content:space-between" }, el("span", { class: "row-title" }, m.title), MS_PILL(m.status)),
+        m.jobs.length ? el("div", { class: "list" }, m.jobs.map(jobRow)) : el("div", { class: "note" }, m.status === "waiting" ? "Starts when the milestone before it is ready." : "")))),
+    el("div", { class: "section" }, el("div", { class: "section-label" }, "Team board"),
+      el("div", { class: "list ap-board" }, v.board.map((b) => el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, `${cap(b.from)}${b.to ? " → " + cap(b.to) : ""}`), el("div", { class: "note" }, b.text)), el("span", { class: "note" }, ago(b.at))))))));
+}
+T.event.listen("run-line", (ev) => {
+  const t = renderLine(ev.payload.line);
+  if (!t) return;
+  const last = t.split("\n").filter(Boolean).pop() || "";
+  (state.apLive ||= {})[ev.payload.run_id] = last.slice(0, 160);
+  const n = $("live-" + ev.payload.run_id);
+  if (n) n.textContent = last.slice(0, 160);
+});
+
 // Change requests: write what to change, press Send, and each request goes
 // to the agent that fits it. Up to three agents work at once.
 const CHANGE_AGENTS = ["auto", "builder", "frame", "scenic", "motion", "modeler", "librarian", "merchant", "tuner", "crowd", "splash", "architect", "planner", "liveops"];
@@ -1215,7 +1326,8 @@ T.event.listen("change-update", () => {
   // Never redraw under someone typing; the next visit shows the news.
   const a = document.activeElement;
   if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT") && $("view").contains(a) && a.value) return;
-  if (h === "#changes") viewChanges();
+  if (h.startsWith("#autopilot")) viewAutopilot(h.split("/")[1]);
+  else if (h === "#changes") viewChanges();
   else if (h.startsWith("#plans")) viewPlans(h.split("/")[1]);
 });
 
