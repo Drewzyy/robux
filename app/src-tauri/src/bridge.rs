@@ -34,6 +34,14 @@ pub struct RunOutcome {
 /// sent as `/<agent> <instruction>` so Claude Code loads that skill
 /// deterministically (skills are `disable-model-invocation`, so agents cannot
 /// pull in other agents' skills on their own).
+/// How any agent starts other agents: the app reads requests.json when the
+/// run ends (changes::ingest_requests). Never tell Andrew to start them.
+pub const DISPATCH: &str = " You can start other agents yourself; never tell Andrew he has to. Write requests.json in your run folder: \
+[{\"to\": \"<agent>\", \"task\": \"<what to do, specific>\", \"why\": \"<why>\", \"after\": \"<agent that must finish first, optional>\", \"game\": \"<game-slug, optional>\"}]. \
+The app starts them when you finish (up to 3 at a time, in your order) and gives them your run folder to read. \
+{\"stop\": \"<agent>\"} cancels that agent's queued work. Agents: architect, builder, frame, scenic, motion, modeler, librarian, \
+merchant, tuner, crowd, splash, playtest, simulator, director, planner, producer, liveops, release.";
+
 pub fn build_args(
     req: &RunRequest,
     allowed_tools: &[String],
@@ -57,10 +65,12 @@ pub fn build_args(
     let context = format!(
         "Run context. Run id: {}. Your run folder is {} (absolute path). Write every output file there, \
          including gate.json. The studio's game projects folder is {}. You are running unattended: \
-         nobody can answer questions mid-run, so put questions in your output under Open questions.",
+         nobody can answer questions mid-run, so put questions in your output under Open questions.{}",
         req.run_id,
         run_dir.display(),
-        add_dirs.first().map(|p| p.display().to_string()).unwrap_or_default()
+        add_dirs.first().map(|p| p.display().to_string()).unwrap_or_default(),
+        // Pipelines run their own fixed order of agents.
+        if req.chat.is_none() && req.pipeline_id.is_none() { DISPATCH } else { "" }
     );
     let shell: Vec<String> = allowed_tools
         .iter()
@@ -174,6 +184,16 @@ pub fn run_approved_with<F: FnMut(&str)>(
     let mut tools = profile.allowed_tools.clone();
     let mut servers = serde_json::Map::new();
     let mut notes = String::new();
+    // Name the folders of the team's earlier work, with what is in each, so
+    // a hand-off like "read design.md" finds the right file.
+    let team: Vec<String> = extra_dirs.iter().filter(|d| d.is_dir()).map(|d| {
+        let files: Vec<String> = fs::read_dir(d).into_iter().flatten().flatten().map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.ends_with(".md") || n.ends_with(".json") && !["request.json", "result.json", "command.json", "gate.json"].contains(&n.as_str()) || n == "mockups").take(12).collect();
+        format!("{} ({})", d.display(), files.join(", "))
+    }).collect();
+    if !team.is_empty() {
+        notes.push_str(&format!(" Your teammates' finished work, readable now (a file named in your task is in one of these, not in your own folder): {}.", team.join("; ")));
+    }
     if req.engine.as_deref() != Some("ollama") {
         let st = crate::settings::load();
         if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) {
@@ -201,10 +221,16 @@ pub fn run_approved_with<F: FnMut(&str)>(
         let cfg = dir.join("mcp.json");
         fs::write(&cfg, serde_json::to_string_pretty(&serde_json::json!({ "mcpServers": servers })).unwrap()).map_err(|e| e.to_string())?;
         if let Some(i) = args.iter().position(|a| a == "--append-system-prompt") {
-            args[i + 1].push_str(&notes);
+            args[i + 1].push_str(&std::mem::take(&mut notes));
         }
         args.push("--mcp-config".into());
         args.push(cfg.display().to_string());
+    }
+    // Team folders (and anything else noted) even when no tool server is on.
+    if !notes.is_empty() {
+        if let Some(i) = args.iter().position(|a| a == "--append-system-prompt") {
+            args[i + 1].push_str(&notes);
+        }
     }
     fs::write(
         dir.join("command.json"),

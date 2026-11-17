@@ -296,6 +296,7 @@ fn spawn_run(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, run
             runs::fail_if_unfinished(&r, &run_id, e);
         }
         let item = pipeline::finish_single(&r, &run_id).ok().flatten();
+        handoff(&app, &r, &run_id, None);
         let payload = match res {
             Ok(o) => {
                 let mut v = serde_json::to_value(o).unwrap_or(Value::Null);
@@ -364,6 +365,16 @@ fn dispatch_changes(app: &AppHandle) {
     }
 }
 
+/// Start the agents a finished run asked for (requests.json).
+fn handoff(app: &AppHandle, r: &std::path::Path, run_id: &str, parent: Option<&studio_core::changes::Change>) {
+    let (made, notes) = studio_core::changes::ingest_requests(r, run_id, parent);
+    if !made.is_empty() || !notes.is_empty() {
+        let names: Vec<String> = made.iter().map(|c| c.agent.clone()).collect();
+        let _ = app.emit("handoff", json!({ "run_id": run_id, "started": names, "notes": notes }));
+        dispatch_changes(app);
+    }
+}
+
 fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, c: studio_core::changes::Change) {
     std::thread::spawn(move || {
         let _ = app.emit("change-update", json!({ "id": c.id, "status": "working", "agent": c.agent }));
@@ -382,7 +393,11 @@ fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, 
         let done = studio_core::changes::finish(&r, &id);
         // Autopilot: retry with feedback, start agents it asked for, move on.
         if let Some(c) = &done {
-            studio_core::autopilot::on_finish(&r, c);
+            if c.autopilot.is_some() {
+                studio_core::autopilot::on_finish(&r, c);
+            } else {
+                handoff(&app, &r, &c.run_id, Some(c));
+            }
         }
         let _ = app.emit("change-update", serde_json::to_value(&done).unwrap_or(Value::Null));
         dispatch_changes(&app);

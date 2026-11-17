@@ -1281,7 +1281,7 @@ function changeRow(c) {
   return el("div", { class: "row chg-row", "data-change": c.id },
     el("div", { class: "grow" },
       el("div", { class: "row-title" }, c.text),
-      el("div", { class: "row-sub" }, `${cap(c.agent)} · ${c.target.replace(/^project:/, "").replace(/^plan:.*/, "game plan")}${c.cost_usd != null ? " · " + usd(c.cost_usd, 2) : ""} · ${ago(c.created_at)}`),
+      el("div", { class: "row-sub" }, `${cap(c.agent)}${c.source && c.source.startsWith("agent:") ? " (started by " + cap(c.source.slice(6)) + ")" : ""}${c.after ? " · after the one before" : ""} · ${c.target.replace(/^(project|game):/, "").replace(/^plan:.*/, "game plan")}${c.cost_usd != null ? " · " + usd(c.cost_usd, 2) : ""} · ${ago(c.created_at)}`),
       c.summary ? el("div", { class: "note", style: "margin-top:4px" }, c.summary) : null,
       c.status === "failed" && c.checks.length ? el("div", { class: "note" }, c.checks.filter((k) => !k.passed).map((k) => `${k.name}${k.detail ? ": " + k.detail.slice(0, 160) : ""}`).join(" · ")) : null),
     changePill(c),
@@ -1320,6 +1320,14 @@ async function viewChanges() {
     past.length ? el("div", { class: "section" }, el("div", { class: "section-label" }, "Finished"), el("div", { class: "list", id: "changes-past" }, past.map(changeRow))) : null));
   input.focus();
 }
+// An agent started other agents (requests.json) when it finished.
+T.event.listen("handoff", (ev) => {
+  const d = ev.payload || {};
+  if (d.started && d.started.length) toast(`Started ${d.started.map(cap).join(", ")} on their own. Watch them in Make the Game, Changes.`);
+  else if (d.notes && d.notes.length) toast(d.notes[0], true);
+  refreshStatus();
+  if ((location.hash || "") === "#changes") viewChanges();
+});
 T.event.listen("change-update", () => {
   const h = location.hash || "";
   refreshStatus();

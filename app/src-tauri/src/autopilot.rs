@@ -296,6 +296,10 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
         attempt,
         source: source.into(),
         model,
+        parent_run: None,
+        group: None,
+        depth: 0,
+        after: None,
     });
     match c {
         Ok(c) => Ok(c),
@@ -443,6 +447,10 @@ pub fn on_finish(root: &Path, c: &Change) {
                     }
                     let (Some(to), Some(task)) = (ask["to"].as_str(), ask["task"].as_str()) else { continue };
                     let known = crate::cost::load_agents(root).map(|ag| ag.agents.contains_key(to)).unwrap_or(false);
+                    if mid == "plan" && to == "builder" {
+                        post(&mut a, "autopilot", Some(&c.agent), "Builder starts after Andrew approves the plan; request skipped.");
+                        continue;
+                    }
                     if !known || to == "assistant" || to == "release" && mid != "polish" {
                         post(&mut a, "autopilot", Some(&c.agent), &format!("Ignored a request for {to}: not an agent that can take work now."));
                         continue;
@@ -634,7 +642,7 @@ mod tests {
     }
 
     fn ch(key: &str, attempt: u32, status: &str, at: &str) -> Change {
-        Change { id: format!("{key}-{attempt}"), target: "game:g".into(), item: None, text: "x".into(), agent: "frame".into(), status: status.into(), run_id: "r".into(), created_at: at.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "task".into(), autopilot: Some("g".into()), milestone: Some("ui".into()), key: Some(key.into()), attempt, source: "autopilot".into() }
+        Change { id: format!("{key}-{attempt}"), target: "game:g".into(), item: None, text: "x".into(), agent: "frame".into(), status: status.into(), run_id: "r".into(), created_at: at.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "task".into(), autopilot: Some("g".into()), milestone: Some("ui".into()), key: Some(key.into()), attempt, source: "autopilot".into(), parent_run: None, group: None, depth: 0, after: None }
     }
 
     fn studio() -> PathBuf {

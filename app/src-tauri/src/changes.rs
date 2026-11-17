@@ -53,6 +53,18 @@ pub struct Change {
     /// "andrew", "autopilot" or "agent:<name>".
     #[serde(default = "source_andrew")]
     pub source: String,
+    /// The run whose agent asked for this job (its folder is readable).
+    #[serde(default)]
+    pub parent_run: Option<String>,
+    /// Jobs started from the same first run share a group.
+    #[serde(default)]
+    pub group: Option<String>,
+    /// How many agent hand-offs led here (limits chains).
+    #[serde(default)]
+    pub depth: u32,
+    /// Wait for this change to finish first.
+    #[serde(default)]
+    pub after: Option<String>,
 }
 
 fn kind_change() -> String {
@@ -76,6 +88,10 @@ pub struct Spec {
     pub source: String,
     /// A stronger model for a hard retry.
     pub model: Option<String>,
+    pub parent_run: Option<String>,
+    pub group: Option<String>,
+    pub depth: u32,
+    pub after: Option<String>,
 }
 
 /// Queue one approved run for a spec. The caller has checked its budget.
@@ -117,6 +133,10 @@ pub fn enqueue(root: &Path, spec: Spec) -> Result<Change, String> {
         key: spec.key,
         attempt: spec.attempt,
         source: spec.source,
+        parent_run: spec.parent_run,
+        group: spec.group,
+        depth: spec.depth,
+        after: spec.after,
     };
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
@@ -351,6 +371,10 @@ pub fn submit(root: &Path, target: &str, reqs: &[Request]) -> Result<Vec<Change>
             key: None,
             attempt: 0,
             source: "andrew".into(),
+            parent_run: None,
+            group: None,
+            depth: 0,
+            after: None,
         };
         {
             let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -371,9 +395,13 @@ pub fn take_next(root: &Path) -> Vec<Change> {
     let mut all = list(root);
     let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
     let mut out = vec![];
+    let finished: std::collections::HashSet<String> = all.iter().filter(|c| ["done", "failed", "cancelled"].contains(&c.status.as_str())).map(|c| c.id.clone()).collect();
     for c in all.iter_mut().filter(|c| c.status == "queued") {
         if busy.len() >= MAX_AT_ONCE {
             break;
+        }
+        if c.after.as_ref().map(|a| !finished.contains(a)).unwrap_or(false) {
+            continue;
         }
         if busy.iter().any(|(a, t)| *a == c.agent && *t == c.target) {
             continue;
@@ -392,6 +420,18 @@ pub fn take_next(root: &Path) -> Vec<Change> {
 pub fn extra_dirs(root: &Path, c: &Change) -> Vec<PathBuf> {
     if let Some(a) = &c.autopilot {
         return crate::autopilot::context_dirs(root, a);
+    }
+    if let Some(p) = &c.parent_run {
+        // The agent who asked, and every finished job of the same hand-off.
+        let mut v = vec![root.join("runs").join(p)];
+        if let Some(g) = &c.group {
+            v.push(root.join("runs").join(g));
+            for x in list(root).into_iter().filter(|x| x.group.as_ref() == Some(g) && x.status == "done") {
+                v.push(root.join("runs").join(&x.run_id));
+            }
+        }
+        v.dedup();
+        return v;
     }
     c.target.strip_prefix("plan:").map(|p| vec![root.join("runs").join(p)]).unwrap_or_default()
 }
@@ -416,7 +456,7 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
     }
     if c.kind == "task" {
         // A full job: the agent's own output and checks, like a pipeline stage.
-        let slug = c.autopilot.clone().unwrap_or_default();
+        let slug = c.autopilot.clone().or_else(|| c.target.strip_prefix("game:").map(String::from)).unwrap_or_default();
         let project = root.join("projects").join(&slug).join("default.project.json").is_file().then(|| format!("projects/{slug}"));
         if let Some(prof) = agents.as_ref().and_then(|a| a.agents.get(&c.agent)) {
             if let Some(out) = prof.output.clone() {
@@ -448,6 +488,86 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
         x.checks = checks;
         x.cost_usd = req.actual_cost_usd;
     })
+}
+
+pub const MAX_REQUESTS_PER_RUN: usize = 8;
+pub const MAX_DEPTH: u32 = 3;
+
+/// After any run (outside an autopilot, which handles its own): start the
+/// agents its agent asked for in requests.json. Returns the jobs started,
+/// and notes on anything skipped.
+pub fn ingest_requests(root: &Path, run_id: &str, parent: Option<&Change>) -> (Vec<Change>, Vec<String>) {
+    let mut notes = vec![];
+    let Ok(req) = crate::runs::load(root, run_id) else { return (vec![], notes) };
+    if req.status != "done" {
+        return (vec![], notes);
+    }
+    let Ok(dir) = crate::runs::run_dir(root, run_id) else { return (vec![], notes) };
+    let Some(v) = fs::read_to_string(dir.join("requests.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()) else { return (vec![], notes) };
+    let asks: Vec<Value> = if v.is_array() { v.as_array().cloned().unwrap_or_default() } else { vec![v] };
+    let depth = parent.map(|p| p.depth + 1).unwrap_or(1);
+    if depth > MAX_DEPTH {
+        notes.push(format!("{} asked for more agents, but this hand-off chain is already {MAX_DEPTH} deep; skipped.", req.agent));
+        return (vec![], notes);
+    }
+    let group = parent.and_then(|p| p.group.clone()).unwrap_or_else(|| run_id.to_string());
+    let agents = crate::cost::load_agents(root).ok();
+    let mut made: Vec<Change> = vec![];
+    for ask in asks.iter().take(MAX_REQUESTS_PER_RUN) {
+        if let Some(stop) = ask["stop"].as_str() {
+            let n = cancel_queued(root, |x| x.group.as_deref() == Some(&group) && x.agent == stop);
+            notes.push(format!("{} stopped {n} queued job(s) of {stop}.", req.agent));
+            continue;
+        }
+        let (Some(to), Some(task)) = (ask["to"].as_str(), ask["task"].as_str().map(str::trim).filter(|t| !t.is_empty())) else { continue };
+        if ["assistant", "bridge-test"].contains(&to) || !agents.as_ref().map(|a| a.agents.contains_key(to)).unwrap_or(false) {
+            notes.push(format!("{} asked for \"{to}\", which is not an agent; skipped.", req.agent));
+            continue;
+        }
+        let game = ask["game"].as_str().or_else(|| ask["project"].as_str().map(|p| p.trim_start_matches("projects/"))).filter(|g| crate::paths::valid_id(g)).map(String::from)
+            .or_else(|| parent.and_then(|p| p.target.strip_prefix("game:").or_else(|| p.target.strip_prefix("project:")).map(String::from)));
+        let target = format!("game:{}", game.clone().unwrap_or_else(|| "studio".into()));
+        let after = ask["after"].as_str().and_then(|a| made.iter().rev().find(|m| m.agent == a).map(|m| m.id.clone()));
+        let out = agents.as_ref().and_then(|a| a.agents.get(&req.agent)).and_then(|p| p.output.clone()).unwrap_or_else(|| "its output".into());
+        let prompt = format!(
+            "{from} handed you this job (from runs/{run_id}/{out}; read it first, and the rest of that folder as needed):\n{task}\nWhy: {why}\n{game_line}\nDo your job as your skill says: your usual output in your run folder plus gate.json. Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
+            from = cap_first(&req.agent),
+            why = ask["why"].as_str().unwrap_or("not given"),
+            game_line = game.as_ref().map(|g| format!("Game: projects/{g} (it may not exist yet; create it there if your job builds it).")).unwrap_or_default(),
+        );
+        match enqueue(root, Spec {
+            target,
+            text: task.chars().take(300).collect(),
+            prompt,
+            agent: to.into(),
+            kind: "task".into(),
+            autopilot: None,
+            milestone: None,
+            key: None,
+            attempt: 0,
+            source: format!("agent:{}", req.agent),
+            model: None,
+            parent_run: Some(run_id.into()),
+            group: Some(group.clone()),
+            depth,
+            after,
+        }) {
+            Ok(c) => made.push(c),
+            Err(e) => {
+                notes.push(format!("Could not start {to}: {e}"));
+                break; // usually the monthly budget
+            }
+        }
+    }
+    if asks.len() > MAX_REQUESTS_PER_RUN {
+        notes.push(format!("{} asked for {} agents; started the first {MAX_REQUESTS_PER_RUN}.", req.agent, asks.len()));
+    }
+    (made, notes)
+}
+
+fn cap_first(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
 }
 
 /// Record a result directly (tests, and changes whose run cannot start).
@@ -507,7 +627,7 @@ mod tests {
     }
 
     fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
-        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into() }
+        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None }
     }
 
     #[test]
@@ -529,6 +649,55 @@ mod tests {
         update(&d, "1", |c| c.status = "done".into());
         let next: Vec<String> = take_next(&d).into_iter().map(|c| c.id).collect();
         assert_eq!(next, vec!["2"], "the second Frame change waits for the first, then goes before later ones");
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn lead_starts_the_team_in_order_and_chains_stop() {
+        let d = std::env::temp_dir().join(format!("handoff-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("studio")).unwrap();
+        let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for f in ["agents.json", "pricing.json", "pipelines.json"] {
+            fs::copy(src.join("studio").join(f), d.join("studio").join(f)).unwrap();
+        }
+        fs::create_dir_all(d.join("vault/.claude/agents")).unwrap();
+        for e in fs::read_dir(src.join("vault/.claude/agents")).unwrap().flatten() {
+            fs::copy(e.path(), d.join("vault/.claude/agents").join(e.file_name())).unwrap();
+        }
+        // Lead finished and asked for Architect, then Builder after it.
+        let lead = crate::runs::prepare(&d, "lead", "Make a tycoon").unwrap();
+        let mut r = crate::runs::load(&d, &lead.run_id).unwrap();
+        r.status = "done".into();
+        crate::runs::save(&d, &r).unwrap();
+        let ld = crate::runs::run_dir(&d, &lead.run_id).unwrap();
+        fs::write(ld.join("requests.json"), r#"[{"to": "architect", "task": "Design doc from plan.md", "why": "needed first", "game": "candy-tycoon"},
+            {"to": "builder", "task": "Build it", "why": "the game", "after": "architect", "game": "candy-tycoon"},
+            {"to": "wizard", "task": "x"}]"#).unwrap();
+        let (made, notes) = ingest_requests(&d, &lead.run_id, None);
+        assert_eq!(made.iter().map(|c| c.agent.as_str()).collect::<Vec<_>>(), vec!["architect", "builder"]);
+        assert!(notes.iter().any(|n| n.contains("wizard")), "{notes:?}");
+        assert_eq!(made[0].target, "game:candy-tycoon");
+        assert_eq!(made[1].after.as_deref(), Some(made[0].id.as_str()));
+        assert_eq!(made[0].source, "agent:lead");
+        assert!(extra_dirs(&d, &made[0]).iter().any(|p| p.ends_with(&lead.run_id)), "the architect may read Lead's folder");
+        let prompt = crate::runs::load(&d, &made[0].run_id).unwrap().prompt;
+        assert!(prompt.contains(&format!("runs/{}/plan.md", lead.run_id)), "{prompt}");
+        // Builder waits for Architect.
+        let first: Vec<String> = take_next(&d).into_iter().map(|c| c.agent).collect();
+        assert_eq!(first, vec!["architect"]);
+        set_result(&d, &made[0].id, "done", vec![]);
+        let next: Vec<String> = take_next(&d).into_iter().map(|c| c.agent).collect();
+        assert_eq!(next, vec!["builder"]);
+        // A chain three hand-offs deep asks for more: skipped.
+        let mut deep = made[1].clone();
+        deep.depth = MAX_DEPTH;
+        let mut br = crate::runs::load(&d, &deep.run_id).unwrap();
+        br.status = "done".into();
+        crate::runs::save(&d, &br).unwrap();
+        fs::write(crate::runs::run_dir(&d, &deep.run_id).unwrap().join("requests.json"), r#"{"to": "frame", "task": "more"}"#).unwrap();
+        let (m2, n2) = ingest_requests(&d, &deep.run_id, Some(&deep));
+        assert!(m2.is_empty() && n2[0].contains("deep"), "{n2:?}");
         let _ = fs::remove_dir_all(&d);
     }
 }
