@@ -47,6 +47,9 @@ pub struct RunRequest {
     /// Cost of the attempts before a pause (added to the final cost).
     #[serde(default)]
     pub prior_cost_usd: f64,
+    /// Set when this run carries out a change request (changes.rs).
+    #[serde(default)]
+    pub change: Option<String>,
 }
 
 /// True when Claude stopped because a usage limit was reached.
@@ -201,6 +204,7 @@ pub fn prepare_with_id(
         resume_at: None,
         continued: 0,
         prior_cost_usd: 0.0,
+        change: None,
     };
     save(root, &req)?;
     Ok(req)
@@ -301,6 +305,8 @@ pub fn recover_stale(root: &Path) -> usize {
             x.error = Some("Paused: BrewixGames closed while this ran. It continues where it stopped.".into());
             let _ = save(root, &x);
             n += 1;
+        } else if r.status == "approved" && r.change.is_some() {
+            // A queued change request: it starts again from the queue.
         } else if r.status == "approved" {
             fail_if_unfinished(root, &r.run_id, "BrewixGames closed before this run finished.");
             n += 1;

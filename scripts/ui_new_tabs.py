@@ -71,6 +71,19 @@ try:
         btn = d.find_element(By.ID, "plan-build")
         check("Game Plan lists every item with mockups, build locked", len(boxes) >= 26 and btn.get_attribute("disabled") is not None and len(d.find_elements(By.CSS_SELECTOR, ".plan-mock")) >= 4, f"{len(boxes)} items")
         check("Game Plan has Edit in Figma", len(d.find_elements(By.ID, "plan-figma")) == 1)
+        # Change requests: Send opens the confirmation with the right agent (nothing is sent here)
+        ui_item = d.find_elements(By.CSS_SELECTOR, ".plan-item[data-item^='ui']")
+        if ui_item:
+            nt = ui_item[0].find_element(By.CSS_SELECTOR, ".plan-note"); nt.send_keys("Make it bigger")
+            sb = ui_item[0].find_element(By.CSS_SELECTOR, ".plan-send")
+            check("plan item Send enables once a request is typed", sb.get_attribute("disabled") is None)
+            sb.click(); time.sleep(2.5)
+            sh = d.find_element(By.ID, "sheet").text
+            check("Send shows who does it and the cost first", "Auto (Frame)" in sh and "up to $" in sh and len(d.find_elements(By.ID, "changes-go")) == 1, sh[:120])
+            d.execute_script("closeSheet()"); time.sleep(0.3)
+            nt.clear(); nt.send_keys(" "); nt.send_keys("\b")
+            d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const p = (await window.__TAURI__.core.invoke('plans_list'))[0];
+              for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: null, note: ''}); done(); })();""")
         time.sleep(1.5); d.save_screenshot(str(SHOTS / "ui-plan.png"))
         d.execute_async_script("""const done = arguments[arguments.length-1]; (async () => { const ps = await window.__TAURI__.core.invoke('plans_list'); const p = ps[0];
           for (const s of p.sections) for (const i of s.items) await window.__TAURI__.core.invoke('plan_set', {runId: p.run_id, item: i.id, checked: true, note: null}); done(); })();""")
@@ -338,6 +351,17 @@ try:
     d.execute_script("location.hash='#settings'"); time.sleep(2)
     d.execute_script("document.getElementById('view').scrollTop=260"); time.sleep(0.5)
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))
+    # Change Requests tab: requests route to the right agents before sending
+    d.execute_script("location.hash='#changes'"); time.sleep(2.5)
+    box = d.find_element(By.ID, "change-input")
+    box.send_keys("Add a bounce animation when a coin is picked up"); box.send_keys(Keys.ENTER)
+    box.send_keys("The game lags on phones"); box.send_keys(Keys.ENTER)
+    sendb = d.find_element(By.ID, "change-send")
+    check("Changes tab lists requests and counts them on Send", len(d.find_elements(By.CSS_SELECTOR, "#change-drafts .srow")) == 2 and "Send 2" in sendb.text, sendb.text)
+    sendb.click(); time.sleep(2.5)
+    sh = d.find_element(By.ID, "sheet").text
+    check("each request goes to the fitting agent", "Auto (Motion)" in sh and "Auto (Tuner)" in sh, sh[:160])
+    d.execute_script("closeSheet(); state.changeDraft = []"); time.sleep(0.3)
     # Inspiration: popular games' pictures and what to copy from each
     import json as _j
     n_games = len(_j.loads((ROOT / "studio/reference-games.json").read_text())["games"])

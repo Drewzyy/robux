@@ -19,6 +19,7 @@ pub mod studio;
 pub mod studio_mcp;
 pub mod textures;
 pub mod refs;
+pub mod changes;
 pub mod plan;
 pub mod graph;
 pub mod review;

@@ -370,6 +370,7 @@ mod tests {
             resume_at: None,
             continued: 0,
             prior_cost_usd: 0.0,
+            change: None,
         };
         let a = build_args(
             &req,

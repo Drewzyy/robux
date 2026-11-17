@@ -354,6 +354,60 @@ fn spawn_chat(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, ru
     });
 }
 
+/// Start every change request that may start now (changes.rs decides how
+/// many at once); each one starts the next when it ends.
+fn dispatch_changes(app: &AppHandle) {
+    let Ok(r) = root() else { return };
+    let Ok(bin) = paths::claude_bin() else { return };
+    for c in studio_core::changes::take_next(&r) {
+        spawn_change(app.clone(), r.clone(), bin.clone(), c);
+    }
+}
+
+fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, c: studio_core::changes::Change) {
+    std::thread::spawn(move || {
+        let _ = app.emit("change-update", json!({ "id": c.id, "status": "working", "agent": c.agent }));
+        let app2 = app.clone();
+        let (id, run_id) = (c.id.clone(), c.run_id.clone());
+        let extra = studio_core::changes::extra_dirs(&r, &c);
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            bridge::run_approved_with(&r, &run_id, &bin, &extra, |line| {
+                let _ = app2.emit("run-line", json!({ "run_id": run_id, "line": line }));
+            })
+        }))
+        .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
+        if let Err(e) = &res {
+            runs::fail_if_unfinished(&r, &run_id, e);
+        }
+        let done = studio_core::changes::finish(&r, &id);
+        let _ = app.emit("change-update", serde_json::to_value(&done).unwrap_or(Value::Null));
+        dispatch_changes(&app);
+    });
+}
+
+#[tauri::command]
+async fn changes_list() -> Result<Value, String> {
+    let r = root()?;
+    Ok(json!({ "changes": studio_core::changes::list(&r), "max_at_once": studio_core::changes::MAX_AT_ONCE }))
+}
+
+#[tauri::command]
+async fn changes_preview(target: String, requests: Vec<Value>) -> Result<Value, String> {
+    let reqs: Vec<studio_core::changes::Request> = requests.into_iter().filter_map(|v| serde_json::from_value(v).ok()).collect();
+    studio_core::changes::preview(&root()?, &target, &reqs)
+}
+
+/// Pressing Send approves each request at the cap the preview showed.
+#[tauri::command]
+async fn changes_send(app: AppHandle, target: String, requests: Vec<Value>) -> Result<Value, String> {
+    let r = root()?;
+    paths::claude_bin()?;
+    let reqs: Vec<studio_core::changes::Request> = requests.into_iter().filter_map(|v| serde_json::from_value(v).ok()).collect();
+    let made = studio_core::changes::submit(&r, &target, &reqs)?;
+    dispatch_changes(&app);
+    Ok(json!(made))
+}
+
 /// Continue paused work (usage limit or app closed). `id` is a run or a
 /// pipeline; with no id, everything whose limit has reset.
 fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
@@ -383,7 +437,13 @@ fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
         None => runs::due(&r),
     };
     for x in solo {
-        if x.chat.is_some() {
+        if let Some(cid) = x.change.clone() {
+            runs::ready_to_continue(&r, &x.run_id)?;
+            studio_core::changes::resumed(&r, &cid);
+            if let Some(c) = studio_core::changes::list(&r).into_iter().find(|c| c.id == cid) {
+                spawn_change(app.clone(), r.clone(), bin.clone(), c);
+            }
+        } else if x.chat.is_some() {
             chat::ready_to_continue(&r, &x.run_id)?;
             spawn_chat(app.clone(), r.clone(), bin.clone(), x.run_id);
         } else {
@@ -886,6 +946,7 @@ fn main() {
     claude::export_git_bash();
     if let Ok(r) = paths::studio_root() {
         runs::recover_stale(&r);
+        studio_core::changes::recover(&r);
     }
     if settings::load().ollama_autostart {
         std::thread::spawn(ollama::ensure_running);
@@ -926,6 +987,9 @@ fn main() {
             pipeline_cancel,
             pipeline_approve_and_start,
             continue_now,
+            changes_list,
+            changes_preview,
+            changes_send,
             paused_work,
             chat_get,
             ollama_status,
@@ -1000,6 +1064,8 @@ fn main() {
             let h = app.handle().clone();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_secs(20));
+                // Change requests sent before the app closed carry on.
+                dispatch_changes(&h);
                 loop {
                     if let Err(e) = continue_paused(&h, None) {
                         eprintln!("continue paused work: {e}");

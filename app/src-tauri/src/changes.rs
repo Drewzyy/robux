@@ -1,0 +1,385 @@
+//! Change requests: Andrew writes what to change (on a game plan item or on
+//! a built game), presses Send, and each request goes to the agent best
+//! suited to it. Pressing Send approves every request at the cap shown, like
+//! a chat message. Up to MAX_AT_ONCE agents work at the same time, one per
+//! agent kind (two Frames never edit the same game at once). Plan changes are
+//! written by the agent as change.json and merged into plan.json by the app,
+//! one at a time, so parallel agents never overwrite each other.
+
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::fs;
+use std::path::{Path, PathBuf};
+
+pub const MAX_AT_ONCE: usize = 3;
+static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Change {
+    pub id: String,
+    /// "plan:<planner run id>" or "project:<name>"
+    pub target: String,
+    /// Plan item id, for plan changes.
+    #[serde(default)]
+    pub item: Option<String>,
+    pub text: String,
+    pub agent: String,
+    /// queued | working | paused | done | failed
+    pub status: String,
+    pub run_id: String,
+    pub created_at: String,
+    #[serde(default)]
+    pub finished_at: Option<String>,
+    /// What the agent says it changed (first lines of change.md).
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub checks: Vec<crate::queue::GateCheck>,
+    #[serde(default)]
+    pub cost_usd: Option<f64>,
+}
+
+fn path(root: &Path) -> PathBuf {
+    root.join("runs").join("changes.json")
+}
+
+pub fn list(root: &Path) -> Vec<Change> {
+    crate::paths::read_json::<Vec<Change>>(&path(root)).unwrap_or_default()
+}
+
+fn save_all(root: &Path, all: &[Change]) -> Result<(), String> {
+    let _ = fs::create_dir_all(root.join("runs"));
+    crate::paths::write_atomic(&path(root), serde_json::to_string_pretty(all).map_err(|e| e.to_string())?.as_bytes())
+}
+
+fn update<F: FnOnce(&mut Change)>(root: &Path, id: &str, f: F) -> Option<Change> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let c = all.iter_mut().find(|c| c.id == id)?;
+    f(c);
+    let out = c.clone();
+    let _ = save_all(root, &all);
+    Some(out)
+}
+
+/// Which agent a plan section belongs to.
+pub fn agent_for_section(section: &str) -> &'static str {
+    match section {
+        "ui" | "accessibility" => "frame",
+        "world" => "scenic",
+        "characters" | "cosmetics" => "modeler",
+        "animations" => "motion",
+        "sounds" => "librarian",
+        "monetization" => "merchant",
+        "retention" => "liveops",
+        "core-loop" | "style-kit" | "tech" => "architect",
+        _ => "planner",
+    }
+}
+
+/// Which agent a free-text request on a built game belongs to.
+pub fn agent_for_text(text: &str) -> &'static str {
+    let t = format!(" {} ", text.to_lowercase());
+    let any = |ws: &[&str]| ws.iter().any(|w| t.contains(w));
+    if any(&["lag", "slow", "fps", "performance", "memory", "stutter", "frame rate"]) {
+        "tuner"
+    } else if any(&["thumbnail", "game icon", "cover art", "store image"]) {
+        "splash"
+    } else if any(&["sound", "music", "sfx", "audio", "volume"]) {
+        "librarian"
+    } else if any(&["animation", "animate", " vfx", "effect", "particle", "tween", "juice", "shake", "bounce", "glow"]) {
+        "motion"
+    } else if any(&["button", " ui", "ui ", "menu", "hud", "screen", "font", "popup", "pop-up", "text size", "layout", "icon"]) {
+        "frame"
+    } else if any(&["map", "world", "lighting", "terrain", "zone", "island", " sky", "fog", "biome", "spawn area", "decor"]) {
+        "scenic"
+    } else if any(&["model", "mesh", " hat", "cape", "prop", "pet look", "character look"]) {
+        "modeler"
+    } else if any(&["price", "gamepass", "game pass", "robux", "dev product", "monetiz"]) {
+        "merchant"
+    } else if any(&["npc", "enemy ai", "pathfind", "crowd", "mob "]) {
+        "crowd"
+    } else {
+        "builder"
+    }
+}
+
+/// The plan, its item and the item's section, for a plan change.
+fn plan_item(root: &Path, plan_run: &str, item: &str) -> Result<(Value, Value, String), String> {
+    let plan = crate::plan::list(root).into_iter().find(|p| p["run_id"] == plan_run).ok_or("plan not found")?;
+    for s in plan["sections"].as_array().into_iter().flatten() {
+        for it in s["items"].as_array().into_iter().flatten() {
+            if it["id"] == item {
+                return Ok((plan.clone(), it.clone(), s["id"].as_str().unwrap_or("").to_string()));
+            }
+        }
+    }
+    Err(format!("no item {item} in that plan"))
+}
+
+fn check_target(root: &Path, target: &str) -> Result<(), String> {
+    if let Some(p) = target.strip_prefix("project:") {
+        if !crate::paths::valid_id(p) || !root.join("projects").join(p).join("default.project.json").is_file() {
+            return Err(format!("no game project named {p}"));
+        }
+        Ok(())
+    } else if let Some(r) = target.strip_prefix("plan:") {
+        if !crate::paths::valid_id(r) {
+            return Err("bad plan id".into());
+        }
+        Ok(())
+    } else {
+        Err("a change needs a game or a plan".into())
+    }
+}
+
+/// The instruction an agent gets for one change.
+pub fn prompt_for(root: &Path, target: &str, item: Option<&str>, text: &str) -> Result<String, String> {
+    let head = "This is ONE change request from Andrew, not a full job. Do only this change and keep everything else as it is. Skip your usual full report.";
+    let tail = "Then write change.md in your run folder: what you changed and why, in 3 to 8 short lines (first line: one-sentence summary), and gate.json with your checks.";
+    if let Some(p) = target.strip_prefix("project:") {
+        let notes = root.join("projects").join(p).join("docs/notes-from-andrew.md");
+        return Ok(format!(
+            "{head}\n\nGame: projects/{p}\nChange request: {text}\n\nEdit the files in projects/{p} directly.{} If you touch Luau code, make sure the game still builds (`brewix gate build projects/{p}` when you have it). Never publish or upload anything.\n\n{tail}",
+            if notes.is_file() { format!(" Read projects/{p}/docs/notes-from-andrew.md first.") } else { String::new() }
+        ));
+    }
+    let plan_run = target.strip_prefix("plan:").unwrap_or("");
+    let item = item.ok_or("a plan change needs an item")?;
+    let (plan, it, sec) = plan_item(root, plan_run, item)?;
+    Ok(format!(
+        "{head}\n\nGame plan: runs/{plan_run}/plan.json (\"{}\"), section \"{sec}\", item \"{item}\": {}\n{}Change request: {text}\n\nDo NOT edit plan.json; the app merges your answer. Write change.json in your run folder, exactly: {{\"item\": \"{item}\", \"text\": \"<the new item text, one or two sentences>\", \"mock\": null}}. If the change affects how the item looks{}, draw a new SVG mockup at mockups/{item}.svg in your run folder and set \"mock\": \"mockups/{item}.svg\".\n\n{tail}",
+        plan["title"].as_str().unwrap_or(""),
+        it["text"].as_str().unwrap_or(""),
+        it["mock"].as_str().map(|m| format!("Its current mockup: runs/{plan_run}/{m}\n")).unwrap_or_default(),
+        if it["mock"].is_string() { " (it has a mockup)" } else { "" }
+    ))
+}
+
+/// One request as Andrew writes it.
+#[derive(Deserialize, Clone, Debug)]
+pub struct Request {
+    #[serde(default)]
+    pub item: Option<String>,
+    pub text: String,
+    /// Empty or "auto" picks the agent.
+    #[serde(default)]
+    pub agent: Option<String>,
+}
+
+fn pick_agent(root: &Path, target: &str, r: &Request) -> Result<String, String> {
+    if let Some(a) = r.agent.as_deref().filter(|a| !a.is_empty() && *a != "auto") {
+        return Ok(a.to_string());
+    }
+    if let (Some(p), Some(it)) = (target.strip_prefix("plan:"), r.item.as_deref()) {
+        let (_, _, sec) = plan_item(root, p, it)?;
+        return Ok(agent_for_section(&sec).to_string());
+    }
+    Ok(agent_for_text(&r.text).to_string())
+}
+
+/// Who would do each request and what it may cost, before sending.
+pub fn preview(root: &Path, target: &str, reqs: &[Request]) -> Result<Value, String> {
+    check_target(root, target)?;
+    let agents = crate::cost::load_agents(root)?;
+    let pricing = crate::cost::load_pricing(root)?;
+    let free = crate::settings::load().engine == "ollama";
+    let mut rows = vec![];
+    let mut total = 0.0;
+    for r in reqs {
+        let agent = pick_agent(root, target, r)?;
+        let prof = agents.agents.get(&agent).ok_or_else(|| format!("unknown agent {agent}"))?;
+        let prompt = prompt_for(root, target, r.item.as_deref(), &r.text)?;
+        let e = crate::cost::estimate(&agent, prof, &prompt, &pricing)?;
+        let cap = if free { 0.0 } else { e.cap_usd };
+        total += cap;
+        rows.push(json!({ "agent": agent, "cap_usd": cap, "expected_usd": if free { 0.0 } else { e.expected_usd } }));
+    }
+    Ok(json!({ "rows": rows, "total_cap_usd": total }))
+}
+
+/// Send requests: each becomes an approved run for its agent, queued.
+/// Pressing Send is the approval of the caps shown by `preview`.
+pub fn submit(root: &Path, target: &str, reqs: &[Request]) -> Result<Vec<Change>, String> {
+    check_target(root, target)?;
+    let reqs: Vec<&Request> = reqs.iter().filter(|r| !r.text.trim().is_empty()).collect();
+    if reqs.is_empty() {
+        return Err("Write a change request first.".into());
+    }
+    let mut made = vec![];
+    for r in reqs {
+        let agent = pick_agent(root, target, r)?;
+        let prompt = prompt_for(root, target, r.item.as_deref(), r.text.trim())?;
+        let mut req = crate::runs::prepare(root, &agent, &prompt)?;
+        let id = format!("chg-{}", req.run_id.trim_start_matches("run-"));
+        req.change = Some(id.clone());
+        crate::runs::save(root, &req)?;
+        if let Err(e) = crate::runs::approve(root, &req.run_id, req.estimate.cap_usd) {
+            let _ = crate::runs::cancel(root, &req.run_id);
+            return Err(if made.is_empty() { e } else { format!("Sent {} of the changes, then: {e}", made.len()) });
+        }
+        let c = Change {
+            id,
+            target: target.into(),
+            item: r.item.clone(),
+            text: r.text.trim().into(),
+            agent,
+            status: "queued".into(),
+            run_id: req.run_id.clone(),
+            created_at: crate::now_rfc3339(),
+            finished_at: None,
+            summary: None,
+            checks: vec![],
+            cost_usd: None,
+        };
+        {
+            let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            let mut all = list(root);
+            all.push(c.clone());
+            save_all(root, &all)?;
+        }
+        made.push(c);
+    }
+    Ok(made)
+}
+
+/// Changes to start now: queued ones, oldest first, while fewer than
+/// MAX_AT_ONCE are working and no change for the same agent and target is.
+/// The picked ones are marked working before this returns.
+pub fn take_next(root: &Path) -> Vec<Change> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
+    let mut out = vec![];
+    for c in all.iter_mut().filter(|c| c.status == "queued") {
+        if busy.len() >= MAX_AT_ONCE {
+            break;
+        }
+        if busy.iter().any(|(a, t)| *a == c.agent && *t == c.target) {
+            continue;
+        }
+        c.status = "working".into();
+        busy.push((c.agent.clone(), c.target.clone()));
+        out.push(c.clone());
+    }
+    if !out.is_empty() {
+        let _ = save_all(root, &all);
+    }
+    out
+}
+
+/// Folders the agent may read besides its own: the plan's run folder.
+pub fn extra_dirs(root: &Path, c: &Change) -> Vec<PathBuf> {
+    c.target.strip_prefix("plan:").map(|p| vec![root.join("runs").join(p)]).unwrap_or_default()
+}
+
+/// After the run: check the work, merge plan changes, record the result.
+pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
+    let c = list(root).into_iter().find(|c| c.id == change_id)?;
+    let req = crate::runs::load(root, &c.run_id).ok()?;
+    if req.status == "paused" {
+        return update(root, change_id, |x| x.status = "paused".into());
+    }
+    let dir = crate::runs::run_dir(root, &c.run_id).ok()?;
+    let note = fs::read_to_string(dir.join("change.md")).unwrap_or_default();
+    let mut checks = vec![
+        crate::queue::GateCheck { name: "the agent finished".into(), passed: req.status == "done", detail: req.error.clone().unwrap_or_else(|| req.status.clone()) },
+        crate::queue::GateCheck { name: "wrote change.md".into(), passed: !note.trim().is_empty(), detail: String::new() },
+    ];
+    let agents = crate::cost::load_agents(root).ok();
+    if let Some(prof) = agents.as_ref().and_then(|a| a.agents.get(&c.agent)) {
+        let (ok, detail) = crate::pipeline::loads_within(root, &dir, &c.agent, &prof.allowed_sections, &extra_dirs(root, &c));
+        checks.push(crate::queue::GateCheck { name: "loaded only allowed vault sections".into(), passed: ok, detail });
+    }
+    if let Some(p) = c.target.strip_prefix("project:") {
+        // Code changed: the game must still build.
+        if ["builder", "motion", "tuner", "frame", "crowd", "merchant"].contains(&c.agent.as_str()) && req.status == "done" {
+            checks.extend(crate::gates::build_gate(root, &format!("projects/{p}")));
+        }
+    } else if let (Some(plan_run), Some(item)) = (c.target.strip_prefix("plan:"), c.item.as_deref()) {
+        let applied = if req.status == "done" { crate::plan::apply_change(root, plan_run, item, &dir, change_id) } else { Err("the agent did not finish".into()) };
+        checks.push(crate::queue::GateCheck { name: "merged into the plan".into(), passed: applied.is_ok(), detail: applied.err().unwrap_or_default() });
+    }
+    let ok = checks.iter().all(|x| x.passed);
+    let summary = note.lines().map(|l| l.trim_start_matches('#').trim()).find(|l| !l.is_empty()).map(|l| l.chars().take(240).collect());
+    update(root, change_id, |x| {
+        x.status = if ok { "done".into() } else { "failed".into() };
+        x.finished_at = Some(crate::now_rfc3339());
+        x.summary = summary.or_else(|| req.error.clone());
+        x.checks = checks;
+        x.cost_usd = req.actual_cost_usd;
+    })
+}
+
+/// A change whose run was paused by the usage limit goes back to working.
+pub fn resumed(root: &Path, change_id: &str) {
+    update(root, change_id, |x| x.status = "working".into());
+}
+
+/// At startup: changes left working had their run cut off (the run itself
+/// is paused or failed by runs::recover_stale); follow the run's state.
+pub fn recover(root: &Path) {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let mut changed = false;
+    for c in all.iter_mut().filter(|c| c.status == "working" || c.status == "queued") {
+        let st = crate::runs::load(root, &c.run_id).map(|r| r.status).unwrap_or_else(|_| "failed".into());
+        let new = match st.as_str() {
+            "paused" => "paused",
+            "approved" => "queued",
+            "running" => continue,
+            _ if c.status == "queued" => continue,
+            _ => "failed",
+        };
+        if c.status != new {
+            c.status = new.into();
+            changed = true;
+        }
+    }
+    if changed {
+        let _ = save_all(root, &all);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn routes_requests_to_the_right_agent() {
+        assert_eq!(agent_for_text("make the buy button bigger"), "frame");
+        assert_eq!(agent_for_text("the spawn island needs more fog and warmer lighting"), "scenic");
+        assert_eq!(agent_for_text("add a little bounce animation when a coin is picked up"), "motion");
+        assert_eq!(agent_for_text("the game lags on phones"), "tuner");
+        assert_eq!(agent_for_text("lower the price of the VIP gamepass"), "merchant");
+        assert_eq!(agent_for_text("double jump should reset on walls"), "builder");
+        assert_eq!(agent_for_section("ui"), "frame");
+        assert_eq!(agent_for_section("world"), "scenic");
+        assert_eq!(agent_for_section("risks"), "planner");
+    }
+
+    fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
+        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None }
+    }
+
+    #[test]
+    fn runs_up_to_three_at_once_and_one_per_agent_and_game() {
+        let d = std::env::temp_dir().join(format!("chg-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("runs")).unwrap();
+        let all = vec![
+            change("1", "frame", "project:a", "queued"),
+            change("2", "frame", "project:a", "queued"),
+            change("3", "scenic", "project:a", "queued"),
+            change("4", "frame", "project:b", "queued"),
+            change("5", "motion", "project:a", "queued"),
+        ];
+        save_all(&d, &all).unwrap();
+        let first: Vec<String> = take_next(&d).into_iter().map(|c| c.id).collect();
+        assert_eq!(first, vec!["1", "3", "4"], "two Frames on the same game never run together; at most 3");
+        assert!(take_next(&d).is_empty(), "all three slots busy");
+        update(&d, "1", |c| c.status = "done".into());
+        let next: Vec<String> = take_next(&d).into_iter().map(|c| c.id).collect();
+        assert_eq!(next, vec!["2"], "the second Frame change waits for the first, then goes before later ones");
+        let _ = fs::remove_dir_all(&d);
+    }
+}

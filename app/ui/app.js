@@ -183,7 +183,7 @@ function dropZone(node, onFiles, accept = /^image\//) {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Inspiration (game pictures)", "inspo"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Inspiration (game pictures)", "inspo"], ["Change Requests", "changes"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -215,12 +215,12 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 // Six places in the sidebar; grouped pages get tabs along the top.
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
-  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["inspo", "Inspiration"], ["runs", "Build"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
+  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["inspo", "Inspiration"], ["runs", "Build"], ["changes", "Changes"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
   check: [["score", "Game Score"], ["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, changes: viewChanges, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -590,7 +590,7 @@ T.event.listen("review-done", (ev) => {
 // =====================================================================
 async function viewPlans(id) {
   const nav = navSeq;
-  const plans = await invoke("plans_list");
+  const [plans, chg] = await Promise.all([invoke("plans_list"), invoke("changes_list").catch(() => ({ changes: [] }))]);
   if (!plans.length) {
     showIf(nav, page(head("Game Plan", "Every part of the game, mocked up, for you to check off before anything is built"),
       el("div", { class: "card empty", style: "padding:56px 24px" }, el("div", { class: "empty-title" }, "No plans yet"),
@@ -609,16 +609,29 @@ async function viewPlans(id) {
     invoke("plan_mock", { runId: p.run_id, path }).then((svg) => { img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); }).catch(() => img.replaceWith(el("div", { class: "note" }, `Mockup missing: ${path}`)));
     return img;
   };
+  const target = "plan:" + p.run_id;
+  const itemChanges = (iid) => chg.changes.filter((c) => c.target === target && c.item === iid);
+  const changedBy = ap.changed || {};
+  const pending = () => p.sections.flatMap((s) => s.items).filter((it) => (notes[it.id] || "").trim() && !itemChanges(it.id).some((c) => ["queued", "working", "paused"].includes(c.status)));
   const item = (it) => {
     const cb = el("input", { type: "checkbox", class: "plan-check", checked: !!checked[it.id], onchange: async () => { await invoke("plan_set", { runId: p.run_id, item: it.id, checked: cb.checked, note: null }).catch((e) => toast(String(e), true)); viewPlans(p.run_id); } });
     const note = el("textarea", { class: "plan-note", rows: 1, placeholder: "Change request (optional)" }, notes[it.id] || "");
-    note.addEventListener("change", () => invoke("plan_set", { runId: p.run_id, item: it.id, checked: null, note: note.value }).catch((e) => toast(String(e), true)));
-    return el("div", { class: "plan-item" }, el("label", { class: "inline", style: "align-items:flex-start;gap:10px" }, cb, el("span", {}, it.text)), it.mock ? mockImg(it.mock) : null, note);
+    const saveNote = () => { notes[it.id] = note.value; return invoke("plan_set", { runId: p.run_id, item: it.id, checked: null, note: note.value }).catch((e) => toast(String(e), true)); };
+    note.addEventListener("change", saveNote);
+    const sendOne = el("button", { class: "btn secondary plan-send", disabled: !note.value.trim(), onclick: async () => { await saveNote(); sendChanges(target, [{ item: it.id, text: note.value }], () => viewPlans(p.run_id)); } }, "Send");
+    note.addEventListener("input", () => { sendOne.disabled = !note.value.trim(); });
+    note.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && note.value.trim()) { e.preventDefault(); sendOne.click(); } });
+    const last = itemChanges(it.id).slice(-1)[0];
+    const status = last && ["queued", "working", "paused"].includes(last.status) ? el("div", { class: "plan-chg" }, changePill(last), el("span", { class: "note" }, last.text))
+      : changedBy[it.id] && last && last.status === "done" ? el("div", { class: "plan-chg done" }, el("span", { class: "pill white" }, `Changed by ${cap(last.agent)}`), el("span", { class: "note" }, `${last.summary || ""} Check it again.`))
+      : last && last.status === "failed" ? el("div", { class: "plan-chg" }, changePill(last), el("button", { class: "link", onclick: () => (location.hash = "#run/" + last.run_id) }, "Why"))
+      : null;
+    return el("div", { class: "plan-item", "data-item": it.id }, el("label", { class: "inline", style: "align-items:flex-start;gap:10px" }, cb, el("span", {}, it.text)), status, it.mock ? mockImg(it.mock) : null, el("div", { class: "plan-note-row" }, note, sendOne));
   };
   const others = plans.length > 1 ? el("select", { onchange: (e) => { location.hash = `#plans/${e.target.value}`; } }, plans.map((x) => el("option", { value: x.run_id, selected: x.run_id === p.run_id }, `${x.title} · ${String(x.at || "").slice(0, 10)}`))) : null;
   showIf(nav, page(head(p.title, `${p.one_liner} · ${p.done} of ${p.total} checked`, others),
-    el("div", { class: "card" }, bar, el("p", { class: "note" }, "Check each item you are happy with. Write a change request on anything you are not, then ask Planner for a new version from Runs. Building only unlocks at 100%."),
-      el("div", { class: "inline" }, build, el("button", { class: "btn secondary", onclick: () => { state.composer = { ...state.composer, mode: "agent", agent: "planner", prompt: `Revise the plan in runs/${p.run_id}/ (plan.json, plan.md, mockups/). Apply Andrew's change requests in runs/${p.run_id}/approvals.json under "notes". Keep everything else.` }; state.runsTab = "new"; location.hash = "#runs"; } }, "Ask Planner for Changes"), el("button", { class: "btn secondary", id: "plan-figma", onclick: async () => { try { await invoke("plan_to_figma", { runId: p.run_id }); toast("Drag the SVG files from the folder into your Figma file. Each screen arrives with named layers."); } catch (e) { toast(String(e), true); } } }, "Edit in Figma")), box),
+    el("div", { class: "card" }, bar, el("p", { class: "note" }, "Check each item you are happy with. Write a change request on anything you are not and press Send (or Send All): the right agent for each item makes the change, up to 3 at once, and the item comes back for you to check again. Building only unlocks at 100%."),
+      el("div", { class: "inline" }, build, (() => { const n = pending().length; return el("button", { class: "btn secondary", id: "plan-send-all", disabled: !n, onclick: () => sendChanges(target, pending().map((it) => ({ item: it.id, text: notes[it.id] })), () => viewPlans(p.run_id)) }, n ? `Send All Change Requests (${n})` : "Send All Change Requests"); })(), el("button", { class: "btn secondary", id: "plan-figma", onclick: async () => { try { await invoke("plan_to_figma", { runId: p.run_id }); toast("Drag the SVG files from the folder into your Figma file. Each screen arrives with named layers."); } catch (e) { toast(String(e), true); } } }, "Edit in Figma")), box),
     el("div", { class: "chips", style: "margin:0 0 14px" }, p.sections.map((s) => el("a", { class: "chip", onclick: () => { const n = document.getElementById(`sec-${s.id}`); if (n) n.scrollIntoView({ behavior: "smooth" }); } }, `${s.title} ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`))),
     ...p.sections.map((s) => el("div", { class: "card plan-sec", id: `sec-${s.id}` }, el("h2", {}, s.title, el("span", { class: "note" }, `  ${s.items.filter((i) => checked[i.id]).length}/${s.items.length}`)), s.items.map(item)))));
 }
@@ -1113,6 +1126,97 @@ T.event.listen("tex-line", (ev) => { const n = $("tex-status"); if (n) n.textCon
 T.event.listen("tex-done", (ev) => {
   if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.message);
   if ((location.hash || "") === "#vault") viewVault();
+});
+
+// Change requests: write what to change, press Send, and each request goes
+// to the agent that fits it. Up to three agents work at once.
+const CHANGE_AGENTS = ["auto", "builder", "frame", "scenic", "motion", "modeler", "librarian", "merchant", "tuner", "crowd", "splash", "architect", "planner", "liveops"];
+const changeLabel = (c) => ({ queued: `Waiting for ${cap(c.agent)}`, working: `${cap(c.agent)} is on it`, paused: "Paused (usage limit)", done: "Done", failed: "Didn't finish" })[c.status] || cap(c.status);
+const changePill = (c) => el("span", { class: c.status === "working" ? "pill red" : c.status === "failed" ? "pill red-soft" : c.status === "done" ? "pill white" : "pill" }, changeLabel(c));
+// Confirm sheet: who does each request and what it may cost. Send approves.
+async function sendChanges(target, reqs, after) {
+  reqs = reqs.filter((r) => r.text && r.text.trim());
+  if (!reqs.length) { toast("Write a change request first.", true); return; }
+  const rows = reqs.map((r) => ({ ...r, agent: r.agent || "auto" }));
+  const list = el("div", { class: "list" });
+  const total = el("div", { class: "hint" });
+  const go = el("button", { class: "btn primary", id: "changes-go" }, "Send");
+  const draw = async () => {
+    let pv;
+    try { pv = await invoke("changes_preview", { target, requests: rows }); } catch (e) { total.textContent = String(e); go.disabled = true; return; }
+    go.disabled = false;
+    list.replaceChildren(...rows.map((r, i) => {
+      const sel = el("select", { class: "chg-agent" }, CHANGE_AGENTS.map((a) => el("option", { value: a }, a === "auto" ? `Auto (${cap(pv.rows[i].agent)})` : cap(a))));
+      sel.value = r.agent;
+      sel.addEventListener("change", () => { r.agent = sel.value; draw(); });
+      return el("div", { class: "srow" }, el("div", { class: "grow label" }, r.text), sel, el("span", { class: "note", style: "min-width:70px;text-align:right" }, `up to ${usd(pv.rows[i].cap_usd)}`));
+    }));
+    total.textContent = `${rows.length} request${rows.length > 1 ? "s" : ""}, up to ${usd(pv.total_cap_usd)} in all. Up to 3 agents work at once; each one reads its request, makes only that change, and reports back.`;
+    go.textContent = `Send ${rows.length > 1 ? rows.length + " Requests" : "Request"}`;
+  };
+  go.addEventListener("click", async () => {
+    go.disabled = true;
+    try {
+      const made = await invoke("changes_send", { target, requests: rows.map((r) => ({ item: r.item || null, text: r.text, agent: r.agent })) });
+      closeSheet();
+      toast(`Sent ${made.length} change request${made.length > 1 ? "s" : ""}. The agents are starting.`);
+      if (after) after(made);
+    } catch (e) { toast(String(e), true); go.disabled = false; }
+  });
+  sheet("Send change requests", total, list, el("div", { class: "inline", style: "margin-top:12px" }, go, el("span", { class: "note" }, "Pressing Send approves these costs.")));
+  await draw();
+}
+function changeRow(c) {
+  return el("div", { class: "row chg-row", "data-change": c.id },
+    el("div", { class: "grow" },
+      el("div", { class: "row-title" }, c.text),
+      el("div", { class: "row-sub" }, `${cap(c.agent)} · ${c.target.replace(/^project:/, "").replace(/^plan:.*/, "game plan")}${c.cost_usd != null ? " · " + usd(c.cost_usd, 2) : ""} · ${ago(c.created_at)}`),
+      c.summary ? el("div", { class: "note", style: "margin-top:4px" }, c.summary) : null,
+      c.status === "failed" && c.checks.length ? el("div", { class: "note" }, c.checks.filter((k) => !k.passed).map((k) => `${k.name}${k.detail ? ": " + k.detail.slice(0, 160) : ""}`).join(" · ")) : null),
+    changePill(c),
+    c.status === "paused" ? el("button", { class: "btn secondary", onclick: (e) => continueNow(c.run_id, e.currentTarget) }, "Continue Now") : null,
+    el("button", { class: "link", onclick: () => (location.hash = "#run/" + c.run_id) }, "Details"));
+}
+async function viewChanges() {
+  const nav = navSeq;
+  await freshStatus();
+  const pick = await projectPicker(viewChanges);
+  const { changes } = await invoke("changes_list");
+  const draft = (state.changeDraft ||= []);
+  const input = el("textarea", { id: "change-input", rows: 2, placeholder: "What should change? One request per line, e.g. \"Make the shop button bigger\". Enter adds it, Shift+Enter for a new line." });
+  const drafts = el("div", { class: "list", id: "change-drafts" });
+  const send = el("button", { class: "btn primary", id: "change-send" });
+  const drawDrafts = () => {
+    drafts.replaceChildren(...draft.map((t, i) => el("div", { class: "srow" }, el("div", { class: "grow label" }, t), el("button", { class: "link", onclick: () => { draft.splice(i, 1); drawDrafts(); } }, "Remove"))));
+    send.disabled = !state.project || !draft.length;
+    send.textContent = draft.length ? `Send ${draft.length} Change Request${draft.length > 1 ? "s" : ""}` : "Send";
+  };
+  const add = () => { for (const l of input.value.split("\n").map((x) => x.trim()).filter(Boolean)) draft.push(l); input.value = ""; state.changeInput = ""; drawDrafts(); };
+  input.value = state.changeInput || "";
+  input.addEventListener("input", () => { state.changeInput = input.value; });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); add(); } });
+  send.addEventListener("click", () => { add(); sendChanges("project:" + state.project.replace(/^projects\//, ""), draft.map((text) => ({ text })), () => { draft.length = 0; viewChanges(); }); });
+  drawDrafts();
+  const mine = changes.slice().reverse();
+  const live = mine.filter((c) => ["queued", "working", "paused"].includes(c.status));
+  const past = mine.filter((c) => !live.includes(c)).slice(0, 40);
+  showIf(nav, page(
+    head("Change Requests", el("span", {}, "Write what to change, press Send, and the right agents make the tweaks. Up to 3 work at once.")),
+    el("div", { class: "card" }, el("div", { class: "inline", style: "margin-bottom:10px" }, el("label", { for: "project-pick" }, "Game"), pick),
+      input, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn secondary", onclick: add }, "Add to List"), send), drafts),
+    el("div", { class: "section" }, el("div", { class: "section-label" }, `Working now (${live.length})`),
+      live.length ? el("div", { class: "list", id: "changes-live" }, live.map(changeRow)) : el("div", { class: "note" }, "Nothing in progress.")),
+    past.length ? el("div", { class: "section" }, el("div", { class: "section-label" }, "Finished"), el("div", { class: "list", id: "changes-past" }, past.map(changeRow))) : null));
+  input.focus();
+}
+T.event.listen("change-update", () => {
+  const h = location.hash || "";
+  refreshStatus();
+  // Never redraw under someone typing; the next visit shows the news.
+  const a = document.activeElement;
+  if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT") && $("view").contains(a) && a.value) return;
+  if (h === "#changes") viewChanges();
+  else if (h.startsWith("#plans")) viewPlans(h.split("/")[1]);
 });
 
 // Inspiration: pictures of popular games (UI, characters, worlds) with what

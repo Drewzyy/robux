@@ -401,3 +401,11 @@ img.lazy.in { opacity: 1; }
 .ref-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .ref-learn p { margin: 8px 0; line-height: 1.45; }
 .page-head + .card .inline .search, #ref-q { flex: 1; min-width: 200px; }
+/* Change requests */
+.plan-note-row { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0 0 28px; }
+.plan-note-row .plan-note { flex: 1; width: auto; margin: 0; }
+.plan-send { flex: 0 0 auto; padding: 6px 14px; }
+.plan-chg { display: flex; gap: 8px; align-items: center; margin: 8px 0 0 28px; flex-wrap: wrap; }
+.chg-row { align-items: flex-start; gap: 10px; }
+.chg-agent { width: auto; max-width: 170px; }
+#change-input { width: 100%; }
