@@ -15,5 +15,4 @@ Load only the note your task needs. Do not read every note in this section.
 | Note | What it holds | Status |
 |---|---|---|
 | [[19-Project-Memory/how-project-memory-works]] | Decisions per game are appended by the app; agents read, never edit. | verified |
-| [[19-Project-Memory/ui-test-idea-references]] | Images and video frames for ui-test-idea, with what to take from each. | verified |
 | [[19-Project-Memory/dawn-watch-references]] | Images and video frames for dawn-watch, with what to take from each. | verified |

@@ -340,4 +340,13 @@ try:
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))
 finally:
     d.quit(); drv.terminate()
+    # leave no test game behind (folders and its row in the memory index)
+    import shutil as _shc
+    for _p in ["projects/ui-test-idea", "projects/ui-dump-idea", "vault/19-Project-Memory/references/ui-test-idea", "vault/19-Project-Memory/references/ui-dump-idea"]:
+        _shc.rmtree(ROOT / _p, ignore_errors=True)
+    for _f in ["ui-test-idea", "ui-dump-idea"]:
+        (ROOT / f"vault/19-Project-Memory/{_f}-references.md").unlink(missing_ok=True)
+    _idx = ROOT / "vault/19-Project-Memory/index.md"
+    if _idx.exists():
+        _idx.write_text("".join(l for l in _idx.read_text().splitlines(True) if "ui-test-idea" not in l and "ui-dump-idea" not in l))
 print("NEW TABS:", "PASS" if ok else "FAIL"); sys.exit(0 if ok else 1)
