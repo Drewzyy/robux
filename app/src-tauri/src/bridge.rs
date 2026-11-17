@@ -41,12 +41,18 @@ pub fn build_args(
     run_dir: &Path,
     has_skill: bool,
 ) -> Vec<String> {
-    let prompt = if has_skill {
-        format!("/{} {}", req.agent, req.prompt)
-    } else if req.prompt.starts_with('-') {
-        format!(" {}", req.prompt) // a leading dash would be read as an option
+    // A continued run: tell the agent it was stopped partway.
+    let cont = if req.continued > 0 && req.chat.is_none() {
+        "[You were stopped partway through this task (Claude's usage limit, or the app closed) and are now continuing. Your run folder already holds what you wrote before; read it first, keep what is finished, and finish the task. Do not start over.]\n\n"
     } else {
-        req.prompt.clone()
+        ""
+    };
+    let prompt = if has_skill {
+        format!("/{} {cont}{}", req.agent, req.prompt)
+    } else if req.prompt.starts_with('-') {
+        format!(" {cont}{}", req.prompt) // a leading dash would be read as an option
+    } else {
+        format!("{cont}{}", req.prompt)
     };
     let context = format!(
         "Run context. Run id: {}. Your run folder is {} (absolute path). Write every output file there, \
@@ -83,7 +89,8 @@ pub fn build_args(
         "--verbose".into(),
         "--max-budget-usd".into(),
         // Local runs cost nothing; give them a cap that never stops them.
-        if req.estimate.cap_usd > 0.0 { format!("{:.2}", req.estimate.cap_usd) } else { "1000".into() },
+        // A continued run only gets what is left of the approved cap.
+        if req.estimate.cap_usd > 0.0 { format!("{:.2}", (req.estimate.cap_usd - req.prior_cost_usd).max(0.01)) } else { "1000".into() },
         // Only the vault's own settings (hooks, deny rules) and no MCP
         // servers: agents do not inherit plugins or tools from the user's
         // personal Claude Code setup.
@@ -153,6 +160,11 @@ pub fn run_approved_with<F: FnMut(&str)>(
 
     let vault = root.join("vault");
     let mut add_dirs = vec![root.join("projects"), dir.clone()];
+    if req.chat.is_some() {
+        let f = crate::chat::files_dir(root);
+        let _ = fs::create_dir_all(&f);
+        add_dirs.push(f);
+    }
     add_dirs.extend(extra_dirs.iter().cloned());
     let has_skill = vault
         .join(".claude/skills")
@@ -292,7 +304,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
 
     req.status = if ok { "done".into() } else { "failed".into() };
     req.finished_at = Some(crate::now_rfc3339());
-    req.actual_cost_usd = cost;
+    req.actual_cost_usd = cost.map(|c| c + req.prior_cost_usd).or(Some(req.prior_cost_usd).filter(|c| *c > 0.0));
     req.result_text = Some(result_text.clone());
     if !ok {
         req.error = Some(if final_result.is_none() {
@@ -302,12 +314,17 @@ pub fn run_approved_with<F: FnMut(&str)>(
         });
     }
     runs::save(root, &req)?;
+    // Stopped by a usage limit: pause (keep the work) instead of failing.
+    let limit_text = format!("{result_text}\n{stderr_tail}");
+    if !ok && runs::is_limit(&limit_text) {
+        let _ = runs::pause(root, run_id, &limit_text);
+    }
 
     Ok(RunOutcome {
         run_id: run_id.to_string(),
         ok,
         result_text,
-        actual_cost_usd: cost,
+        actual_cost_usd: req.actual_cost_usd,
         num_turns: turns,
         exit_code: status.code(),
         stderr_tail,
@@ -350,6 +367,9 @@ mod tests {
             chat: None,
             resume: None,
             engine: None,
+            resume_at: None,
+            continued: 0,
+            prior_cost_usd: 0.0,
         };
         let a = build_args(
             &req,

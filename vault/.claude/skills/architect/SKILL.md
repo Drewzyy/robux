@@ -67,3 +67,5 @@ Fill `17-Development-Templates/style-kit-template` under a `## Style kit` headin
 Use `brewix node` on `16-Market-Research/roblox-hit-patterns`, `02-Game-Design/loop-stack`, `02-Game-Design/economy-math`, `05-Progression/progression-curves`, and the teardown closest to this game (`brewix map 16-Market-Research`).
 
 Check the genre's `16-Market-Research/reviews-<niche>` note (`brewix map 16-Market-Research`) and design around its top loves and away from its top hates.
+
+Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.

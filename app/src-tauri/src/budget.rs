@@ -34,7 +34,7 @@ pub fn spend(root: &Path, budget_usd: f64) -> Spend {
     let mut running = vec![];
     for r in runs::list(root).unwrap_or_default() {
         match r.status.as_str() {
-            "done" | "failed" => {
+            "done" | "failed" | "paused" => {
                 let when = r.finished_at.clone().unwrap_or_else(|| r.created_at.clone());
                 if when.starts_with(&month) {
                     spent += r.actual_cost_usd.unwrap_or(0.0);

@@ -53,3 +53,5 @@ For engine detail, load these with the Skill tool only when the task needs them:
 
 ## Code map (Graphify, if installed)
 Before reading many files of an existing game, map it: `graphify update projects/<game>` (free, no AI, under a second). Then ask the map instead of opening files: `graphify explain "<function or file>" --graph projects/<game>/graphify-out/graph.json`, `graphify affected "<function>" --graph ...` (what a change would break), `graphify path "A" "B" --graph ...`. Its free-text `query` is weak; prefer explain and affected. It reads Luau with the Lua grammar, so typed lines can be missed: open the file when the map looks incomplete. Never run `graphify install`. If the graphify command is missing, skip this and read files as usual.
+
+Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.

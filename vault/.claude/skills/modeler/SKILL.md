@@ -52,3 +52,5 @@ Checks:
 
 ## Reference skills
 For engine detail, load these with the Skill tool only when the task needs them: blender-asset-qa (run before calling a model done), blender-game-optimization (budget roblox), blender-rendering.
+
+Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.

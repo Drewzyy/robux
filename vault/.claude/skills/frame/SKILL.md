@@ -58,3 +58,5 @@ Also `brewix node 08-UI-UX/nintendo-ui-and-feel 08-UI-UX/game-ui-patterns-from-h
 Follow `08-UI-UX/figma-handoff` for layer names whenever you draw a mockup or work with Figma.
 After the first layout, run the six passes in `08-UI-UX/ui-polish-passes` (`brewix node` it), in order.
 Look at the pictures in `17-Development-Templates/example-gallery-ui` (Read the SVGs it embeds) before laying out a screen: match the good versions, avoid what the bad ones show.
+
+Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.

@@ -56,3 +56,5 @@ Before choosing the loop, run `brewix node 16-Market-Research/roblox-hit-pattern
 
 Also run `brewix map 16-Market-Research` and `brewix node` the `reviews-<niche>` note for this game's genre plus `03-Game-Psychology/what-players-love-and-hate`; plan the loves in and the hates out.
 Base your mockups on `17-Development-Templates/example-gallery-ui`, `example-gallery-maps` and `example-gallery-feel-and-loops` (Read the SVGs they embed).
+
+Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.

@@ -251,30 +251,7 @@ async fn run_approve_and_start(app: AppHandle, run_id: String, confirmed_cap_usd
     let r = root()?;
     let bin = paths::claude_bin()?;
     runs::approve(&r, &run_id, confirmed_cap_usd)?;
-    std::thread::spawn(move || {
-        let id = run_id.clone();
-        let app2 = app.clone();
-        // A crash inside the run must still end it in the UI.
-        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            bridge::run_approved(&r, &run_id, &bin, |line| {
-                let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
-            })
-        }))
-        .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
-        if let Err(e) = &res {
-            runs::fail_if_unfinished(&r, &run_id, e);
-        }
-        let item = pipeline::finish_single(&r, &run_id).ok().flatten();
-        let payload = match res {
-            Ok(o) => {
-                let mut v = serde_json::to_value(o).unwrap_or(Value::Null);
-                v["queue_item"] = json!(item.map(|i| i.id));
-                v
-            }
-            Err(e) => json!({ "run_id": run_id, "ok": false, "error": e }),
-        };
-        let _ = app.emit("run-done", payload);
-    });
+    spawn_run(app, r, bin, run_id);
     Ok(())
 }
 
@@ -300,6 +277,38 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
     let r = root()?;
     let bin = paths::claude_bin()?;
     pipeline::approve(&r, &pipeline_id, confirmed_cap_usd)?;
+    spawn_pipeline(app, r, bin, pipeline_id);
+    Ok(())
+}
+
+fn spawn_run(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, run_id: String) {
+    std::thread::spawn(move || {
+        let id = run_id.clone();
+        let app2 = app.clone();
+        // A crash inside the run must still end it in the UI.
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            bridge::run_approved(&r, &run_id, &bin, |line| {
+                let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
+            })
+        }))
+        .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
+        if let Err(e) = &res {
+            runs::fail_if_unfinished(&r, &run_id, e);
+        }
+        let item = pipeline::finish_single(&r, &run_id).ok().flatten();
+        let payload = match res {
+            Ok(o) => {
+                let mut v = serde_json::to_value(o).unwrap_or(Value::Null);
+                v["queue_item"] = json!(item.map(|i| i.id));
+                v
+            }
+            Err(e) => json!({ "run_id": run_id, "ok": false, "error": e }),
+        };
+        let _ = app.emit("run-done", payload);
+    });
+}
+
+fn spawn_pipeline(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, pipeline_id: String) {
     std::thread::spawn(move || {
         let app2 = app.clone();
         let pid = pipeline_id.clone();
@@ -324,10 +333,104 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
         };
         let _ = app.emit("pipe-done", payload);
     });
-    Ok(())
+}
+
+fn spawn_chat(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, run_id: String) {
+    let id = run_id.clone();
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let id2 = id.clone();
+        // A crash must still send chat-done, or Send stays disabled.
+        let msg = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            chat::finish(&r, &id, &bin, |line| {
+                let _ = app2.emit("chat-line", json!({ "run_id": id2, "line": line }));
+            })
+        }));
+        if msg.is_err() {
+            runs::fail_if_unfinished(&r, &id, "the chat crashed inside the app");
+        }
+        let msg = msg.unwrap_or_else(|_| chat::Message { role: "assistant".into(), text: "That didn't finish: the app hit an error. Try again.".into(), at: studio_core::now_rfc3339(), cost_usd: None, run_id: Some(id.clone()), failed: true, attachments: vec![] });
+        let _ = app.emit("chat-done", json!({ "run_id": id, "message": msg }));
+    });
+}
+
+/// Continue paused work (usage limit or app closed). `id` is a run or a
+/// pipeline; with no id, everything whose limit has reset.
+fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
+    let manual = id.is_some();
+    let r = root()?;
+    let bin = paths::claude_bin()?;
+    let mut n = 0;
+    let pipes: Vec<pipeline::PipelineRun> = match id {
+        Some(i) if i.starts_with("pipe-") => vec![pipeline::load(&r, i)?],
+        Some(_) => vec![],
+        None => pipeline::due(&r),
+    };
+    for p in pipes {
+        pipeline::ready_to_continue(&r, &p.pipeline_id)?;
+        spawn_pipeline(app.clone(), r.clone(), bin.clone(), p.pipeline_id);
+        n += 1;
+    }
+    let solo: Vec<runs::RunRequest> = match id {
+        Some(i) if !i.starts_with("pipe-") => {
+            let x = runs::load(&r, i)?;
+            if let Some(pid) = x.pipeline_id.clone() {
+                return continue_paused(app, Some(&pid));
+            }
+            vec![x]
+        }
+        Some(_) => vec![],
+        None => runs::due(&r),
+    };
+    for x in solo {
+        if x.chat.is_some() {
+            chat::ready_to_continue(&r, &x.run_id)?;
+            spawn_chat(app.clone(), r.clone(), bin.clone(), x.run_id);
+        } else {
+            runs::ready_to_continue(&r, &x.run_id)?;
+            spawn_run(app.clone(), r.clone(), bin.clone(), x.run_id);
+        }
+        n += 1;
+    }
+    if n > 0 {
+        let _ = app.emit("work-resumed", json!({ "count": n, "manual": manual }));
+    }
+    Ok(n)
+}
+
+#[tauri::command]
+async fn continue_now(app: AppHandle, id: String) -> Result<usize, String> {
+    continue_paused(&app, Some(&id))
+}
+
+#[tauri::command]
+async fn paused_work() -> Result<Value, String> {
+    let r = root()?;
+    let runs: Vec<Value> = runs::list(&r).unwrap_or_default().into_iter().filter(|x| x.status == "paused").map(|x| json!({"id": x.pipeline_id.clone().unwrap_or(x.run_id.clone()), "agent": x.agent, "chat": x.chat.is_some(), "resume_at": x.resume_at})).collect();
+    Ok(json!(runs))
 }
 
 // ---------- Ask Claude (chat) ----------
+
+#[tauri::command]
+async fn chat_attach(name: String, data: String) -> Result<String, String> {
+    chat::attach(&root()?, &name, &data)
+}
+
+#[tauri::command]
+async fn chat_file(path: String) -> Result<String, String> {
+    // Only files saved by chat_attach, for the chat's thumbnails.
+    let r = root()?;
+    let p = std::path::PathBuf::from(&path);
+    if !p.starts_with(chat::files_dir(&r)) || path.contains("..") {
+        return Err("not a chat file".into());
+    }
+    let bytes = std::fs::read(&p).map_err(|e| e.to_string())?;
+    use base64::Engine;
+    let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("png").to_lowercase();
+    let mime = match ext.as_str() { "jpg" | "jpeg" => "image/jpeg", "webp" => "image/webp", "gif" => "image/gif", _ => "image/png" };
+    Ok(format!("data:{mime};base64,{}", base64::engine::general_purpose::STANDARD.encode(bytes)))
+}
 
 #[tauri::command]
 async fn chat_get() -> Result<Value, String> {
@@ -342,26 +445,13 @@ async fn chat_reset() -> Result<(), String> {
 
 /// Send one message. Pressing Send approves this message at the cap shown.
 #[tauri::command]
-async fn chat_send(app: AppHandle, text: String) -> Result<String, String> {
+async fn chat_send(app: AppHandle, text: String, project: Option<String>, attachments: Option<Vec<String>>) -> Result<String, String> {
     let r = root()?;
     let bin = paths::claude_bin()?;
-    let run_id = chat::begin(&r, &text)?;
-    let id = run_id.clone();
-    std::thread::spawn(move || {
-        let app2 = app.clone();
-        let id2 = id.clone();
-        // A crash must still send chat-done, or Send stays disabled.
-        let msg = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            chat::finish(&r, &id, &bin, |line| {
-                let _ = app2.emit("chat-line", json!({ "run_id": id2, "line": line }));
-            })
-        }));
-        if msg.is_err() {
-            runs::fail_if_unfinished(&r, &id, "the chat crashed inside the app");
-        }
-        let msg = msg.unwrap_or_else(|_| chat::Message { role: "assistant".into(), text: "That didn't finish: the app hit an error. Try again.".into(), at: studio_core::now_rfc3339(), cost_usd: None, run_id: Some(id.clone()), failed: true });
-        let _ = app.emit("chat-done", json!({ "run_id": id, "message": msg }));
-    });
+    let atts = attachments.unwrap_or_default();
+    let full = chat::with_context(&r, &text, project.as_deref(), &atts);
+    let run_id = chat::begin_with(&r, &text, &full, &atts)?;
+    spawn_chat(app, r, bin, run_id.clone());
     Ok(run_id)
 }
 
@@ -808,6 +898,8 @@ fn main() {
             pipeline_prepare,
             pipeline_cancel,
             pipeline_approve_and_start,
+            continue_now,
+            paused_work,
             chat_get,
             ollama_status,
             studio_mcp_status,
@@ -849,6 +941,8 @@ fn main() {
             brief_autofill,
             models_list,
             chat_model_set,
+            chat_attach,
+            chat_file,
             reviews_list,
             review_start,
             review_answer,
@@ -870,6 +964,21 @@ fn main() {
             update_check,
             update_apply
         ])
+        .setup(|app| {
+            // Work paused by Claude's usage limit continues by itself once
+            // the limit resets (checked every minute, first after 20 s).
+            let h = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(20));
+                loop {
+                    if let Err(e) = continue_paused(&h, None) {
+                        eprintln!("continue paused work: {e}");
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(60));
+                }
+            });
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running BrewixGames");
 }

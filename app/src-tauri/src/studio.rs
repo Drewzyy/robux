@@ -153,6 +153,8 @@ pub struct RunDetail {
     pub actual_usd: Option<f64>,
     pub queue_item: Option<String>,
     pub steps: Vec<Step>,
+    /// When paused work continues by itself.
+    pub resume_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -256,6 +258,7 @@ pub fn run_detail(root: &Path, id: &str) -> Result<RunDetail, String> {
             cap_usd: p.cap_usd,
             actual_usd: p.actual_cost_usd,
             queue_item: p.queue_item,
+            resume_at: p.stages.iter().filter_map(|s| runs::load(root, &s.run_id).ok()).find_map(|r| r.resume_at),
             steps,
         });
     }
@@ -273,6 +276,7 @@ pub fn run_detail(root: &Path, id: &str) -> Result<RunDetail, String> {
         cap_usd: r.estimate.cap_usd,
         actual_usd: r.actual_cost_usd,
         queue_item: item.as_ref().map(|i| i.id.clone()),
+        resume_at: r.resume_at.clone(),
         steps: vec![step_for(root, &r, item.map(|i| i.gate), output)],
     })
 }

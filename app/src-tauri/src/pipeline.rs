@@ -45,7 +45,7 @@ pub struct StageState {
     pub agent: String,
     pub run_id: String,
     pub output: String,
-    /// pending | done | failed | skipped
+    /// pending | paused | done | failed | skipped
     pub status: String,
     #[serde(default)]
     pub gate: Option<Gate>,
@@ -64,7 +64,7 @@ pub struct PipelineRun {
     pub expected_usd: f64,
     pub high_usd: f64,
     pub cap_usd: f64,
-    /// awaiting-approval | approved | running | done | stopped | cancelled
+    /// awaiting-approval | approved | running | paused | done | stopped | cancelled
     pub status: String,
     pub created_at: String,
     #[serde(default)]
@@ -258,6 +258,25 @@ pub fn recover_stale(root: &Path) -> usize {
         if !id.starts_with("pipe-") || id.contains("--") {
             continue;
         }
+        // Cut off mid-run: pause it, so it continues at the same stage.
+        if let Ok(mut p) = load(root, &id) {
+            if p.status == "running" {
+                for s in &p.stages {
+                    if let Ok(mut r) = runs::load(root, &s.run_id) {
+                        if r.status == "running" {
+                            r.status = "paused".into();
+                            r.resume_at = Some(chrono::Utc::now().to_rfc3339());
+                            r.prior_cost_usd = r.actual_cost_usd.unwrap_or(r.prior_cost_usd); // already includes earlier attempts
+                            let _ = runs::save(root, &r);
+                        }
+                    }
+                }
+                p.status = "paused".into();
+                let _ = save(root, &p);
+                n += 1;
+                continue;
+            }
+        }
         stop_unfinished(root, &id, "BrewixGames closed before this pipeline finished.");
         if load(root, &id).map(|p| p.status == "awaiting-approval").unwrap_or(false) {
             let _ = cancel(root, &id); // an estimate nobody approved
@@ -279,6 +298,31 @@ pub fn stop_unfinished(root: &Path, id: &str, why: &str) {
     p.status = "stopped".into();
     p.finished_at = Some(crate::now_rfc3339());
     let _ = save(root, &p);
+}
+
+/// Make a paused pipeline ready to run again from where it stopped.
+pub fn ready_to_continue(root: &Path, id: &str) -> Result<PipelineRun, String> {
+    let mut p = load(root, id)?;
+    if p.status != "paused" {
+        return Err(format!("pipeline {id} is {}, not paused", p.status));
+    }
+    p.status = "approved".into();
+    save(root, &p)?;
+    Ok(p)
+}
+
+/// Paused pipelines whose paused stage is due to continue.
+pub fn due(root: &Path) -> Vec<PipelineRun> {
+    let now = chrono::Utc::now();
+    list(root)
+        .into_iter()
+        .filter(|p| p.status == "paused")
+        .filter(|p| {
+            p.stages.iter().filter_map(|s| runs::load(root, &s.run_id).ok()).filter(|r| r.status == "paused").all(|r| {
+                r.resume_at.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t <= now).unwrap_or(true)
+            })
+        })
+        .collect()
 }
 
 /// Events reported while a pipeline runs.
@@ -309,12 +353,29 @@ pub fn run<F: FnMut(Event)>(root: &Path, id: &str, claude_bin: &Path, mut on: F)
             continue;
         }
         let (agent, run_id) = (p.stages[i].agent.clone(), p.stages[i].run_id.clone());
+        // Continuing after a pause: stages that already finished are kept.
+        if p.stages[i].status == "done" || p.stages[i].status == "failed" {
+            total += p.stages[i].cost_usd.unwrap_or(0.0);
+            prior_dirs.push(runs::run_dir(root, &run_id)?);
+            continue;
+        }
+        if runs::load(root, &run_id).map(|r| r.status == "paused").unwrap_or(false) {
+            runs::ready_to_continue(root, &run_id)?;
+        }
         on(Event::StageStart { index: i, agent: &agent, run_id: &run_id });
         let outcome = bridge::run_approved_with(root, &run_id, claude_bin, &prior_dirs, |line| {
             on(Event::Line { run_id: &run_id, line })
         });
-        let profile = agents.agents.get(&agent).cloned();
         let run_dir = runs::run_dir(root, &run_id)?;
+        // Usage limit hit: pause here; the rest stays approved for later.
+        if runs::load(root, &run_id).map(|r| r.status == "paused").unwrap_or(false) {
+            p.stages[i].status = "paused".into();
+            p.status = "paused".into();
+            p.actual_cost_usd = Some(round4(total));
+            save(root, &p)?;
+            return Ok(p);
+        }
+        let profile = agents.agents.get(&agent).cloned();
         let mut gate = evaluate_stage(root, &run_dir, &agent, profile.as_ref(), &p.stages[i].output, &prior_dirs, p.project.as_deref());
         match &outcome {
             Ok(o) => {
@@ -434,6 +495,9 @@ pub fn recheck_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, St
 
 pub fn finish_single(root: &Path, run_id: &str) -> Result<Option<QueueItem>, String> {
     let req = runs::load(root, run_id)?;
+    if req.status == "paused" {
+        return Ok(None); // reviewed once it finishes
+    }
     let agents = cost::load_agents(root)?;
     let Some(prof) = agents.agents.get(&req.agent) else { return Ok(None) };
     let Some(output) = prof.output.clone() else { return Ok(None) };
@@ -719,5 +783,62 @@ mod tests {
         fs::write(run.join("loads.jsonl"), ok_log).unwrap();
         let (ok, d) = loads_within(&root, &run, "architect", &allowed, &[]);
         assert!(ok, "{d}");
+    }
+}
+
+#[cfg(all(test, unix))]
+mod pause_tests {
+    use super::*;
+    #[test]
+    fn a_paused_pipeline_continues_at_the_stopped_stage() {
+        let d = std::env::temp_dir().join(format!("pipe-pause-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("studio")).unwrap();
+        for f in ["agents.json", "pricing.json", "pipelines.json"] {
+            fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../studio").join(f), d.join("studio").join(f)).unwrap();
+        }
+        fs::create_dir_all(d.join("vault/.claude/agents")).unwrap();
+        for a in ["pulse", "lead", "architect", "builder"] {
+            fs::write(d.join(format!("vault/.claude/agents/{a}.md")), format!("---\nname: {a}\n---\n")).unwrap();
+        }
+        // A stand-in for claude: writes the stage outputs, counts calls, and
+        // hits the usage limit once on the second call.
+        let fake = d.join("fake-claude");
+        fs::write(&fake, format!(r#"#!/bin/sh
+echo x >> "{c}"
+dir=""; prev=""
+for a in "$@"; do if [ "$prev" = "--add-dir" ]; then [ -z "$dir" ] && case "$a" in */runs/*) dir="$a";; esac; fi; prev="$a"; done
+n=$(wc -l < "{c}")
+if [ "$n" = "2" ]; then echo '{{"type":"result","is_error":true,"result":"Claude AI usage limit reached|4102444800","total_cost_usd":0.1}}'; exit 1; fi
+for f in pitch.md plan.md design.md build.md; do echo ok > "$dir/$f"; done
+echo '{{"type":"result","is_error":false,"result":"done","total_cost_usd":0.2,"num_turns":1}}'
+"#, c = d.join("calls").display())).unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        let p = prepare(&d, "pitch-to-build", "a game", None).unwrap();
+        approve(&d, &p.pipeline_id, p.cap_usd).unwrap();
+        let after = run(&d, &p.pipeline_id, &fake, |_| {}).unwrap();
+        assert_eq!(after.status, "paused");
+        assert_ne!(after.stages[0].status, "pending"); // finished (its own gate needs gate.json)
+        assert_eq!(after.stages[1].status, "paused");
+        assert!(after.stages[2..].iter().all(|s| s.status == "pending"));
+        let r1 = runs::load(&d, &after.stages[1].run_id).unwrap();
+        assert_eq!(r1.status, "paused");
+        assert!(due(&d).is_empty(), "waits for the reset");
+        // the app closing while paused keeps everything for later
+        crate::runs::recover_stale(&d);
+        assert_eq!(load(&d, &p.pipeline_id).unwrap().status, "paused");
+        assert_eq!(runs::load(&d, &after.stages[2].run_id).unwrap().status, "approved");
+        ready_to_continue(&d, &p.pipeline_id).unwrap();
+        let done = run(&d, &p.pipeline_id, &fake, |_| {}).unwrap();
+        assert_eq!(done.status, "done", "{:?}", done.stages.iter().map(|s| &s.status).collect::<Vec<_>>());
+        assert!(done.stages.iter().all(|s| s.status == "done" || s.status == "failed"));
+        // 4 stages + 1 limited attempt: stage one was not run again
+        assert_eq!(fs::read_to_string(d.join("calls")).unwrap().lines().count(), 5);
+        let r1 = runs::load(&d, &after.stages[1].run_id).unwrap();
+        assert_eq!(r1.continued, 1);
+        assert!((r1.actual_cost_usd.unwrap() - 0.3).abs() < 1e-9, "{:?}", r1.actual_cost_usd);
+        assert!((done.actual_cost_usd.unwrap() - 0.9).abs() < 1e-6, "{:?}", done.actual_cost_usd);
+        let _ = fs::remove_dir_all(&d);
     }
 }

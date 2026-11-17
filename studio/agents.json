@@ -401,6 +401,8 @@
         "Glob",
         "Grep",
         "Write",
+        "WebSearch",
+        "WebFetch",
         "Edit",
         "Bash(brewix gate build:*)",
         "Bash(brewix gate stage:*)",

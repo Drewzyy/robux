@@ -1243,7 +1243,7 @@ async function viewRuns() {
   ));
 }
 function runPill(s) {
-  const label = { done: "Done", running: "Running", failed: "Failed", stopped: "Stopped", approved: "Starting", "awaiting-approval": "Needs approval" }[s] || cap(s);
+  const label = { done: "Done", running: "Running", failed: "Failed", stopped: "Stopped", paused: "Paused", approved: "Starting", "awaiting-approval": "Needs approval" }[s] || cap(s);
   const cls = s === "running" || s === "approved" ? "pill red" : s === "failed" || s === "stopped" ? "pill red-soft" : s === "done" ? "pill white" : "pill";
   return el("span", { class: cls }, label);
 }
@@ -1373,6 +1373,10 @@ async function viewRunDetail(id) {
         el("div", {}, el("div", { class: "k" }, "Actual after"), el("div", { class: "v", id: "actual-cost" }, usd(d.actual_usd, 4))),
         d.queue_item ? el("div", {}, el("div", { class: "k" }, "Result"), el("button", { class: "link", style: "padding-top:8px", onclick: () => (location.hash = "#queue") }, "In the review queue")) : null)
     ),
+    d.status === "paused" ? el("div", { class: "card paused-card", id: "paused-card" },
+      el("div", { class: "row-title" }, "Paused, not lost"),
+      el("p", { class: "note" }, "Claude stopped partway (usage limit reached, or the app closed). Everything it made so far is kept. It continues by itself from where it stopped" + (d.resume_at ? ` at about ${new Date(d.resume_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "") + ", and finished steps are not run again."),
+      el("button", { class: "btn primary", id: "continue-now", onclick: (e) => continueNow(id, e.currentTarget) }, "Continue Now")) : null,
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Steps"),
       el("div", { class: "list steps" }, d.steps.map((s, i) =>
         el("div", { class: "step" },
@@ -1389,6 +1393,25 @@ async function viewRunDetail(id) {
     live || d.status === "running" ? el("div", { class: "section" }, el("div", { class: "section-label" }, "Live output"), el("pre", { class: "log", id: "live-log" }, state.logs[id] || "Starting…")) : null
   ));
 }
+
+async function continueNow(id, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    await invoke("continue_now", { id });
+    toast("Continuing where it left off.");
+  } catch (e) {
+    toast(String(e), true);
+    if (btn) btn.disabled = false;
+  }
+}
+// Paused work started again (by the timer or Continue Now).
+T.event.listen("work-resumed", (ev) => {
+  refreshStatus();
+  const h = location.hash || "";
+  if (h.startsWith("#run/")) viewRunDetail(h.slice(5));
+  else if (h === "#chat") viewChat();
+  if (!ev.payload || !ev.payload.manual) toast(`Claude's limit reset. Continuing ${ev.payload && ev.payload.count > 1 ? ev.payload.count + " paused jobs" : "paused work"}.`);
+});
 
 function renderLine(line) {
   let v;
@@ -1714,50 +1737,134 @@ async function costCard(box, agent, prompt, label) {
 // =====================================================================
 state.chatBusy = null; // run id while a reply is being written
 state.chatStatus = "";
+// Attachments for Ask Claude: images and documents as files, a video as
+// frames (Claude reads pictures, not video), links stay in the text.
+async function videoFrames(file, count = 6) {
+  const url = URL.createObjectURL(file);
+  const v = el("video", { muted: true, preload: "auto" }); v.src = url;
+  // Some formats never load and never error: give up after a while.
+  const within = (ms, p) => Promise.race([p, new Promise((_, bad) => setTimeout(() => bad(new Error(`Could not read ${file.name}. Try saving it as an MP4.`)), ms))]);
+  try {
+    await within(15000, new Promise((ok, bad) => { v.onloadedmetadata = ok; v.onerror = () => bad(new Error("That video format cannot be read here. Try an MP4.")); }));
+  } catch (e) { URL.revokeObjectURL(url); throw e; }
+  const out = [], c = document.createElement("canvas");
+  const scale = Math.min(1, 1280 / (v.videoWidth || 1280));
+  c.width = Math.round((v.videoWidth || 1280) * scale); c.height = Math.round((v.videoHeight || 720) * scale);
+  for (let k = 0; k < count; k++) {
+    const t = (v.duration || 1) * (k + 0.5) / count;
+    try { await within(8000, new Promise((ok) => { v.onseeked = ok; v.currentTime = t; })); } catch (e) { if (out.length) break; URL.revokeObjectURL(url); throw e; }
+    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+    const mm = String(Math.floor(t / 60)).padStart(2, "0"), ss = String(Math.floor(t % 60)).padStart(2, "0");
+    out.push({ name: `${file.name.replace(/\.[^.]+$/, "")}-frame-${k + 1}-of-${count}-at-${mm}m${ss}s.jpg`, data: c.toDataURL("image/jpeg", 0.85) });
+  }
+  URL.revokeObjectURL(url);
+  return out;
+}
+const fileData = (f) => new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = bad; r.readAsDataURL(f); });
+async function attachFiles(files, tray) {
+  for (const f of files) {
+    try {
+      if (f.type.startsWith("video/")) {
+        toast(`Taking frames from ${f.name}...`);
+        for (const fr of await videoFrames(f)) state.chatAtts.push({ path: await invoke("chat_attach", { name: fr.name, data: fr.data }), name: fr.name, image: fr.data });
+      } else {
+        const data = await fileData(f);
+        state.chatAtts.push({ path: await invoke("chat_attach", { name: f.name || "pasted.png", data }), name: f.name || "pasted image", image: f.type.startsWith("image/") ? data : null });
+      }
+    } catch (e) { toast(String(e), true); }
+  }
+  drawTray(tray);
+}
+function drawTray(tray) {
+  tray.replaceChildren(...state.chatAtts.map((a, i) => el("div", { class: "att" },
+    a.image ? el("img", { src: a.image, alt: a.name }) : el("span", { class: "att-name" }, a.name),
+    el("button", { class: "att-x", title: "Remove", onclick: () => { state.chatAtts.splice(i, 1); drawTray(tray); } }, "×"))));
+  tray.style.display = state.chatAtts.length ? "" : "none";
+}
+function msgAttachments(paths) {
+  if (!paths || !paths.length) return null;
+  return el("div", { class: "msg-atts" }, paths.map((p) => {
+    const name = p.split(/[\\/]/).pop();
+    if (/\.(png|jpe?g|webp|gif)$/i.test(p)) { const img = el("img", { class: "lazy", alt: name, title: name }); invoke("chat_file", { path: p }).then((d) => { img.src = d; img.onload = () => img.classList.add("in"); }).catch(() => img.remove()); return img; }
+    return el("span", { class: "pill" }, name);
+  }));
+}
+
 async function viewChat() {
   const nav = navSeq;
   await freshStatus();
-  const [{ chat, cap_usd, engine }, models, st, ol] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get"), invoke("ollama_status").catch(() => null)]);
+  state.chatAtts = state.chatAtts || [];
+  const [{ chat, cap_usd, engine }, models, st, ol, projects] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get"), invoke("ollama_status").catch(() => null), invoke("projects_list").catch(() => [])]);
   const cur = engine === "ollama" ? `ollama:${st.ollama_model}` : `claude:${st.chat_model}`;
   const local = ol && ol.installed ? ol.installed : [];
   const modelPick = el("select", { id: "chat-model", class: "model-select", title: "Which model answers" },
     el("optgroup", { label: "Claude (your subscription)" }, el("option", { value: "claude:", selected: cur === "claude:" }, "Default"), models.map((m) => el("option", { value: `claude:${m.id}`, selected: cur === `claude:${m.id}` }, MODEL_NAMES[m.id] || m.id))),
     el("optgroup", { label: local.length ? "Free on this computer (Ollama)" : "Ollama: no local models yet (Settings)" }, local.map((m) => el("option", { value: `ollama:${m}`, selected: cur === `ollama:${m}` }, `${m} · free, local`))));
   modelPick.addEventListener("change", async () => { try { await invoke("chat_model_set", { choice: modelPick.value }); toast(modelPick.value.startsWith("ollama:") ? "Using your free local model." : "Using Claude."); } catch (e) { toast(String(e), true); } viewChat(); });
+  // Which game Ask Claude is helping with (remembered between visits).
+  const games = projects.map((x) => x.replace("projects/", ""));
+  if (state.chatGame === undefined) { try { state.chatGame = localStorage.getItem("chatGame") || ""; } catch { state.chatGame = ""; } }
+  if (state.chatGame && !games.includes(state.chatGame)) state.chatGame = "";
+  const gamePick = el("select", { id: "chat-game", class: "model-select", title: "The game Ask Claude is helping with" },
+    el("option", { value: "" }, "No game"), games.map((g) => el("option", { value: g, selected: g === state.chatGame }, `Game: ${g}`)));
+  gamePick.addEventListener("change", () => { state.chatGame = gamePick.value; try { localStorage.setItem("chatGame", state.chatGame); } catch {} drawQuick(); });
   const who = engine === "ollama" ? "Local model" : "Claude";
-  const input = el("textarea", { id: "chat-input", placeholder: "Ask a question, or say what to fix.", style: "min-height:64px" });
-  const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: async () => {
-    const text = input.value;
-    if (!text.trim()) return;
+  const input = el("textarea", { id: "chat-input", placeholder: "Ask anything, paste a link, or drop images, videos or files here.", style: "min-height:64px" });
+  const tray = el("div", { class: "att-tray", id: "chat-tray" });
+  const fileIn = el("input", { type: "file", multiple: true, class: "hidden", accept: "image/*,video/*,.pdf,.txt,.md,.json,.lua,.luau,.csv,.log" });
+  fileIn.addEventListener("change", () => { attachFiles([...fileIn.files], tray); fileIn.value = ""; });
+  const sendText = async (text) => {
+    if (!text.trim() && !state.chatAtts.length) return;
+    if (!text.trim()) text = "What do you see? What should I take from this for my game?";
     send.disabled = true;
-    // Show it at once: your message, then a reply bubble that fills in live.
+    const atts = state.chatAtts.splice(0);
+    drawTray(tray);
     const empty = list.querySelector(".empty");
     if (empty) empty.remove();
-    const mine = el("div", { class: "bubble me" }, el("div", {}, text));
-    const typing = el("div", { class: "bubble them typing", id: "chat-typing" }, "Thinking…");
+    // Show it at once: your message, then a reply bubble that fills in live.
+    const mine = el("div", { class: "bubble me" }, el("div", {}, text), atts.length ? el("div", { class: "msg-atts" }, atts.map((a) => a.image ? el("img", { src: a.image, alt: a.name }) : el("span", { class: "pill" }, a.name))) : null);
+    const typing = el("div", { class: "bubble them typing", id: "chat-typing" }, atts.length ? `Looking at ${atts.length} attachment${atts.length > 1 ? "s" : ""}…` : "Thinking…");
     list.append(mine, typing);
     list.scrollTop = list.scrollHeight;
-    input.value = ""; state.chatDraft = "";
-    state.chatLive = "";
+    input.value = ""; state.chatDraft = ""; state.chatLive = "";
     try {
-      state.chatBusy = await invoke("chat_send", { text });
+      state.chatBusy = await invoke("chat_send", { text, project: state.chatGame || null, attachments: atts.map((a) => a.path) });
       state.chatStatus = "Thinking…";
-    } catch (e) { mine.remove(); typing.remove(); input.value = text; send.disabled = false; toast(String(e), true); }
-  } }, cap_usd > 0 ? "Send" : "Send · free");
+    } catch (e) { mine.remove(); typing.remove(); input.value = text; state.chatAtts.push(...atts); drawTray(tray); send.disabled = false; toast(String(e), true); }
+  };
+  const send = el("button", { class: "btn primary", id: "chat-send", disabled: !!state.chatBusy, onclick: () => sendText(input.value) }, cap_usd > 0 ? "Send" : "Send · free");
   // Enter sends; Shift+Enter makes a new line.
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!send.disabled && input.value.trim()) send.click(); } });
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!send.disabled) send.click(); } });
+  input.addEventListener("paste", (e) => { const fs = [...(e.clipboardData || {}).files || []]; if (fs.length) { e.preventDefault(); attachFiles(fs, tray); } });
+  // One-tap actions for the chosen game.
+  const quick = el("div", { class: "chips", id: "chat-quick" });
+  const QUICK = [
+    ["Notes for the team", (g) => `Review my game ${g} and write notes for the team on my behalf: what is working, what is not, and what to do next, most important first. Save them to projects/${g}/docs/notes-from-andrew.md so the build agents follow them.`],
+    ["What should I do next?", (g) => `Look at where my game ${g} is now (brief, plan, score, latest checks) and tell me the 3 most useful next steps, in plain words.`],
+    ["Is it fun yet?", (g) => `Be honest: from what is built in ${g}, what would a 10-year-old enjoy in the first minute, and what would make them leave? Short.`],
+  ];
+  const drawQuick = () => quick.replaceChildren(...(state.chatGame ? QUICK.map(([label, make]) => el("button", { class: "chip quick", onclick: () => !state.chatBusy && sendText(make(state.chatGame)) }, label)) : [el("span", { class: "note" }, "Pick a game above to get notes and next steps for it.")]));
+  drawQuick();
   const msgs = chat.messages.map((m) =>
     el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
       m.role === "you" ? el("div", {}, m.text) : markdown(m.text),
-      m.role !== "you" ? el("div", { class: "bubble-meta" }, who, m.cost_usd != null ? ` · ${usd(m.cost_usd, 2)}` : "", m.run_id ? el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + m.run_id) }, "Details") : null) : null));
+      m.role === "you" ? msgAttachments(m.attachments) : null,
+      m.role !== "you" ? el("div", { class: "bubble-meta" }, who, m.cost_usd != null ? ` · ${usd(m.cost_usd, 2)}` : "", m.run_id ? el("button", { class: "link", style: "margin-left:8px", onclick: () => (location.hash = "#run/" + m.run_id) }, "Details") : null,
+        m.failed && m.run_id && /usage limit is reached/.test(m.text) && !state.chatBusy ? el("button", { class: "link chat-continue", style: "margin-left:8px", onclick: (e) => { state.chatBusy = m.run_id; continueNow(m.run_id, e.currentTarget).then(() => viewChat()); } }, "Continue Now") : null) : null));
   if (state.chatBusy) msgs.push(el("div", { class: "bubble them typing" + (state.chatLive ? " live" : ""), id: "chat-typing" }, state.chatLive || state.chatStatus || "Thinking…"));
   const list = el("div", { class: "chat-list", id: "chat-list" }, msgs.length ? msgs :
-    el("div", { class: "empty", style: "padding:64px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
-      el("div", {}, "It can answer questions about your games and fix things in your projects. Each message counts toward your budget.")));
-  showIf(nav, el("div", { class: "page chat-page" },
-    head("Ask Claude", runningSubtitle(), chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null),
+    el("div", { class: "empty", style: "padding:56px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
+      el("div", {}, "Pick a game to talk about it. Drop screenshots, videos, files or links and it will look at them. Each message counts toward your plan usage.")));
+  const pageEl = el("div", { class: "page chat-page" },
+    head("Ask Claude", runningSubtitle(), el("div", { class: "inline" }, gamePick, chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null)),
     list,
-    el("div", { class: "card chat-compose" }, input, el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" }, el("span", { class: "note" }, "Enter sends (Shift+Enter for a new line). Sending is your approval for that message."), el("div", { class: "inline" }, modelPick, send)))));
+    el("div", { class: "card chat-compose" }, quick, tray, input,
+      el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" },
+        el("div", { class: "inline" }, el("button", { class: "btn secondary", id: "chat-attach", title: "Images, videos, PDFs or text files", onclick: () => fileIn.click() }, "Attach"), fileIn, el("span", { class: "note" }, "Enter sends · Shift+Enter new line")),
+        el("div", { class: "inline" }, modelPick, send))));
+  dropZone(pageEl, (fs) => attachFiles(fs, tray), /^(image|video)\/|^application\/pdf$|^text\/|^application\/json$|^$/);
+  showIf(nav, pageEl);
+  drawTray(tray);
   if (state.chatDraft) input.value = state.chatDraft;
   input.addEventListener("input", () => { state.chatDraft = input.value; });
   list.scrollTop = list.scrollHeight;

@@ -38,6 +38,89 @@ pub struct RunRequest {
     /// "claude" or "ollama": which engine this run was prepared for.
     #[serde(default)]
     pub engine: Option<String>,
+    /// Paused by a usage limit: when to continue (RFC 3339).
+    #[serde(default)]
+    pub resume_at: Option<String>,
+    /// How many times this run was continued after a pause.
+    #[serde(default)]
+    pub continued: u32,
+    /// Cost of the attempts before a pause (added to the final cost).
+    #[serde(default)]
+    pub prior_cost_usd: f64,
+}
+
+/// True when Claude stopped because a usage limit was reached.
+pub fn is_limit(text: &str) -> bool {
+    let t = text.to_lowercase();
+    t.contains("usage limit") || t.contains("rate_limit") || t.contains("rate limit") || (t.contains("hit your") && t.contains("limit")) || t.contains("limit reached")
+}
+
+/// When the limit resets, from Claude's message ("resets 2pm (UTC)",
+/// "resets 12:40am", or "|<unix time>"). Falls back to 30 minutes from now.
+pub fn reset_time(text: &str, now: chrono::DateTime<chrono::Utc>) -> chrono::DateTime<chrono::Utc> {
+    use chrono::{Duration, TimeZone, Timelike};
+    if let Some(c) = regex::Regex::new(r"\|(\d{10})\b").unwrap().captures(text) {
+        if let Some(t) = c[1].parse::<i64>().ok().and_then(|s| chrono::Utc.timestamp_opt(s, 0).single()) {
+            if t > now {
+                return t + Duration::minutes(1);
+            }
+        }
+    }
+    if let Some(c) = regex::Regex::new(r"(?i)resets?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)").unwrap().captures(text) {
+        let mut h: u32 = c[1].parse().unwrap_or(0) % 12;
+        if c[3].eq_ignore_ascii_case("pm") {
+            h += 12;
+        }
+        let m: u32 = c.get(2).and_then(|x| x.as_str().parse().ok()).unwrap_or(0);
+        // Claude states the reset in UTC; other zones fall back to retrying.
+        if text.to_uppercase().contains("UTC") || !text.contains('(') {
+            if let Some(t) = now.with_hour(h).and_then(|t| t.with_minute(m)).and_then(|t| t.with_second(0)) {
+                let t = if t <= now { t + Duration::days(1) } else { t };
+                return t + Duration::minutes(1);
+            }
+        }
+    }
+    now + Duration::minutes(30)
+}
+
+/// Mark a run paused by a usage limit, keeping what it cost so far.
+pub fn pause(root: &Path, run_id: &str, message: &str) -> Result<RunRequest, String> {
+    let mut r = load(root, run_id)?;
+    let at = reset_time(message, chrono::Utc::now());
+    r.status = "paused".into();
+    r.resume_at = Some(at.to_rfc3339());
+    r.prior_cost_usd = r.actual_cost_usd.unwrap_or(r.prior_cost_usd); // already includes earlier attempts
+    r.actual_cost_usd = Some(r.prior_cost_usd);
+    r.error = Some(format!("Paused: Claude's usage limit was reached. It continues where it stopped at about {} (or press Continue Now).", at.with_timezone(&chrono::Local).format("%-I:%M %p")));
+    save(root, &r)?;
+    Ok(r)
+}
+
+/// Make a paused (or cut-off) run ready to continue in the same folder.
+/// Its earlier output stays; the agent is told to finish, not redo.
+pub fn ready_to_continue(root: &Path, run_id: &str) -> Result<RunRequest, String> {
+    let mut r = load(root, run_id)?;
+    if r.status != "paused" {
+        return Err(format!("run {run_id} is {}, not paused", r.status));
+    }
+    let dir = run_dir(root, run_id)?;
+    if dir.join("stream.jsonl").is_file() {
+        let _ = fs::rename(dir.join("stream.jsonl"), dir.join(format!("stream-{}.jsonl", r.continued + 1)));
+    }
+    r.continued += 1;
+    r.status = "approved".into();
+    r.resume_at = None;
+    r.error = None;
+    save(root, &r)?;
+    Ok(r)
+}
+
+/// Paused runs whose limit has reset, oldest first.
+pub fn due(root: &Path) -> Vec<RunRequest> {
+    let now = chrono::Utc::now();
+    let mut v: Vec<RunRequest> = list(root).unwrap_or_default().into_iter().filter(|r| r.status == "paused" && r.pipeline_id.is_none() && r.resume_at.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t <= now).unwrap_or(true)).collect();
+    v.sort_by(|a, b| a.created_at.cmp(&b.created_at));
+    v
 }
 
 pub fn runs_dir(root: &Path) -> PathBuf {
@@ -115,6 +198,9 @@ pub fn prepare_with_id(
         chat: None,
         resume: None,
         engine: Some(st.engine.clone()),
+        resume_at: None,
+        continued: 0,
+        prior_cost_usd: 0.0,
     };
     save(root, &req)?;
     Ok(req)
@@ -201,7 +287,21 @@ pub fn fail_if_unfinished(root: &Path, run_id: &str, why: &str) {
 pub fn recover_stale(root: &Path) -> usize {
     let mut n = 0;
     for r in list(root).unwrap_or_default() {
-        if r.status == "running" || r.status == "approved" {
+        // A paused or cut-off pipeline sorts out its own stages.
+        let behind_pause = r.pipeline_id.as_deref().and_then(|p| crate::pipeline::load(root, p).ok()).map(|p| p.status == "paused" || p.status == "running").unwrap_or(false);
+        if behind_pause {
+            continue;
+        }
+        if r.status == "running" {
+            // Cut off mid-run: pause it so it continues instead of failing.
+            let mut x = r.clone();
+            x.status = "paused".into();
+            x.resume_at = Some(chrono::Utc::now().to_rfc3339());
+            x.prior_cost_usd = x.actual_cost_usd.unwrap_or(x.prior_cost_usd);
+            x.error = Some("Paused: BrewixGames closed while this ran. It continues where it stopped.".into());
+            let _ = save(root, &x);
+            n += 1;
+        } else if r.status == "approved" {
             fail_if_unfinished(root, &r.run_id, "BrewixGames closed before this run finished.");
             n += 1;
         } else if r.status == "awaiting-approval" {
@@ -225,7 +325,7 @@ pub fn cancel(root: &Path, run_id: &str) -> Result<RunRequest, String> {
 mod stale_tests {
     use super::*;
     #[test]
-    fn cut_off_runs_are_marked_failed_and_free_their_budget() {
+    fn cut_off_runs_pause_and_continue_with_their_cost() {
         let d = std::env::temp_dir().join(format!("stale-t-{}", std::process::id()));
         fs::create_dir_all(d.join("studio")).unwrap();
         for f in ["agents.json", "pricing.json", "pipelines.json"] {
@@ -236,13 +336,39 @@ mod stale_tests {
         let r = prepare(&d, "architect", "test").unwrap();
         let mut req = load(&d, &r.run_id).unwrap();
         req.status = "running".into();
+        req.actual_cost_usd = Some(0.25);
         save(&d, &req).unwrap();
         assert!(crate::budget::spend(&d, 100.0).reserved_usd > 0.0);
         recover_stale(&d);
         let after = load(&d, &r.run_id).unwrap();
-        assert_eq!(after.status, "failed");
+        assert_eq!(after.status, "paused");
+        assert_eq!(after.prior_cost_usd, 0.25);
         assert_eq!(crate::budget::spend(&d, 100.0).reserved_usd, 0.0);
+        assert_eq!(due(&d).len(), 1, "app-closed pauses continue right away");
+        let c = ready_to_continue(&d, &r.run_id).unwrap();
+        assert_eq!((c.status.as_str(), c.continued), ("approved", 1));
+        assert!(ready_to_continue(&d, &r.run_id).is_err(), "only paused runs continue");
+        // a usage-limit pause waits for the reset time
+        let mut x = load(&d, &r.run_id).unwrap();
+        x.status = "failed".into();
+        save(&d, &x).unwrap();
+        let p = pause(&d, &r.run_id, "Claude AI usage limit reached|4102444800").unwrap();
+        assert_eq!(p.status, "paused");
+        assert!(due(&d).is_empty());
         let _ = fs::remove_dir_all(&d);
     }
-}
 
+    #[test]
+    fn spots_limits_and_reset_times() {
+        use chrono::TimeZone;
+        assert!(is_limit("Claude AI usage limit reached|1760000000"));
+        assert!(is_limit("You've hit your limit · resets 2pm (UTC)"));
+        assert!(!is_limit("Error: file not found"));
+        let now = chrono::Utc.with_ymd_and_hms(2026, 11, 17, 10, 0, 0).unwrap();
+        assert_eq!(reset_time("You've hit your limit · resets 2pm (UTC)", now), chrono::Utc.with_ymd_and_hms(2026, 11, 17, 14, 1, 0).unwrap());
+        assert_eq!(reset_time("resets 9:30am (UTC)", now), chrono::Utc.with_ymd_and_hms(2026, 11, 18, 9, 31, 0).unwrap());
+        assert_eq!(reset_time("limit reached|1795432800", now), chrono::Utc.timestamp_opt(1795432800 + 60, 0).unwrap());
+        assert_eq!(reset_time("usage limit reached", now), now + chrono::Duration::minutes(30));
+        assert_eq!(reset_time("resets 2pm (America/New_York)", now), now + chrono::Duration::minutes(30));
+    }
+}
