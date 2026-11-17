@@ -338,6 +338,32 @@ try:
     d.execute_script("location.hash='#settings'"); time.sleep(2)
     d.execute_script("document.getElementById('view').scrollTop=260"); time.sleep(0.5)
     d.save_screenshot(str(SHOTS / "ui-settings-engine.png"))
+    # Inspiration: popular games' pictures and what to copy from each
+    import json as _j
+    n_games = len(_j.loads((ROOT / "studio/reference-games.json").read_text())["games"])
+    d.execute_script("location.hash='#inspo'"); time.sleep(2.5)
+    cards = d.find_elements(By.CSS_SELECTOR, ".ref-card")
+    check("Inspiration lists every reference game", len(cards) == n_games, f"{len(cards)} of {n_games}")
+    d.find_element(By.CSS_SELECTOR, "[data-seg='roblox-social']").click(); time.sleep(1.5)
+    names = [c.find_element(By.CSS_SELECTOR, ".ref-name").text for c in d.find_elements(By.CSS_SELECTOR, ".ref-card")]
+    check("group filter shows only that group", "Adopt Me!" in names and "Hades" not in names and len(names) < 12, str(names[:5]))
+    d.find_element(By.CSS_SELECTOR, "[data-seg='all']").click(); time.sleep(1.5)
+    box = d.find_element(By.ID, "ref-q"); box.send_keys("silhouette"); time.sleep(1)
+    hits = len(d.find_elements(By.CSS_SELECTOR, ".ref-card"))
+    check("search finds games by what to learn", 0 < hits < n_games, str(hits))
+    box.clear(); box.send_keys(" "); box.clear(); time.sleep(0.5)
+    d.execute_script("state.inspo.q='';viewInspo()"); time.sleep(2)
+    d.find_element(By.CSS_SELECTOR, "[data-game='adopt-me']").click(); time.sleep(2)
+    sh = d.find_element(By.ID, "sheet").text
+    check("a game opens with what to steal", "Steal this" in sh and "Characters and shapes" in sh, sh[:80])
+    have_pics = (ROOT / "vault/attachments/game-refs/adopt-me").is_dir()
+    if have_pics:
+        loaded = d.execute_script("return [...document.querySelectorAll('#sheet img')].filter(i => i.naturalWidth > 0).length")
+        check("downloaded pictures show in the game sheet", loaded >= 2, str(loaded))
+    (ROOT / ".cache").mkdir(exist_ok=True); d.save_screenshot(str(ROOT / ".cache/ui-inspiration-game.png"))  # other companies' art: never in docs/
+    d.execute_script("closeSheet()"); time.sleep(0.5)
+    d.execute_script("document.getElementById('view').scrollTop=0"); time.sleep(2.5)
+    d.save_screenshot(str(ROOT / ".cache/ui-inspiration.png"))
 finally:
     d.quit(); drv.terminate()
     # leave no test game behind (folders and its row in the memory index)

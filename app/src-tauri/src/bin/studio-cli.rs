@@ -41,6 +41,13 @@ fn real_main(args: &[String]) -> Result<(), String> {
             println!("agents: {}", cost::load_agents(&root)?.agents.keys().cloned().collect::<Vec<_>>().join(", "));
             Ok(())
         }
+        ["refs-download", ids @ ..] => {
+            // Download game reference pictures (all games when no ids are given).
+            let ids: Vec<String> = ids.iter().map(|s| s.to_string()).collect();
+            let msg = studio_core::refs::download(&root, &ids, 8, false, &mut |l| println!("{l}"))?;
+            println!("{msg}");
+            Ok(())
+        }
         ["queue", "list"] => {
             let items = queue::list(&root)?;
             if items.is_empty() {

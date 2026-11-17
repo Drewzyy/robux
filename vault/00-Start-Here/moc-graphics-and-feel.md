@@ -29,6 +29,12 @@ Use this map when the question is about what the game looks like or how it feels
 - [[10-Art-Environment/npc-and-character-design]]: NPCs, pets, mascots.
 - [[10-Art-Environment/realism-when-needed]]: when and how to go realistic.
 
+## Real game pictures to study
+- [[16-Market-Research/visual-refs-shape-language]]: circle, square, triangle and the silhouette test.
+- [[16-Market-Research/visual-refs-roblox-simulators]], [[16-Market-Research/visual-refs-roblox-social]], [[16-Market-Research/visual-refs-roblox-action]]: Roblox hits.
+- [[16-Market-Research/visual-refs-mobile]], [[16-Market-Research/visual-refs-nintendo]], [[16-Market-Research/visual-refs-big-3d]], [[16-Market-Research/visual-refs-pc-indie]]: everything else.
+- Pictures: `attachments/game-refs/<id>/` (download in the app: Make the Game, Inspiration).
+
 ## Lighting and materials
 - [[10-Art-Environment/lighting-and-mood]]: readability first, then mood.
 - [[10-Art-Environment/lighting-presets]]: cozy, spooky, bright, sci-fi values.

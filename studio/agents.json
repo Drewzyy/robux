@@ -174,7 +174,8 @@
         "14-QA-Optimization",
         "19-Project-Memory",
         "09-Animation-VFX",
-        "17-Development-Templates"
+        "17-Development-Templates",
+        "16-Market-Research"
       ],
       "output": "lighting.md",
       "role": "World and Environment Artist"
@@ -203,7 +204,8 @@
         "03-Game-Psychology",
         "11-Audio",
         "19-Project-Memory",
-        "08-UI-UX"
+        "08-UI-UX",
+        "16-Market-Research"
       ],
       "output": "assets.md",
       "role": "Audio Designer"
@@ -232,7 +234,8 @@
         "03-Game-Psychology",
         "19-Project-Memory",
         "13-Luau-Engineering",
-        "17-Development-Templates"
+        "17-Development-Templates",
+        "16-Market-Research"
       ],
       "output": "ui.md",
       "role": "UX/UI Designer"
@@ -304,7 +307,8 @@
         "06-Retention",
         "03-Game-Psychology",
         "19-Project-Memory",
-        "17-Development-Templates"
+        "17-Development-Templates",
+        "16-Market-Research"
       ],
       "output": "splash.md",
       "role": "Thumbnails and Promo (support)"
@@ -647,7 +651,8 @@
         "10-Art-Environment",
         "14-QA-Optimization",
         "03-Game-Psychology",
-        "19-Project-Memory"
+        "19-Project-Memory",
+        "16-Market-Research"
       ],
       "output": "models.md",
       "role": "3D Modeler"

@@ -386,3 +386,18 @@ img.lazy.in { opacity: 1; }
 .chip.quick:hover { background: var(--red-soft); }
 .paused-card { margin-top: 12px; }
 .paused-card .note { margin: 6px 0 14px; }
+/* Inspiration (game pictures) */
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.ref-card { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; text-align: left; background: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 14px; padding: 0; overflow: hidden; cursor: pointer; color: inherit; transition: transform .15s ease, border-color .15s ease; }
+.ref-card:hover { transform: translateY(-2px); border-color: #48484A; }
+.ref-cover { aspect-ratio: 16 / 9; background: #2C2C2E; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.ref-cover img { width: 100%; height: 100%; object-fit: cover; }
+.ref-name { font-weight: 600; padding: 10px 12px 2px; }
+.ref-steal { font-size: 12.5px; line-height: 1.35; color: #8E8E93; margin: 0 12px 12px; max-height: calc(1.35em * 3); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#ref-per { width: auto; flex: 0 0 auto; }
+.ref-big img { width: 100%; max-height: 52vh; object-fit: contain; border-radius: 10px; background: #000; }
+.ref-strip { display: flex; gap: 8px; overflow-x: auto; margin: 10px 0; padding-bottom: 4px; }
+.ref-thumb { flex: 0 0 auto; width: 110px; height: 64px; padding: 0; border: 1px solid #2C2C2E; border-radius: 8px; overflow: hidden; background: #2C2C2E; cursor: pointer; }
+.ref-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.ref-learn p { margin: 8px 0; line-height: 1.45; }
+.page-head + .card .inline .search, #ref-q { flex: 1; min-width: 200px; }

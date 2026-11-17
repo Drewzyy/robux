@@ -17,6 +17,7 @@ app/src-tauri/tools/
 projects/*/build/
 /earnings/
 vault/10-Art-Environment/textures/
+vault/attachments/game-refs/
 reviews/
 tuneup/
 projects/*/docs/score.json

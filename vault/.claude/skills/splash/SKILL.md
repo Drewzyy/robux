@@ -65,3 +65,5 @@ Also `brewix node 10-Art-Environment/youtube-packaging-lessons 10-Art-Environmen
 Check `17-Development-Templates/example-gallery-thumbnails-and-icons` (good vs bad icon and thumbnail SVGs) before designing.
 
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
+
+Before a thumbnail or icon, open 3 to 5 Roblox hits' icons and thumbnails in `attachments/game-refs/<id>/` (games listed in `16-Market-Research/visual-refs-roblox-*`) with Read and match their readability at small size. Borrow rules, never art.

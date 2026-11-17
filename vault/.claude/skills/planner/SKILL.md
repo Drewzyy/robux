@@ -58,3 +58,5 @@ Also run `brewix map 16-Market-Research` and `brewix node` the `reviews-<niche>`
 Base your mockups on `17-Development-Templates/example-gallery-ui`, `example-gallery-maps` and `example-gallery-feel-and-loops` (Read the SVGs they embed).
 
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
+
+For the style-kit, ui and characters sections, pick 2 or 3 reference games from `16-Market-Research/visual-refs-*`, open their pictures in `attachments/game-refs/<id>/` with Read, and name in the plan exactly which rule each one lends (never their art, names or characters).

@@ -60,3 +60,5 @@ After the first layout, run the six passes in `08-UI-UX/ui-polish-passes` (`brew
 Look at the pictures in `17-Development-Templates/example-gallery-ui` (Read the SVGs it embeds) before laying out a screen: match the good versions, avoid what the bad ones show.
 
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
+
+Look at real UI before laying out screens: pick 2 or 3 games from `16-Market-Research/visual-refs-*` that match this game (start with `visual-refs-mobile` and the Roblox ones), open their pictures in `attachments/game-refs/<id>/` with Read, and name the rule you borrow. Borrow rules, never art.

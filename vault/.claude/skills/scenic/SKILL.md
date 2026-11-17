@@ -55,3 +55,5 @@ For engine detail, load these with the Skill tool only when the task needs them:
 Use `17-Development-Templates/example-gallery-maps` for layout and its lighting-mood panels for colour.
 
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
+
+For world layout and mood, read the World lines in `16-Market-Research/visual-refs-*` for 2 or 3 similar games and open their pictures in `attachments/game-refs/<id>/` with Read. Borrow rules, never art.

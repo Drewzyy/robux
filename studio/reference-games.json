@@ -1,0 +1,3193 @@
+{
+ "about": "Popular games to learn UI, character shape and world design from. The app downloads their pictures (Roblox thumbnails, Steam and App Store screenshots, Wikipedia images) into vault/attachments/game-refs on this computer only; they are other companies' art, for study, never to copy or publish.",
+ "groups": [
+  {
+   "id": "roblox-simulators",
+   "title": "Roblox simulators and tycoons"
+  },
+  {
+   "id": "roblox-social",
+   "title": "Roblox roleplay, social and fashion"
+  },
+  {
+   "id": "roblox-action",
+   "title": "Roblox action, horror, obby and party"
+  },
+  {
+   "id": "mobile",
+   "title": "Mobile hits (Supercell, Pokémon, casual)"
+  },
+  {
+   "id": "nintendo",
+   "title": "Nintendo and console classics"
+  },
+  {
+   "id": "big-3d",
+   "title": "Big 3D, competitive and character games"
+  },
+  {
+   "id": "pc-indie",
+   "title": "Indie and PC favourites"
+  }
+ ],
+ "games": [
+  {
+   "id": "pet-simulator-99",
+   "name": "Pet Simulator 99",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 8737899170
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Huge bold numbers float off every coin pile; currency counters sit top-left in chunky rounded pills with icons bigger than the text.",
+    "characters": "Pets are a sphere-plus-ears silhouette: one round body, two features, so 100s read at 40 px. Rarity is told by glow and outline, not shape.",
+    "world": "Zones are flat tiled areas with a single colour theme each and a gate you pay to open; the next zone is always visible through the gate.",
+    "steal": "Make every collectible readable from its silhouette at icon size, then use colour and glow for rarity tiers."
+   }
+  },
+  {
+   "id": "bee-swarm-simulator",
+   "name": "Bee Swarm Simulator",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 1537690962
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Hive and bag meters are big bars at the top; the quest log is a scrolling list of plain sentences with progress numbers.",
+    "characters": "Bees are one circle plus two wing ovals; each type changes only colour and a face mark, so the swarm reads as a crowd.",
+    "world": "Fields are flat coloured patches sized by level (bigger, higher fields later), arranged around a central hub with mountains you climb.",
+    "steal": "Lay out progression as physical height: later areas are literally higher up and visible from the start."
+   }
+  },
+  {
+   "id": "grow-a-garden",
+   "name": "Grow a Garden",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 126884695634066
+   },
+   "tags": [
+    "ui",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Shop restocks on a visible clock; the seed shop is a big framed card grid with stock counts and a rarity colour bar.",
+    "characters": "Players are plain avatars; the plants are the stars, with mutations shown by colour, sparkles and size.",
+    "world": "Each player gets an identical fenced plot in a row along one road, so everyone can see everyone's garden.",
+    "steal": "Put every player's progress where others can see it from the spawn path; envy sells better than ads."
+   }
+  },
+  {
+   "id": "bubble-gum-simulator-infinity",
+   "name": "Bubble Gum Simulator INFINITY",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 85896571713843
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Giant rounded buttons on the left edge with icon plus one word; hatch animations fill the whole screen with a burst and rarity banner.",
+    "characters": "Pets are chubby, eyes high on the face, very short limbs; 'shiny' and 'mythic' get rainbow shaders, not new shapes.",
+    "world": "Worlds stack vertically as floating islands; you rise through them by blowing a bigger bubble.",
+    "steal": "Celebrate a rare hatch with a full-screen moment and a server-wide message."
+   }
+  },
+  {
+   "id": "bubble-gum-simulator",
+   "name": "Bubble Gum Simulator (original)",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 2512643572
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Classic 2019 simulator HUD: left column of square buttons, coin counters top, egg prices floating over each egg.",
+    "characters": "Same chubby pet style as the newer game; compare both to see how the HUD got cleaner.",
+    "world": "Islands floating above a base world; height is progress.",
+    "steal": "Show the price of every egg in the world, above the egg, not inside a menu."
+   }
+  },
+  {
+   "id": "theme-park-tycoon-2",
+   "name": "Theme Park Tycoon 2",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 69184822
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Building toolbar along the bottom with category tabs, like a PC builder game; money and park rating pinned top.",
+    "characters": "Guests are small and many; their mood shows as bubbles above heads.",
+    "world": "A big empty grass plot per player; the fun is the blank canvas plus a long list of rides.",
+    "steal": "Give builders a bottom toolbar with categories, a grid snap, and an undo; that is the whole genre."
+   }
+  },
+  {
+   "id": "lumber-tycoon-2",
+   "name": "Lumber Tycoon 2",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 13822889
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost no HUD; money and a tiny inventory. Teaches through the world itself.",
+    "characters": "Plain avatars; trees and axes carry the art.",
+    "world": "One large handmade map with biomes far apart (snow, volcano, swamp), each holding a rare wood; travel is part of the progression.",
+    "steal": "Hide rare rewards at the far ends of a big map so players tell each other where to go."
+   }
+  },
+  {
+   "id": "restaurant-tycoon-2",
+   "name": "Restaurant Tycoon 2",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 3398014311
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Cozy cream and wood UI panels; build menu with clear category icons and price tags.",
+    "characters": "Customers are generic; staff uniforms show role by colour.",
+    "world": "Each player builds inside a lot on a shared street, so visitors can walk in and eat.",
+    "steal": "Let other players physically visit and use what someone built."
+   }
+  },
+  {
+   "id": "military-tycoon",
+   "name": "Military Tycoon",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 7180042682
+   },
+   "tags": [
+    "ui",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Classic tycoon buttons on the floor with price and name, plus a sleek shop overlay with vehicle cards.",
+    "characters": "Vehicles are the characters: chunky, readable silhouettes (tank, jet, heli) at any distance.",
+    "world": "Bases around a shared battlefield; every base faces the middle.",
+    "steal": "Tycoon pads on the floor: price in big text, a colour that shows can-afford vs can't."
+   }
+  },
+  {
+   "id": "steal-a-brainrot",
+   "name": "Steal a Brainrot",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 109983668079237
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Huge income numbers over each base; a moving conveyor of items to buy with rarity labels floating above.",
+    "characters": "Meme characters with very loud silhouettes and colours, each instantly nameable.",
+    "world": "Bases in two rows facing a central conveyor, so stealing and defending happen in plain view.",
+    "steal": "Put the risk and the reward on the same screen: everyone can see what you own and come take it."
+   }
+  },
+  {
+   "id": "fisch",
+   "name": "Fisch",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 16732694052
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "The reel minigame is one bar with a moving zone; everything else stays hidden while fishing.",
+    "characters": "Fish art is large, detailed and bestiary-style; the player is small.",
+    "world": "Islands with distinct weather and music, each with its own rare fish.",
+    "steal": "One simple skill minigame done many thousands of times; tune its feel before anything else."
+   }
+  },
+  {
+   "id": "pls-donate",
+   "name": "PLS DONATE",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 8737602449
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Each booth shows a big sign with raised amount; donation popups are bright and huge.",
+    "characters": "Plain avatars; the booth is the character.",
+    "world": "A circle of identical booths around a plaza.",
+    "steal": "Social proof made physical: show the total next to each player."
+   }
+  },
+  {
+   "id": "sols-rng",
+   "name": "Sol's RNG",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 15532962292
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "One big Roll button; the rolled aura's name and odds (1 in X) fill the screen with a cutscene for rare rolls.",
+    "characters": "Auras are particle effects around a plain avatar; rarity equals more particles, light and motion.",
+    "world": "A small hub; the roll is the game.",
+    "steal": "Print the odds ('1 in 1,000,000') on rare rewards; the number itself is the flex."
+   }
+  },
+  {
+   "id": "anime-defenders",
+   "name": "Anime Defenders",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 17017769292
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Unit cards along the bottom with cost and cooldown; upgrade panel opens beside the unit, not over the map.",
+    "characters": "Small units with exaggerated heads and weapons, readable from top-down.",
+    "world": "Lane maps with one path, viewed from high above.",
+    "steal": "In tower defense keep the map clear: menus open beside, never over, the action."
+   }
+  },
+  {
+   "id": "toilet-tower-defense",
+   "name": "Toilet Tower Defense",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 13775256536
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Bright card frames per rarity; summon banners with a timer.",
+    "characters": "Meme units with one loud silhouette each (camera heads, speaker heads).",
+    "world": "Short lanes with a few bends, readable at a glance.",
+    "steal": "A meme can carry a genre if each unit is instantly recognisable."
+   }
+  },
+  {
+   "id": "anime-adventures",
+   "name": "Anime Adventures",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 8304191830
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Dense UI aimed at older players: unit grids, traits, stats; useful as a 'how much is too much' example.",
+    "characters": "Units with big hair shapes and strong colour accents.",
+    "world": "Lane maps themed on anime places.",
+    "steal": "Compare to Anime Defenders to see how much clutter a young audience will tolerate."
+   }
+  },
+  {
+   "id": "islands",
+   "name": "Islands",
+   "group": "roblox-simulators",
+   "source": {
+    "roblox": 4872321990
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Inventory and crafting panels similar to Minecraft but rounder and softer.",
+    "characters": "Plain avatars; resources and machines carry the look.",
+    "world": "Your own floating island, plus shared hub islands for trading and bosses.",
+    "steal": "Give each player a private home that grows, and a shared place to show it off."
+   }
+  },
+  {
+   "id": "adopt-me",
+   "name": "Adopt Me!",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 920587237
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Rounded, pastel buttons with thick dark outlines and icons first; money in a pill at the top. Very young-player friendly.",
+    "characters": "Pets: oversized heads, big eyes set low, tiny bodies; neon and mega versions glow instead of changing shape.",
+    "world": "A small town with clear landmarks (school, hospital, nursery) around a central plaza; every building is a one-word idea.",
+    "steal": "Thick outlines and pastel fills on every button; one icon per button, and text only when needed."
+   }
+  },
+  {
+   "id": "brookhaven",
+   "name": "Brookhaven RP",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 4924922222
+   },
+   "tags": [
+    "ui",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Minimal UI: a few round side buttons for houses, cars and avatar edits; the town is the interface.",
+    "characters": "Plain avatars; roleplay comes from outfits and props.",
+    "world": "A walkable town on a grid with houses, a school, a police station and a hospital; every building is a roleplay prompt.",
+    "steal": "In roleplay, each building is a suggestion of a story; give the map recognisable real-life places."
+   }
+  },
+  {
+   "id": "bloxburg",
+   "name": "Welcome to Bloxburg",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 185655149
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "The build mode UI is the best on Roblox: category tabs, item cards with price, rotation and colour tools; study it for any building game.",
+    "characters": "Realistic-ish avatars; moods are bars and icons.",
+    "world": "A suburban town with jobs as places (pizza shop, supermarket); your house is your lot.",
+    "steal": "Copy its build mode: category tabs, grid with snap, a colour picker on every item."
+   }
+  },
+  {
+   "id": "royale-high",
+   "name": "Royale High",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 735030788
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Sparkly pastel UI with gold trim; outfit menus are big card grids with layering.",
+    "characters": "Very tall, slim, stylised avatars with wings, halos and huge skirts; accessories are the progression.",
+    "world": "A castle school campus with themed realms, dreamy skyboxes and lots of pink and lilac.",
+    "steal": "For fashion games, the outfit preview must be big, centred and rotatable."
+   }
+  },
+  {
+   "id": "livetopia",
+   "name": "Livetopia RP",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 6737970321
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Large circular side buttons, bright and simple, for very young players.",
+    "characters": "Plain avatars with lots of free props and pets.",
+    "world": "A colourful town much like Brookhaven, with more theme-park style places.",
+    "steal": "Bright round buttons with one icon each are the safe default for ages 6-10."
+   }
+  },
+  {
+   "id": "dress-to-impress",
+   "name": "Dress To Impress",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 15101393044
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Clothing racks in the world, a big runway voting screen with stars; the theme of each round is shown huge at the top.",
+    "characters": "Models with long legs and simple faces so outfits are the focus; hair and makeup are big categories.",
+    "world": "A dressing room around a runway stage; everything points to the stage.",
+    "steal": "Give each round one theme word shown huge, then a vote; a simple social loop."
+   }
+  },
+  {
+   "id": "work-at-a-pizza-place",
+   "name": "Work at a Pizza Place",
+   "group": "roblox-social",
+   "source": {
+    "roblox": 192800
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Almost no UI; jobs are taught by the objects (a dough station, an oven, a car).",
+    "characters": "Plain avatars in job hats.",
+    "world": "A small town where the shop is the centre and houses ring it.",
+    "steal": "Teach with objects in the world, not text: a station's shape says what it does."
+   }
+  },
+  {
+   "id": "blox-fruits",
+   "name": "Blox Fruits",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 2753915549
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Compact skill bar (Z X C V F) bottom-centre, level and bounty top-left, quest panel left; dense but always in the same place.",
+    "characters": "Avatar plus big effect silhouettes: each fruit has a signature colour and shape of effects.",
+    "world": "Three seas of islands, each themed and levelled; you sail between them.",
+    "steal": "Each power gets one signature colour so players know what hit them."
+   }
+  },
+  {
+   "id": "the-strongest-battlegrounds",
+   "name": "The Strongest Battlegrounds",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 10449761463
+   },
+   "tags": [
+    "characters",
+    "ui",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Four ability slots with icons on the bottom; the rest is screen space for the fight.",
+    "characters": "Plain avatars; character identity comes from moves, camera shakes and impact frames.",
+    "world": "A compact arena city that breaks under hits.",
+    "steal": "Impact frames, camera shake and slow-down on big hits make simple moves feel huge."
+   }
+  },
+  {
+   "id": "doors",
+   "name": "DOORS",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 6516141723
+   },
+   "tags": [
+    "world",
+    "characters",
+    "ui",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Almost no HUD; the room number on each door is the progress bar. Items appear in a tiny hotbar.",
+    "characters": "Monsters each have one rule and one strong silhouette or sound cue (Rush, Seek, Figure).",
+    "world": "Procedurally chained hotel rooms with clear readable layouts; light and darkness do the pacing.",
+    "steal": "Use the room number as the progress bar, and give every enemy a single rule players can learn."
+   }
+  },
+  {
+   "id": "murder-mystery-2",
+   "name": "Murder Mystery 2",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 142823291
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Round role reveal fills the screen ('You are the Murderer'); otherwise almost no HUD.",
+    "characters": "Plain avatars; knives and guns are the cosmetics that sell.",
+    "world": "Small detailed maps (house, office, hotel) with hiding spots; several maps rotate.",
+    "steal": "A full-screen role reveal at round start makes the game make sense in one second."
+   }
+  },
+  {
+   "id": "tower-of-hell",
+   "name": "Tower of Hell",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 1962086868
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Only a timer and a stage height bar; the tower is the UI.",
+    "characters": "Plain avatars.",
+    "world": "A vertical tower of random section pieces in bright solid colours; kill bricks are red neon, so danger reads instantly.",
+    "steal": "Danger has one colour across the whole game; never use that colour for anything safe."
+   }
+  },
+  {
+   "id": "jailbreak",
+   "name": "Jailbreak",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 606849621
+   },
+   "tags": [
+    "world",
+    "ui",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Clear team colours (orange prisoners, blue police); robbery markers on a minimap.",
+    "characters": "Plain avatars in team uniforms; vehicles are the characters.",
+    "world": "An open city with robbery buildings spaced out so driving between them is fun.",
+    "steal": "Space your goals apart so travel itself (cars, helicopters) is a feature."
+   }
+  },
+  {
+   "id": "arsenal",
+   "name": "Arsenal",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 286090429
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Kill feed top-right, weapon level shown big when it changes; very readable shooter HUD.",
+    "characters": "Plain avatars with big silly skins.",
+    "world": "Small arena maps with three lanes.",
+    "steal": "Show progress changes huge for a moment, then shrink them back out of the way."
+   }
+  },
+  {
+   "id": "natural-disaster-survival",
+   "name": "Natural Disaster Survival",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 189707
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Only a banner that warns which disaster is coming.",
+    "characters": "Plain avatars.",
+    "world": "One island with a few buildings; each round a disaster destroys them.",
+    "steal": "Announce the threat by name a few seconds before it hits; players love preparing."
+   }
+  },
+  {
+   "id": "piggy",
+   "name": "Piggy",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 4623386862
+   },
+   "tags": [
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Simple item hotbar; chapter titles as big text cards.",
+    "characters": "Monster has a simple, exaggerated shape (pig head, bat) that kids can draw.",
+    "world": "Small mazes per chapter with doors needing items.",
+    "steal": "Horror for kids: one monster with a very simple, drawable shape."
+   }
+  },
+  {
+   "id": "bedwars",
+   "name": "BedWars",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 6872265039
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Kit selection screen with portraits; item shop as a tight grid with prices.",
+    "characters": "Kits with strong silhouettes and colours; teams show by colour.",
+    "world": "Floating islands, one per team, around a middle island with resources.",
+    "steal": "Team colours everywhere (beds, islands, nameplates) so you never need to read a name."
+   }
+  },
+  {
+   "id": "blade-ball",
+   "name": "Blade Ball",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 13772394625
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "One parry button and a big cooldown ring; the targeted player glows red.",
+    "characters": "Plain avatars, swords and explosion effects as cosmetics.",
+    "world": "A round arena; the ball is the only thing that matters.",
+    "steal": "Show who is targeted with a clear colour on the player, not with text."
+   }
+  },
+  {
+   "id": "phantom-forces",
+   "name": "Phantom Forces",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 292439477
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Realistic shooter HUD: ammo bottom-right, minimap, hit markers.",
+    "characters": "Tactical soldiers; loadouts as attachment trees.",
+    "world": "Mid-size realistic maps.",
+    "steal": "Reference for a 'serious' look on Roblox; most young players prefer simpler."
+   }
+  },
+  {
+   "id": "evade",
+   "name": "Evade",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 9872472334
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Minimal HUD, a downed-player indicator and a timer.",
+    "characters": "Nextbot chasers are flat images on a moving body: scary and cheap to make.",
+    "world": "Large liminal maps with long sight lines for chases.",
+    "steal": "A flat image chaser is cheap, funny and scary; lots of variety for little work."
+   }
+  },
+  {
+   "id": "rainbow-friends",
+   "name": "Rainbow Friends",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 7991339063
+   },
+   "tags": [
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Night counter and task list, very simple.",
+    "characters": "Each monster is one colour and one shape idea (Blue is tall and drooling, Green is blind and long-armed).",
+    "world": "An amusement park at night in a single building with zones.",
+    "steal": "One colour plus one body idea per monster makes them easy to remember and draw."
+   }
+  },
+  {
+   "id": "dead-rails",
+   "name": "Dead Rails",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 116495829188952
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Distance counter is the main goal; inventory is simple.",
+    "characters": "Zombies and outlaws in a western style.",
+    "world": "A train moving through a long procedural western; the train is your base.",
+    "steal": "A moving base (train, ship) gives every run a direction and a timer."
+   }
+  },
+  {
+   "id": "99-nights-in-the-forest",
+   "name": "99 Nights in the Forest",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 79546208627805
+   },
+   "tags": [
+    "world",
+    "ui",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Night counter big at the top; campfire fuel bar.",
+    "characters": "A deer monster with a clear silhouette; friendly animal characters.",
+    "world": "Forest around a campfire; light radius equals safety.",
+    "steal": "Use a light radius as the safe zone; the edge of the light is the drama."
+   }
+  },
+  {
+   "id": "build-a-boat",
+   "name": "Build A Boat For Treasure",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 537413528
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Building tools on the side; the river of stages has a stage counter.",
+    "characters": "Plain avatars; the boats are the creations.",
+    "world": "A long river split into themed stages with obstacles, ending in treasure.",
+    "steal": "A long linear course with themed stages is an easy progress bar."
+   }
+  },
+  {
+   "id": "flee-the-facility",
+   "name": "Flee the Facility",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 893973440
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Computer hack minigame with a clear progress ring; beast warnings are sound and red light.",
+    "characters": "The Beast has a hammer and a red glow.",
+    "world": "Small facility maps with computers spread out.",
+    "steal": "Teamwork objectives spread across the map force players to split up."
+   }
+  },
+  {
+   "id": "epic-minigames",
+   "name": "Epic Minigames",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 277751860
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Big round title cards announce each minigame and its one-line rule.",
+    "characters": "Plain avatars.",
+    "world": "Dozens of small arenas, each one idea.",
+    "steal": "Announce every round with a title and one rule sentence."
+   }
+  },
+  {
+   "id": "speed-run-4",
+   "name": "Speed Run 4",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 183364845
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Timer and level number only.",
+    "characters": "Plain avatars.",
+    "world": "Bright themed levels in a straight line, each with one visual theme.",
+    "steal": "Each obby stage gets one theme and one colour palette."
+   }
+  },
+  {
+   "id": "shindo-life",
+   "name": "Shindo Life",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 4616652839
+   },
+   "tags": [
+    "characters",
+    "ui",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Lots of ability slots and a big spin menu.",
+    "characters": "Anime look with huge effect silhouettes.",
+    "world": "Big open maps.",
+    "steal": "Reference for flashy effects; too dense for young players."
+   }
+  },
+  {
+   "id": "funky-friday",
+   "name": "Funky Friday",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 6447798030
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Arrow lanes with very clear colours per direction; score and combo big.",
+    "characters": "Avatars dance while you play.",
+    "world": "Stage per pair of players.",
+    "steal": "Rhythm UI: one colour per lane, big hit feedback on every note."
+   }
+  },
+  {
+   "id": "hide-and-seek-extreme",
+   "name": "Hide and Seek Extreme",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 205224386
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Seeker reveal banner and timer.",
+    "characters": "Players become tiny in giant rooms.",
+    "world": "Giant-size household maps (kitchen, garage) so hiding spots are furniture.",
+    "steal": "Make players small in a giant room; every object becomes a place to play."
+   }
+  },
+  {
+   "id": "combat-warriors",
+   "name": "Combat Warriors",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 4282985734
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Health and stamina bars bottom-left; weapon hotbar.",
+    "characters": "Avatars with medieval weapons; weapon silhouettes matter.",
+    "world": "Arena maps with traps.",
+    "steal": "Show stamina next to health so players learn timing."
+   }
+  },
+  {
+   "id": "slap-battles",
+   "name": "Slap Battles",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 6403373529
+   },
+   "tags": [
+    "characters",
+    "world",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Glove choice wall in the lobby; minimal fight HUD.",
+    "characters": "Each glove is one colour and one ability; the glove shape is the character.",
+    "world": "A floating arena island you can be knocked off.",
+    "steal": "One silly verb (slap) with many variants is enough for a hit."
+   }
+  },
+  {
+   "id": "forsaken",
+   "name": "Forsaken",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 18687417158
+   },
+   "tags": [
+    "characters",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Character select with portraits and role labels; ability icons bottom.",
+    "characters": "Killers are famous Roblox figures restyled darker; strong silhouettes.",
+    "world": "Small maps for asymmetric chase.",
+    "steal": "Asymmetric games need each role's silhouette readable at a distance."
+   }
+  },
+  {
+   "id": "pressure",
+   "name": "Pressure",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 12411473842
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Minimal: room numbers and a few prompts.",
+    "characters": "Monsters with distinct sound cues and lights.",
+    "world": "Underwater facility rooms; lighting and sound carry the tension.",
+    "steal": "Give every threat a sound before it appears."
+   }
+  },
+  {
+   "id": "rivals",
+   "name": "RIVALS",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 17625359962
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Clean modern shooter UI: round score at the top, weapon icons, crisp fonts.",
+    "characters": "Plain avatars with weapon skins; skins are the monetisation.",
+    "world": "Small symmetric duel arenas.",
+    "steal": "Symmetric small arenas for 1v1 keep matches short and fair."
+   }
+  },
+  {
+   "id": "the-mimic",
+   "name": "The Mimic",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 6243699076
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Story text cards and chapter titles.",
+    "characters": "Japanese-folklore inspired monsters with masks and long limbs.",
+    "world": "Narrow corridors, lanterns, traditional buildings.",
+    "steal": "A strong cultural theme (folklore) makes a horror game feel unique."
+   }
+  },
+  {
+   "id": "fruit-battlegrounds",
+   "name": "Fruit Battlegrounds",
+   "group": "roblox-action",
+   "source": {
+    "roblox": 9224601490
+   },
+   "tags": [
+    "characters",
+    "ui",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Move list on the right with keys; spin for fruit screen.",
+    "characters": "Avatars plus big fruit-power effects.",
+    "world": "Arena islands.",
+    "steal": "Signature effect per power; reuse one avatar base."
+   }
+  },
+  {
+   "id": "brawl-stars",
+   "name": "Brawl Stars",
+   "group": "mobile",
+   "source": {
+    "ios": 1229016807
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Huge chunky buttons with black outlines and bevelled colour; very touch friendly. Supercell's UI is the industry template.",
+    "characters": "Brawlers have big heads, readable silhouettes and one prop each; seen from above they still read.",
+    "world": "Top-down maps with bushes, walls and clear lanes.",
+    "steal": "Copy Supercell button style: thick dark outline, bright fill, small top highlight."
+   }
+  },
+  {
+   "id": "clash-royale",
+   "name": "Clash Royale",
+   "group": "mobile",
+   "source": {
+    "ios": 1053012308
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Elixir bar at the bottom, card hand of four; chest slots with timers.",
+    "characters": "Units are tiny but each has one huge feature (giant's size, wizard's fire).",
+    "world": "One symmetric arena per tier with a theme.",
+    "steal": "Each arena tier gets a new look; progress you can see."
+   }
+  },
+  {
+   "id": "clash-of-clans",
+   "name": "Clash of Clans",
+   "group": "mobile",
+   "source": {
+    "ios": 529479190
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Resource bars top-right with caps; builder count; very clear upgrade timers.",
+    "characters": "Chunky, cartoony troops with readable roles.",
+    "world": "A grassy village seen from an isometric view; buildings grow taller with level.",
+    "steal": "Make upgraded buildings visibly bigger and shinier."
+   }
+  },
+  {
+   "id": "subway-surfers",
+   "name": "Subway Surfers",
+   "group": "mobile",
+   "source": {
+    "ios": 512939461
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Score and coins top; mission panel between runs.",
+    "characters": "Graffiti-style kids with bold colours.",
+    "world": "Three lanes of trains in a bright city.",
+    "steal": "Three lanes is enough for a runner; keep inputs to swipes."
+   }
+  },
+  {
+   "id": "candy-crush-saga",
+   "name": "Candy Crush Saga",
+   "group": "mobile",
+   "source": {
+    "ios": 553834731
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Level map as a winding path; moves left and goal shown big.",
+    "characters": "Candies with distinct shapes and colours.",
+    "world": "A candy world map.",
+    "steal": "Each piece differs by shape and colour, so colour-blind players can play."
+   }
+  },
+  {
+   "id": "genshin-impact",
+   "name": "Genshin Impact",
+   "group": "mobile",
+   "source": {
+    "ios": 1517783697
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Clean, elegant UI with thin lines and gold accents.",
+    "characters": "Anime characters with strong colour per element.",
+    "world": "Open world with distinct regions by culture.",
+    "steal": "One colour per element across UI and effects."
+   }
+  },
+  {
+   "id": "honkai-star-rail",
+   "name": "Honkai: Star Rail",
+   "group": "mobile",
+   "source": {
+    "ios": 1599719154
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Turn order bar on the left; flashy ultimate cutscenes.",
+    "characters": "Anime characters, very polished.",
+    "world": "Sci-fi space stations.",
+    "steal": "Show turn order clearly for turn-based combat."
+   }
+  },
+  {
+   "id": "zenless-zone-zero",
+   "name": "Zenless Zone Zero",
+   "group": "mobile",
+   "source": {
+    "ios": 1606356401
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Street-style UI with stickers and bold type.",
+    "characters": "Stylish characters with strong silhouettes.",
+    "world": "Urban streets.",
+    "steal": "UI that matches the game's culture (street, retro TV)."
+   }
+  },
+  {
+   "id": "pokemon-go",
+   "name": "Pokémon GO",
+   "group": "mobile",
+   "source": {
+    "ios": 1094591345
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Throw with one swipe; round buttons at the bottom.",
+    "characters": "Pokémon are round and simple for the most part.",
+    "world": "Real-world map styled into a game board.",
+    "steal": "One gesture to catch."
+   }
+  },
+  {
+   "id": "pokemon-unite",
+   "name": "Pokémon UNITE",
+   "group": "mobile",
+   "source": {
+    "ios": 1512321575
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "MOBA HUD simplified for kids: two abilities, one ultimate, score goals.",
+    "characters": "Pokémon as MOBA heroes.",
+    "world": "A small symmetric arena.",
+    "steal": "A MOBA simplified to two moves and an ultimate."
+   }
+  },
+  {
+   "id": "pokemon-tcg-pocket",
+   "name": "Pokémon TCG Pocket",
+   "group": "mobile",
+   "source": {
+    "ios": 6479970832
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Pack opening with tear gesture, shiny card tilt effects.",
+    "characters": "Card art.",
+    "world": "Menus only.",
+    "steal": "Make opening rewards tactile (tear, tilt, shine)."
+   }
+  },
+  {
+   "id": "pokemon-sleep",
+   "name": "Pokémon Sleep",
+   "group": "mobile",
+   "source": {
+    "ios": 1579464667
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Soft, rounded UI.",
+    "characters": "Sleeping Pokémon in cute poses.",
+    "world": "A camp around a giant Snorlax.",
+    "steal": "A large central character is the home screen."
+   }
+  },
+  {
+   "id": "pokemon-masters",
+   "name": "Pokémon Masters EX",
+   "group": "mobile",
+   "source": {
+    "ios": 1442061397
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Big character art behind menus.",
+    "characters": "Trainer plus Pokémon pairs.",
+    "world": "Island hub.",
+    "steal": "Character art as menu backgrounds."
+   }
+  },
+  {
+   "id": "alto-odyssey",
+   "name": "Alto's Odyssey",
+   "group": "mobile",
+   "source": {
+    "ios": 1182456409
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost invisible UI.",
+    "characters": "A tiny sandboarder.",
+    "world": "Dunes with gradient skies and weather.",
+    "steal": "Gradient skies and silhouettes for an elegant mood."
+   }
+  },
+  {
+   "id": "monument-valley-2",
+   "name": "Monument Valley 2",
+   "group": "mobile",
+   "source": {
+    "ios": 1187265767
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "No UI at all.",
+    "characters": "Small mother and child figures.",
+    "world": "Impossible geometry in pastel colours.",
+    "steal": "Pastel geometric worlds."
+   }
+  },
+  {
+   "id": "cookie-run-kingdom",
+   "name": "CookieRun: Kingdom",
+   "group": "mobile",
+   "source": {
+    "ios": 1509450845
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Cute, frosted, candy UI.",
+    "characters": "Cookie heroes with big heads and edible themes.",
+    "world": "A kingdom of sweets.",
+    "steal": "A food theme for every element."
+   }
+  },
+  {
+   "id": "squad-busters",
+   "name": "Squad Busters",
+   "group": "mobile",
+   "source": {
+    "ios": 1668983788
+   },
+   "tags": [
+    "characters"
+   ],
+   "learn": {
+    "ui": "Squad growing on screen.",
+    "characters": "Supercell characters together.",
+    "world": "Small arenas.",
+    "steal": "Show your growing team as a crowd behind you."
+   }
+  },
+  {
+   "id": "stumble-guys",
+   "name": "Stumble Guys",
+   "group": "mobile",
+   "source": {
+    "ios": 1541153375
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Big title cards per round.",
+    "characters": "Bean-like characters, copy of Fall Guys style.",
+    "world": "Bright obstacle courses.",
+    "steal": "Party obstacle courses work on any device."
+   }
+  },
+  {
+   "id": "roblox",
+   "name": "Roblox (app)",
+   "group": "mobile",
+   "source": {
+    "ios": 431946152
+   },
+   "tags": [
+    "thumbnail"
+   ],
+   "learn": {
+    "ui": "Roblox's own store screenshots show what Roblox thinks looks good.",
+    "characters": "Avatars.",
+    "world": "Experience tiles.",
+    "steal": "Check how Roblox markets itself."
+   }
+  },
+  {
+   "id": "minecraft",
+   "name": "Minecraft",
+   "group": "mobile",
+   "source": {
+    "ios": 479516143
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Hotbar of nine slots; inventory grid.",
+    "characters": "Blocky characters with simple pixel faces.",
+    "world": "Blocky world in biomes.",
+    "steal": "Simple shapes plus texture = iconic."
+   }
+  },
+  {
+   "id": "angry-birds-2",
+   "name": "Angry Birds 2",
+   "group": "mobile",
+   "source": {
+    "ios": 880047117
+   },
+   "tags": [
+    "characters"
+   ],
+   "learn": {
+    "ui": "Card choices of birds.",
+    "characters": "Birds are one colour shape each with angry eyebrows.",
+    "world": "Pig towers to knock down.",
+    "steal": "One colour, one shape, one power per character."
+   }
+  },
+  {
+   "id": "hay-day",
+   "name": "Hay Day",
+   "group": "mobile",
+   "source": {
+    "ios": 506627515
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Drag-to-harvest gestures; production queues as bubbles.",
+    "characters": "Cute farm animals.",
+    "world": "A farm that fills with buildings.",
+    "steal": "Drag across crops to harvest them all."
+   }
+  },
+  {
+   "id": "archero",
+   "name": "Archero",
+   "group": "mobile",
+   "source": {
+    "ios": 1453651052
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Skill choice wheel on level up.",
+    "characters": "A small archer.",
+    "world": "Top-down rooms.",
+    "steal": "Random skill choices each level-up."
+   }
+  },
+  {
+   "id": "survivor-io",
+   "name": "Survivor!.io",
+   "group": "mobile",
+   "source": {
+    "ios": 1528941310
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Skill choices of three, evolutions shown.",
+    "characters": "Small hero, swarms of zombies.",
+    "world": "Arena fields.",
+    "steal": "Show evolutions so players chase combos."
+   }
+  },
+  {
+   "id": "fire-emblem-heroes",
+   "name": "Fire Emblem Heroes",
+   "group": "mobile",
+   "source": {
+    "ios": 1181774280
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Grid battle UI for touch.",
+    "characters": "Heroes with portrait art.",
+    "world": "Small grid maps.",
+    "steal": "Small grids for touch tactics."
+   }
+  },
+  {
+   "id": "monopoly-go",
+   "name": "MONOPOLY GO!",
+   "group": "mobile",
+   "source": {
+    "ios": 1621328561
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Huge GO button; dice multiplier; constant reward popups (study, but avoid dark patterns).",
+    "characters": "Mr. Monopoly.",
+    "world": "Board loops.",
+    "steal": "Study the reward feedback; skip the pressure tactics."
+   }
+  },
+  {
+   "id": "coin-master",
+   "name": "Coin Master",
+   "group": "mobile",
+   "source": {
+    "ios": 406889139
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Slot machine as the main button.",
+    "characters": "Cartoon Vikings.",
+    "world": "Village building.",
+    "steal": "Study, then avoid: slot machine loops are not for kids."
+   }
+  },
+  {
+   "id": "gardenscapes",
+   "name": "Gardenscapes",
+   "group": "mobile",
+   "source": {
+    "ios": 1105855019
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Match-3 levels unlock garden restoration tasks.",
+    "characters": "Butler character as guide.",
+    "world": "A garden that slowly gets restored.",
+    "steal": "A meta world that visibly gets nicer as you win."
+   }
+  },
+  {
+   "id": "merge-mansion",
+   "name": "Merge Mansion",
+   "group": "mobile",
+   "source": {
+    "ios": 1484442152
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Merge board with item chains.",
+    "characters": "Grandma character.",
+    "world": "Mansion rooms restored.",
+    "steal": "Merge chains with visible next step."
+   }
+  },
+  {
+   "id": "sky-children-of-the-light",
+   "name": "Sky: Children of the Light",
+   "group": "mobile",
+   "source": {
+    "ios": 1462117269
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Very soft UI; emotes as icons.",
+    "characters": "Small cloaked children with capes that show progress.",
+    "world": "Dreamy cloud kingdoms with golden light.",
+    "steal": "A cape that grows with progress."
+   }
+  },
+  {
+   "id": "toca-boca-world",
+   "name": "Toca Boca World",
+   "group": "mobile",
+   "source": {
+    "ios": 1208138685
+   },
+   "tags": [
+    "ui",
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "No text; icons only for young kids.",
+    "characters": "Rounded, quirky characters.",
+    "world": "Doll-house style places.",
+    "steal": "Icon-only UI for kids under 8."
+   }
+  },
+  {
+   "id": "crossy-road",
+   "name": "Crossy Road",
+   "group": "mobile",
+   "source": {
+    "ios": 924373886
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Score top-left only.",
+    "characters": "Voxel animals; hundreds of skins.",
+    "world": "Endless lanes of roads and rivers.",
+    "steal": "Voxel characters are cheap and collectible."
+   }
+  },
+  {
+   "id": "geometry-dash",
+   "name": "Geometry Dash",
+   "group": "mobile",
+   "source": {
+    "ios": 625334537
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Progress bar at the top.",
+    "characters": "Icon cubes customisable.",
+    "world": "Neon geometric levels synced to music.",
+    "steal": "Progress bar across the top for any level."
+   }
+  },
+  {
+   "id": "super-mario-run",
+   "name": "Super Mario Run",
+   "group": "mobile",
+   "source": {
+    "ios": 1145275343
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "One-tap controls.",
+    "characters": "Mario.",
+    "world": "Classic Mario levels.",
+    "steal": "One-tap game for phones."
+   }
+  },
+  {
+   "id": "mario-kart-tour",
+   "name": "Mario Kart Tour",
+   "group": "mobile",
+   "source": {
+    "ios": 1293634699
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Steering by swipe; items as a slot.",
+    "characters": "Mario characters.",
+    "world": "City tracks.",
+    "steal": "Item roulette slot."
+   }
+  },
+  {
+   "id": "hole-io",
+   "name": "Hole.io",
+   "group": "mobile",
+   "source": {
+    "ios": 1389111413
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Size and timer.",
+    "characters": "A hole.",
+    "world": "A city to swallow.",
+    "steal": "Grow by eating the world."
+   }
+  },
+  {
+   "id": "animal-crossing-pocket-camp",
+   "name": "Animal Crossing: Pocket Camp Complete",
+   "group": "mobile",
+   "source": {
+    "ios": 6547834967
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Soft rounded UI; leaf-shaped icons.",
+    "characters": "Animal villagers.",
+    "world": "A campsite.",
+    "steal": "Soft, friendly icon shapes."
+   }
+  },
+  {
+   "id": "fortnite",
+   "name": "Fortnite",
+   "group": "mobile",
+   "source": {
+    "ios": 6483539426
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Bright, chunky UI; item rarity by colour; storm timer.",
+    "characters": "Cartoony realistic proportions; skins are everything.",
+    "world": "A bright island with named places.",
+    "steal": "Rarity colours (grey, green, blue, purple, gold) everyone already knows."
+   }
+  },
+  {
+   "id": "animal-crossing-new-horizons",
+   "name": "Animal Crossing: New Horizons",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Animal Crossing New Horizons Gameplay.jpg",
+     "File:Animal Crossing New Horizons.jpg",
+     "File:Retro Electric Fan Concept Art.jpeg"
+    ]
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "NookPhone: every menu is an app icon on a phone; round, friendly and simple.",
+    "characters": "Round heads, dot eyes, tiny bodies; villagers are animal shapes with one personality detail.",
+    "world": "A small island with rivers and cliffs you unlock tools to cross.",
+    "steal": "Phone-app home screen for menus; kids already understand it."
+   }
+  },
+  {
+   "id": "splatoon-3",
+   "name": "Splatoon 3",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Splatoon 3 Turf War.jpg",
+     "File:Splatoon 3 Salmon Run.jpg",
+     "File:Splatoon.3.jpg"
+    ]
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Ink colours are the UI: the map shows team colours, and the result is a coverage percent.",
+    "characters": "Inklings: squid-head silhouettes with bold streetwear.",
+    "world": "Urban arenas painted by play.",
+    "steal": "Let the world record what players did (paint, footprints)."
+   }
+  },
+  {
+   "id": "splatoon-2",
+   "name": "Splatoon 2",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Splatoon2TurfWarGameplay.png",
+     "File:Splatoon 2.jpg"
+    ]
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Same ink-coverage UI.",
+    "characters": "Inklings.",
+    "world": "Painted arenas.",
+    "steal": "Score as coverage percent."
+   }
+  },
+  {
+   "id": "mario-kart-8",
+   "name": "Mario Kart 8 Deluxe",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:MK8 Mario Circuit.jpg",
+     "File:MK8D Base Game vs. Wave 1.jpg",
+     "File:MarioKart8Boxart.jpg"
+    ]
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Item roulette top-left, position number huge bottom-right.",
+    "characters": "Mario cast in karts.",
+    "world": "Tracks with anti-gravity sections and bright themes.",
+    "steal": "Position number huge on screen; players always know where they stand."
+   }
+  },
+  {
+   "id": "super-mario-odyssey",
+   "name": "Super Mario Odyssey",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Super Mario Odyssey, Cascade Kingdom.png",
+     "File:Super Mario Odyssey, Seaside Kingdom.png",
+     "File:Super Mario Odyssey.jpg"
+    ]
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Moon count; minimal HUD.",
+    "characters": "Mario and Cappy.",
+    "world": "Kingdoms dense with secrets, each a theme.",
+    "steal": "Pack every corner with a small reward."
+   }
+  },
+  {
+   "id": "super-mario-bros-wonder",
+   "name": "Super Mario Bros. Wonder",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:SMB wonder screenshot.png",
+     "File:Mariowonder.png"
+    ]
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Badge selection UI.",
+    "characters": "Elastic, expressive animation for every character.",
+    "world": "Levels that change wildly when you grab the Wonder Flower.",
+    "steal": "Hide a moment in each level where everything changes."
+   }
+  },
+  {
+   "id": "pokemon-scarlet-violet",
+   "name": "Pokémon Scarlet and Violet",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Paldea region map.jpg",
+     "File:Tera Raid Battle.jpg",
+     "File:Pokemon Scarlet and Violet Concept Artwork.webp"
+    ]
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Map UI.",
+    "characters": "Pokémon designs.",
+    "world": "Open region inspired by Spain and Portugal.",
+    "steal": "Base your world on a real place's feel."
+   }
+  },
+  {
+   "id": "kirby-forgotten-land",
+   "name": "Kirby and the Forgotten Land",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Kirby and the Forgotten Land Mouthful Mode.jpg"
+    ]
+   },
+   "tags": [
+    "characters"
+   ],
+   "learn": {
+    "ui": "Simple HUD.",
+    "characters": "Kirby: a pink circle; Mouthful Mode wraps him around objects (a car, a cone) for comedy.",
+    "world": "Overgrown city ruins.",
+    "steal": "A circle hero can become anything; shape comedy."
+   }
+  },
+  {
+   "id": "pikmin-4",
+   "name": "Pikmin 4",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Pikmin fighting a Bulborb in Pikmin 4.jpg"
+    ]
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Squad counts by colour.",
+    "characters": "Tiny plant creatures, one colour per ability.",
+    "world": "Everyday places at tiny scale.",
+    "steal": "Colour equals ability for every unit."
+   }
+  },
+  {
+   "id": "smash-ultimate",
+   "name": "Super Smash Bros. Ultimate",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Super Smash Bros. Ultimate gameplay.jpg",
+     "File:Smash Ultimate spirit.jpg",
+     "File:Super Smash Bros. Ultimate.jpg"
+    ]
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Damage percent per player at the bottom with portraits.",
+    "characters": "Many art styles side by side; each still readable.",
+    "world": "Stages with platforms.",
+    "steal": "Percent damage instead of health bars makes comebacks exciting."
+   }
+  },
+  {
+   "id": "astro-bot",
+   "name": "Astro Bot",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Astro Bot Ensemble.png",
+     "File:Astro Bot Arm Abilty.png"
+    ]
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost no HUD.",
+    "characters": "Tiny white robot with a big head and blue eyes; dozens of cameo bots.",
+    "world": "Bright toy-like worlds.",
+    "steal": "A tiny cute robot hero with huge eyes."
+   }
+  },
+  {
+   "id": "luigis-mansion-3",
+   "name": "Luigi's Mansion 3",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Luigi's Mansion 3.jpg"
+    ]
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Simple HUD.",
+    "characters": "Ghosts with cute-spooky shapes.",
+    "world": "A hotel with a theme on every floor.",
+    "steal": "One building, a theme per floor."
+   }
+  },
+  {
+   "id": "mario-party-jamboree",
+   "name": "Super Mario Party Jamboree",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Super Mario Party Jamboree Modes.png",
+     "File:Super Mario Party Jamboree cover art.jpg"
+    ]
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Mode select as big colourful tiles.",
+    "characters": "Mario cast.",
+    "world": "Boards and minigames.",
+    "steal": "Big tiles for each mode."
+   }
+  },
+  {
+   "id": "donkey-kong-bananza",
+   "name": "Donkey Kong Bananza",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Donkey Kong Bananza Screenshot.jpg"
+    ]
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Simple HUD.",
+    "characters": "Expressive DK.",
+    "world": "Fully destructible voxel layers.",
+    "steal": "Destruction as the core fun."
+   }
+  },
+  {
+   "id": "minecraft-wiki",
+   "name": "Minecraft (Wikipedia images)",
+   "group": "nintendo",
+   "source": {
+    "wiki": [
+     "File:Screenshot from the Minecraft Nether.png",
+     "File:Screenshot from the Minecraft End.png",
+     "File:Minecraft Beta 1.8.1 – Crafting a Wooden Sword.png",
+     "File:Minecraft Creeper (Crop).png",
+     "File:Minecraft Enderman.png"
+    ]
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Crafting grid.",
+    "characters": "Mobs: Creeper and Enderman are textbook iconic silhouettes from cubes.",
+    "world": "Dimensions with their own palette.",
+    "steal": "Iconic monsters from basic cubes."
+   }
+  },
+  {
+   "id": "overwatch-2",
+   "name": "Overwatch 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 2357570
+   },
+   "tags": [
+    "characters",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Ability icons bottom-right with cooldown numbers; teammates' portraits top.",
+    "characters": "Every hero is readable in silhouette alone (Blizzard tests in black fill); shapes match roles (tanks big and square, supports softer).",
+    "world": "Maps with clear routes and a payload.",
+    "steal": "Test your characters as black silhouettes; if you cannot tell them apart, redesign."
+   }
+  },
+  {
+   "id": "apex-legends",
+   "name": "Apex Legends",
+   "group": "big-3d",
+   "source": {
+    "steam": 1172470
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Ping system: one button marks enemies, items and places; plus a loot UI with colour per rarity.",
+    "characters": "Legends with distinct shapes and colours.",
+    "world": "Large map with named landmarks.",
+    "steal": "A ping wheel lets players talk without voice; great for kids' games."
+   }
+  },
+  {
+   "id": "marvel-rivals",
+   "name": "Marvel Rivals",
+   "group": "big-3d",
+   "source": {
+    "steam": 2767030
+   },
+   "tags": [
+    "characters",
+    "ui",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Comic-style UI with bold panels.",
+    "characters": "Comic-book cel shading and thick lines.",
+    "world": "Destructible maps.",
+    "steal": "Cel shading with thick outlines suits Roblox's simple shapes."
+   }
+  },
+  {
+   "id": "fall-guys",
+   "name": "Fall Guys",
+   "group": "big-3d",
+   "source": {
+    "steam": 1097150
+   },
+   "tags": [
+    "characters",
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Huge round titles and counters; qualified players shown as a shrinking number.",
+    "characters": "Jellybean bodies, stubby limbs, costumes on top: maximum cute, maximum clumsy.",
+    "world": "Candy-coloured obstacle courses with spinning bars, big rubber shapes, no sharp edges.",
+    "steal": "Soft rounded obstacles in candy colours read as fun, never dangerous."
+   }
+  },
+  {
+   "id": "rocket-league",
+   "name": "Rocket League",
+   "group": "big-3d",
+   "source": {
+    "steam": 252950
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Boost meter bottom-right; ball cam toggle; score top-centre.",
+    "characters": "Cars as characters; decals and toppers sell.",
+    "world": "One arena with clear goals.",
+    "steal": "A single arena and one ball can be a forever game."
+   }
+  },
+  {
+   "id": "team-fortress-2",
+   "name": "Team Fortress 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 440
+   },
+   "tags": [
+    "characters"
+   ],
+   "learn": {
+    "ui": "Classic class HUD.",
+    "characters": "The textbook of silhouette-based class design: each class has a unique shape and weapon outline.",
+    "world": "Clear team colours (red, blue) on every surface.",
+    "steal": "Team colour on the world itself, not only the players."
+   }
+  },
+  {
+   "id": "portal-2",
+   "name": "Portal 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 620
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "No HUD; the gun shows which portal is next by colour.",
+    "characters": "Robots with one eye: emotion from one light.",
+    "world": "Test chambers that teach one idea at a time.",
+    "steal": "Teach one idea per room, then combine."
+   }
+  },
+  {
+   "id": "destiny-2",
+   "name": "Destiny 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 1085660
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "The director map and gear screens are beautiful, minimal and grid-based.",
+    "characters": "Armour silhouettes by class.",
+    "world": "Skyboxes with huge planets for scale.",
+    "steal": "Big skybox objects make small maps feel epic."
+   }
+  },
+  {
+   "id": "elden-ring",
+   "name": "ELDEN RING",
+   "group": "big-3d",
+   "source": {
+    "steam": 1245620
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Very sparse HUD: bars top-left, items bottom-left.",
+    "characters": "Bosses with telegraphed wind-ups.",
+    "world": "The Erdtree is visible from everywhere: a landmark that is also the goal.",
+    "steal": "One giant landmark visible from everywhere solves navigation."
+   }
+  },
+  {
+   "id": "baldurs-gate-3",
+   "name": "Baldur's Gate 3",
+   "group": "big-3d",
+   "source": {
+    "steam": 1086940
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Hotbar with tooltips; dice roll shown big for big moments.",
+    "characters": "Detailed characters.",
+    "world": "Dense handcrafted areas.",
+    "steal": "Show the dice roll for big choices; it makes chance feel fair."
+   }
+  },
+  {
+   "id": "monster-hunter-wilds",
+   "name": "Monster Hunter Wilds",
+   "group": "big-3d",
+   "source": {
+    "steam": 2246340
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Monster health hidden; damage numbers optional.",
+    "characters": "Monsters with strong animal silhouettes.",
+    "world": "Ecosystems where monsters fight each other.",
+    "steal": "Big creatures with animal-based silhouettes read instantly."
+   }
+  },
+  {
+   "id": "helldivers-2",
+   "name": "HELLDIVERS 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 553850
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Stratagem codes as arrow inputs; galactic war map shared by all players.",
+    "characters": "Soldiers in capes and helmets.",
+    "world": "Planets with strong colour themes.",
+    "steal": "A shared community goal map makes everyone feel part of one war."
+   }
+  },
+  {
+   "id": "sea-of-thieves",
+   "name": "Sea of Thieves",
+   "group": "big-3d",
+   "source": {
+    "steam": 1172620
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Almost no HUD: you read maps and compasses in your hands.",
+    "characters": "Cartoony pirates with exaggerated proportions.",
+    "world": "Bright stylised water and islands.",
+    "steal": "Diegetic UI: the map is an item you hold."
+   }
+  },
+  {
+   "id": "palworld",
+   "name": "Palworld",
+   "group": "big-3d",
+   "source": {
+    "steam": 1623730
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Survival HUD with creature party on the side.",
+    "characters": "Round, cute creatures with simple shapes.",
+    "world": "Open world with a base.",
+    "steal": "Cute round creature designs are the reason people clicked."
+   }
+  },
+  {
+   "id": "valheim",
+   "name": "Valheim",
+   "group": "big-3d",
+   "source": {
+    "steam": 892970
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Building wheel menu.",
+    "characters": "Simple Viking.",
+    "world": "Low-poly world with moody lighting.",
+    "steal": "Strong lighting makes low-poly look great; Roblox can do this."
+   }
+  },
+  {
+   "id": "deep-rock-galactic",
+   "name": "Deep Rock Galactic",
+   "group": "big-3d",
+   "source": {
+    "steam": 548430
+   },
+   "tags": [
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Class colour accents in HUD.",
+    "characters": "Dwarves with big beards and helmets: shape language of sturdy squares.",
+    "world": "Procedural caves lit by your own flares.",
+    "steal": "Let players light the world themselves."
+   }
+  },
+  {
+   "id": "risk-of-rain-2",
+   "name": "Risk of Rain 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 632360
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Item stack bar at the top shows every buff.",
+    "characters": "Distinct survivor silhouettes.",
+    "world": "Alien worlds with strong colour themes.",
+    "steal": "Show every power-up collected in one row; growth you can see."
+   }
+  },
+  {
+   "id": "hogwarts-legacy",
+   "name": "Hogwarts Legacy",
+   "group": "big-3d",
+   "source": {
+    "steam": 990080
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Spell wheel and minimal HUD.",
+    "characters": "Robes and houses by colour.",
+    "world": "A castle full of detail.",
+    "steal": "A building packed with tiny details rewards exploring."
+   }
+  },
+  {
+   "id": "persona-5-royal",
+   "name": "Persona 5 Royal",
+   "group": "big-3d",
+   "source": {
+    "steam": 1687950
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "The most famous stylised UI: red, black and white, tilted text, menus that move. Study for energy and style.",
+    "characters": "Bold anime silhouettes.",
+    "world": "Tokyo hubs.",
+    "steal": "UI can have personality: tilt, colour and motion give a game a voice."
+   }
+  },
+  {
+   "id": "ori-will-of-the-wisps",
+   "name": "Ori and the Will of the Wisps",
+   "group": "big-3d",
+   "source": {
+    "steam": 1057090
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Minimal energy cells and health.",
+    "characters": "Ori is a glowing white spirit; light on a dark world.",
+    "world": "Layered painted forests with strong rim lighting.",
+    "steal": "Use rim light so the hero always pops from the background."
+   }
+  },
+  {
+   "id": "overcooked-2",
+   "name": "Overcooked! 2",
+   "group": "big-3d",
+   "source": {
+    "steam": 728880
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Order tickets at the top with timers.",
+    "characters": "Small round chefs.",
+    "world": "Kitchens that move and split mid-level.",
+    "steal": "Orders as tickets with timers; a perfect co-op pressure UI."
+   }
+  },
+  {
+   "id": "bloons-td-6",
+   "name": "Bloons TD 6",
+   "group": "big-3d",
+   "source": {
+    "steam": 960090
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Upgrade paths shown as three tracks; great clarity for tower upgrades.",
+    "characters": "Monkeys with big personality and readable roles.",
+    "world": "Bright maps with one or two paths.",
+    "steal": "Show upgrade paths as tracks so choices are visible ahead of time."
+   }
+  },
+  {
+   "id": "plants-vs-zombies",
+   "name": "Plants vs. Zombies",
+   "group": "big-3d",
+   "source": {
+    "steam": 3590
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Seed packets on top with sun cost and cooldown shading.",
+    "characters": "Plants: one shape and one face each; zombies goofy.",
+    "world": "A lawn grid with lanes.",
+    "steal": "Cooldown as a shadow sliding off the card is perfectly clear."
+   }
+  },
+  {
+   "id": "minecraft-legends",
+   "name": "Minecraft Legends",
+   "group": "big-3d",
+   "source": {
+    "steam": 1928870
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Simple command banner UI.",
+    "characters": "Blocky mobs with new stylised shading.",
+    "world": "Bright stylised overworld.",
+    "steal": "Blocky shapes can still look premium with good lighting."
+   }
+  },
+  {
+   "id": "minecraft-dungeons",
+   "name": "Minecraft Dungeons",
+   "group": "big-3d",
+   "source": {
+    "steam": 1672970
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Simple hotbar of artifacts and potion.",
+    "characters": "Blocky heroes with gear.",
+    "world": "Isometric dungeons.",
+    "steal": "Simple dungeon crawler UI for kids."
+   }
+  },
+  {
+   "id": "brawlhalla",
+   "name": "Brawlhalla",
+   "group": "big-3d",
+   "source": {
+    "steam": 291550
+   },
+   "tags": [
+    "characters",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Stocks and damage per player at the bottom.",
+    "characters": "Heroes with big weapons and clear colours.",
+    "world": "Floating platforms over a void.",
+    "steal": "Simple platforms and big readable fighters."
+   }
+  },
+  {
+   "id": "ghost-of-tsushima",
+   "name": "Ghost of Tsushima",
+   "group": "big-3d",
+   "source": {
+    "steam": 2215430
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Guiding wind replaces a waypoint marker.",
+    "characters": "Samurai with flowing cloth.",
+    "world": "Fields of colour (red leaves, gold grass).",
+    "steal": "Guide with the world (wind, birds, light) instead of arrows."
+   }
+  },
+  {
+   "id": "stray",
+   "name": "Stray",
+   "group": "big-3d",
+   "source": {
+    "steam": 1332010
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost no UI; a backpack drone holds items.",
+    "characters": "A cat; scale changes how the world feels.",
+    "world": "Dense neon alley city at cat height.",
+    "steal": "Changing the player's scale makes normal places feel new."
+   }
+  },
+  {
+   "id": "hi-fi-rush",
+   "name": "Hi-Fi RUSH",
+   "group": "big-3d",
+   "source": {
+    "steam": 1817230
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Everything pulses to the beat.",
+    "characters": "Cel-shaded comic characters.",
+    "world": "Bright stylised factory levels.",
+    "steal": "Sync the world's animation to the music beat."
+   }
+  },
+  {
+   "id": "it-takes-two",
+   "name": "It Takes Two",
+   "group": "big-3d",
+   "source": {
+    "steam": 1426210
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Split screen UI.",
+    "characters": "Two small doll characters.",
+    "world": "Every level a new giant-scale theme from a house.",
+    "steal": "Small characters in a giant household place."
+   }
+  },
+  {
+   "id": "split-fiction",
+   "name": "Split Fiction",
+   "group": "big-3d",
+   "source": {
+    "steam": 2001120
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Split screen UI.",
+    "characters": "Two heroines in two genres.",
+    "world": "Sci-fi and fantasy levels side by side.",
+    "steal": "Contrast two themes in one game."
+   }
+  },
+  {
+   "id": "ratchet-and-clank-rift-apart",
+   "name": "Ratchet & Clank: Rift Apart",
+   "group": "big-3d",
+   "source": {
+    "steam": 1895880
+   },
+   "tags": [
+    "world",
+    "characters",
+    "effects"
+   ],
+   "learn": {
+    "ui": "Weapon wheel.",
+    "characters": "Pixar-like animal heroes.",
+    "world": "Vivid alien planets.",
+    "steal": "Bright saturated sci-fi works for kids."
+   }
+  },
+  {
+   "id": "spyro-reignited",
+   "name": "Spyro Reignited Trilogy",
+   "group": "big-3d",
+   "source": {
+    "steam": 996580
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Gem counter only.",
+    "characters": "A small purple dragon with horn and wing triangles.",
+    "world": "Colourful hub worlds with portals.",
+    "steal": "Hub with portals to themed worlds."
+   }
+  },
+  {
+   "id": "crash-n-sane",
+   "name": "Crash Bandicoot N. Sane Trilogy",
+   "group": "big-3d",
+   "source": {
+    "steam": 731490
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Box counter at the end of each level.",
+    "characters": "Elastic, goofy animation.",
+    "world": "Corridor levels into the screen.",
+    "steal": "Crates to smash everywhere: small rewards constantly."
+   }
+  },
+  {
+   "id": "sackboy",
+   "name": "Sackboy: A Big Adventure",
+   "group": "big-3d",
+   "source": {
+    "steam": 1599660
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Collectible orbs counter.",
+    "characters": "Knitted, soft textures; costumes everywhere.",
+    "world": "Craft-material worlds.",
+    "steal": "A material theme (knitted, paper, clay) gives instant style."
+   }
+  },
+  {
+   "id": "katamari-reroll",
+   "name": "Katamari Damacy REROLL",
+   "group": "big-3d",
+   "source": {
+    "steam": 848350
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "A size counter is the only goal.",
+    "characters": "Tiny prince, giant king.",
+    "world": "Everyday places full of objects to roll up.",
+    "steal": "A number that grows (size) as the whole progression."
+   }
+  },
+  {
+   "id": "sonic-frontiers",
+   "name": "Sonic Frontiers",
+   "group": "big-3d",
+   "source": {
+    "steam": 1237320
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Ring counter, minimal HUD.",
+    "characters": "Classic Sonic silhouette.",
+    "world": "Floating rails and platforms in open zones.",
+    "steal": "Rails and launch pads make movement the fun."
+   }
+  },
+  {
+   "id": "hades",
+   "name": "Hades",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1145360
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Boon choices are three large framed cards with a god's colour and portrait; you always know whose gift it is.",
+    "characters": "Every character has a huge readable silhouette and its own colour (Zeus gold, Poseidon teal); portraits are painted, bold and expressive.",
+    "world": "Chambers are small arenas seen from an angled top view, with a clear exit door that previews the reward.",
+    "steal": "Show the reward on the door before players choose a path."
+   }
+  },
+  {
+   "id": "hades-ii",
+   "name": "Hades II",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1145350
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Same card-choice UI evolved; compare with Hades to see how they kept it familiar.",
+    "characters": "Painted portraits, strong colour per god.",
+    "world": "Angled top-down arenas.",
+    "steal": "Keep a UI players already learned; change the content, not the controls."
+   }
+  },
+  {
+   "id": "hollow-knight",
+   "name": "Hollow Knight",
+   "group": "pc-indie",
+   "source": {
+    "steam": 367520
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Health is a row of masks top-left, soul in a round vessel; tiny, elegant, never in the way.",
+    "characters": "The knight is a white mask with two horns on a black cloak: three shapes, instantly iconic.",
+    "world": "Each area has one dominant colour (Greenpath is green, the City of Tears is blue and rainy), so you always know where you are.",
+    "steal": "Give each zone one dominant colour so the map is readable from a screenshot."
+   }
+  },
+  {
+   "id": "hollow-knight-silksong",
+   "name": "Hollow Knight: Silksong",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1030300
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Same minimal HUD style.",
+    "characters": "Hornet: needle, cloak and a horned mask; a tall, sharp triangle silhouette versus the round Knight.",
+    "world": "Layered painted backgrounds with depth fog.",
+    "steal": "Triangle shapes for agile, sharp heroes; round shapes for cute ones."
+   }
+  },
+  {
+   "id": "celeste",
+   "name": "Celeste",
+   "group": "pc-indie",
+   "source": {
+    "steam": 504230
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Almost no HUD; strawberries counted only at screen transitions.",
+    "characters": "Madeline's hair colour shows if her dash is ready (red ready, blue used): character design as UI.",
+    "world": "One screen per challenge, each teaching one idea before testing it.",
+    "steal": "Show ability state on the character itself, not in a HUD."
+   }
+  },
+  {
+   "id": "cuphead",
+   "name": "Cuphead",
+   "group": "pc-indie",
+   "source": {
+    "steam": 268910
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Health as a card in the corner; super meter as cards filling.",
+    "characters": "1930s rubber-hose style: round bodies, pie-cut eyes, bendy limbs; every boss has phases with new silhouettes.",
+    "world": "Hand-painted backgrounds with layered parallax.",
+    "steal": "A strong art era (1930s cartoons) gives instant identity; pick a style and commit."
+   }
+  },
+  {
+   "id": "stardew-valley",
+   "name": "Stardew Valley",
+   "group": "pc-indie",
+   "source": {
+    "steam": 413150
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Cozy wood-framed panels, clock and calendar top-right; the energy bar is the day's budget.",
+    "characters": "Small pixel villagers with clear portraits for dialogue.",
+    "world": "A farm plus a small town with seasons changing the palette.",
+    "steal": "Use seasons or events to recolour the same map; it feels new for little work."
+   }
+  },
+  {
+   "id": "terraria",
+   "name": "Terraria",
+   "group": "pc-indie",
+   "source": {
+    "steam": 105600
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Inventory grid always one key away; hotbar top-left.",
+    "characters": "Small sprites; bosses huge by comparison for drama.",
+    "world": "A side-on world with clear layers (surface, caves, underworld) each getting harder.",
+    "steal": "Make deeper or farther equal harder, so players read danger from position."
+   }
+  },
+  {
+   "id": "dead-cells",
+   "name": "Dead Cells",
+   "group": "pc-indie",
+   "source": {
+    "steam": 588650
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Weapon slots bottom with cooldown fills; item stats shown as colour scrolls.",
+    "characters": "The hero's head is a flame: a unique, simple, readable idea.",
+    "world": "Biomes with strong palettes and clear exits.",
+    "steal": "Give the hero one memorable shape idea (a flame head, a mask)."
+   }
+  },
+  {
+   "id": "balatro",
+   "name": "Balatro",
+   "group": "pc-indie",
+   "source": {
+    "steam": 2379780
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Numbers pop and shake as scores add up; chips times mult is shown as two big coloured boxes. Pure UI juice.",
+    "characters": "Cards and jokers with bold flat art.",
+    "world": "Felt table with a slow swirling background.",
+    "steal": "Make the scoring moment shake, pop and count up; that is where the dopamine is."
+   }
+  },
+  {
+   "id": "vampire-survivors",
+   "name": "Vampire Survivors",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1794680
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Level-up choice is three items in a box; XP bar across the top; gems flood the screen.",
+    "characters": "Tiny sprites; the screen full of enemies is the spectacle.",
+    "world": "Flat endless fields.",
+    "steal": "Flood the screen with pickups; collecting many small things feels great."
+   }
+  },
+  {
+   "id": "slay-the-spire",
+   "name": "Slay the Spire",
+   "group": "pc-indie",
+   "source": {
+    "steam": 646570
+   },
+   "tags": [
+    "ui"
+   ],
+   "learn": {
+    "ui": "Enemy intent icons above each enemy tell you what they will do next turn.",
+    "characters": "Bold, simple monster designs.",
+    "world": "A branching map you can see in full before choosing.",
+    "steal": "Show the enemy's next move as an icon; it turns guessing into strategy."
+   }
+  },
+  {
+   "id": "cult-of-the-lamb",
+   "name": "Cult of the Lamb",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1313140
+   },
+   "tags": [
+    "characters",
+    "world",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Clean bold UI with a red crown motif; follower needs as icons over heads.",
+    "characters": "Cute round animals with big heads and dark themes: cute plus creepy.",
+    "world": "Base building plus dungeon runs in contrasting palettes.",
+    "steal": "Cute shapes can carry dark themes for older kids."
+   }
+  },
+  {
+   "id": "dave-the-diver",
+   "name": "Dave the Diver",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1868140
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "A phone UI inside the game hosts menus; oxygen bar is the timer.",
+    "characters": "Chunky pixel characters with expressive cutscenes.",
+    "world": "A day loop: dive by day, serve sushi by night.",
+    "steal": "Two loops that feed each other (catch then sell)."
+   }
+  },
+  {
+   "id": "a-short-hike",
+   "name": "A Short Hike",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1055540
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Feathers top-left are both stamina and progress.",
+    "characters": "Small bird characters with simple shapes.",
+    "world": "One mountain island you can see from everywhere; the peak is the goal.",
+    "steal": "Put the goal in view from the start (a peak, a tower)."
+   }
+  },
+  {
+   "id": "tunic",
+   "name": "TUNIC",
+   "group": "pc-indie",
+   "source": {
+    "steam": 553420
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "The manual is an in-game item you collect page by page.",
+    "characters": "A tiny fox in a green tunic; heroic but small.",
+    "world": "Isometric world full of hidden paths behind walls.",
+    "steal": "Hide secrets players can see but not reach yet."
+   }
+  },
+  {
+   "id": "pizza-tower",
+   "name": "Pizza Tower",
+   "group": "pc-indie",
+   "source": {
+    "steam": 2231450
+   },
+   "tags": [
+    "characters",
+    "ui"
+   ],
+   "learn": {
+    "ui": "TV in the corner shows the hero's face reacting to what happens.",
+    "characters": "Very elastic, cartoony animation with huge squash and stretch.",
+    "world": "Levels with an escape timer back through the same route.",
+    "steal": "A reacting face in the HUD gives the UI personality."
+   }
+  },
+  {
+   "id": "unpacking",
+   "name": "Unpacking",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1135690
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "No text UI; rooms tell the story.",
+    "characters": "Objects are the characters.",
+    "world": "Cozy isometric rooms.",
+    "steal": "Tell stories with objects instead of words."
+   }
+  },
+  {
+   "id": "brotato",
+   "name": "Brotato",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1942280
+   },
+   "tags": [
+    "ui",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Shop between waves with clear stat cards.",
+    "characters": "A potato with weapons: one silly idea, very readable.",
+    "world": "Single arena per run.",
+    "steal": "One funny main character idea goes a long way."
+   }
+  },
+  {
+   "id": "animal-well",
+   "name": "ANIMAL WELL",
+   "group": "pc-indie",
+   "source": {
+    "steam": 813230
+   },
+   "tags": [
+    "world"
+   ],
+   "learn": {
+    "ui": "Barely any UI.",
+    "characters": "Small blob hero; huge animals as threats.",
+    "world": "Dark pixel world with glowing highlights.",
+    "steal": "Light on dark: glowing items guide the eye."
+   }
+  },
+  {
+   "id": "spiritfarer",
+   "name": "Spiritfarer",
+   "group": "pc-indie",
+   "source": {
+    "steam": 972660
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Soft rounded UI; building menus as cards.",
+    "characters": "Spirits are animals with simple flowing shapes.",
+    "world": "Your boat is your base that grows.",
+    "steal": "A base that travels with you (boat, train)."
+   }
+  },
+  {
+   "id": "kingdom-two-crowns",
+   "name": "Kingdom Two Crowns",
+   "group": "pc-indie",
+   "source": {
+    "steam": 701160
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "No HUD: coins show as a pouch on your mount.",
+    "characters": "Small pixel ruler on a horse.",
+    "world": "A side-scrolling kingdom with day and night.",
+    "steal": "Show money in the world rather than in a counter."
+   }
+  },
+  {
+   "id": "untitled-goose-game",
+   "name": "Untitled Goose Game",
+   "group": "pc-indie",
+   "source": {
+    "steam": 837470
+   },
+   "tags": [
+    "ui",
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "To-do list as a handwritten notebook.",
+    "characters": "A goose with flat colours, no outlines.",
+    "world": "A small village in flat pastel colours.",
+    "steal": "A handwritten to-do list as the whole quest system."
+   }
+  },
+  {
+   "id": "webfishing",
+   "name": "WEBFISHING",
+   "group": "pc-indie",
+   "source": {
+    "steam": 3146520
+   },
+   "tags": [
+    "characters",
+    "world"
+   ],
+   "learn": {
+    "ui": "Chunky, cute UI.",
+    "characters": "Animal characters with simple faces.",
+    "world": "A cozy social island.",
+    "steal": "A cozy hangout plus one simple activity is a whole game."
+   }
+  },
+  {
+   "id": "schedule-i",
+   "name": "Schedule I",
+   "group": "pc-indie",
+   "source": {
+    "steam": 3164500
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Phone-style apps for every system.",
+    "characters": "Simple low-poly people.",
+    "world": "A small town that expands as you grow.",
+    "steal": "A phone in the game is a natural home for many menus."
+   }
+  },
+  {
+   "id": "peak",
+   "name": "PEAK",
+   "group": "pc-indie",
+   "source": {
+    "steam": 3527290
+   },
+   "tags": [
+    "world",
+    "characters"
+   ],
+   "learn": {
+    "ui": "Stamina bar that shrinks with injuries.",
+    "characters": "Simple scouts; the fun is co-op physics.",
+    "world": "One tall mountain, procedurally different each day.",
+    "steal": "A single tall goal climbed together."
+   }
+  },
+  {
+   "id": "repo",
+   "name": "R.E.P.O.",
+   "group": "pc-indie",
+   "source": {
+    "steam": 3241660
+   },
+   "tags": [
+    "characters"
+   ],
+   "learn": {
+    "ui": "Minimal HUD.",
+    "characters": "Robot heads with big eyes; googly physics make them funny.",
+    "world": "Spooky mansions full of valuables.",
+    "steal": "Physics comedy plus fragile loot creates stories."
+   }
+  },
+  {
+   "id": "lethal-company",
+   "name": "Lethal Company",
+   "group": "pc-indie",
+   "source": {
+    "steam": 1966720
+   },
+   "tags": [
+    "ui",
+    "world"
+   ],
+   "learn": {
+    "ui": "Retro terminal UI and a visor HUD.",
+    "characters": "Simple suited crew; monsters with one rule each.",
+    "world": "Abandoned facilities, quota deadlines.",
+    "steal": "A quota and a deadline give a clear goal to a chaotic game."
+   }
+  },
+  {
+   "id": "among-us",
+   "name": "Among Us",
+   "group": "pc-indie",
+   "source": {
+    "steam": 945360
+   },
+   "tags": [
+    "characters",
+    "ui"
+   ],
+   "learn": {
+    "ui": "Task list top-left; big full-screen meeting UI with votes.",
+    "characters": "Crewmates: a bean with a visor and backpack; colour is the identity.",
+    "world": "A small spaceship map with rooms named by job.",
+    "steal": "A body shape so simple anyone can draw it; colour as identity."
+   }
+  }
+ ]
+}

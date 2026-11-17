@@ -183,7 +183,7 @@ function dropZone(node, onFiles, accept = /^image\//) {
 }
 
 // ---------- command palette (Ctrl+K or Cmd+K): jump anywhere ----------
-const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
+const PALETTE = [["Dashboard", "home"], ["Game Ideas", "ideas"], ["Game Brief", "brief"], ["Game Plan", "plans"], ["References", "references"], ["Inspiration (game pictures)", "inspo"], ["Build (runs)", "runs"], ["Team", "agents"], ["Ask Claude", "chat"], ["Player Test", "simulator"], ["Knowledge (vault)", "vault"], ["Game Score", "score"], ["Second Opinion", "review"], ["Tune-Up", "tuneup"], ["Review Queue", "queue"], ["Thumbnails", "thumbnails"], ["Money", "money"], ["Settings", "settings"], ["Find My Files", "files"]];
 function openPalette() {
   if ($("palette")) return;
   const input = el("input", { id: "palette-input", placeholder: "Go to...", autocomplete: "off" });
@@ -215,12 +215,12 @@ window.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.ke
 // Six places in the sidebar; grouped pages get tabs along the top.
 const GROUPS = {
   home: [["home", "Dashboard"], ["money", "Money"]],
-  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["runs", "Build"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
+  make: [["brief", "Game Brief"], ["plans", "Game Plan"], ["references", "Graphics"], ["inspo", "Inspiration"], ["runs", "Build"], ["agents", "Team"], ["simulator", "Player Test"], ["vault", "Knowledge"]],
   check: [["score", "Game Score"], ["review", "Second Opinion"], ["tuneup", "Tune-Up"], ["queue", "Review Queue"]],
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -1113,6 +1113,78 @@ T.event.listen("tex-line", (ev) => { const n = $("tex-status"); if (n) n.textCon
 T.event.listen("tex-done", (ev) => {
   if (ev.payload.error) toast(ev.payload.error, true); else toast(ev.payload.message);
   if ((location.hash || "") === "#vault") viewVault();
+});
+
+// Inspiration: pictures of popular games (UI, characters, worlds) with what
+// to copy from each. Pictures download to this computer only.
+function refPic(path, attrs = {}) {
+  const img = el("img", { alt: attrs.alt || "", class: "lazy" + (attrs.class ? " " + attrs.class : "") });
+  // Load only when on screen: there can be hundreds.
+  const load = () => invoke("refs_picture", { path }).then((src) => { img.src = src; img.onload = () => img.classList.add("in"); }).catch(() => img.classList.add("in"));
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: "300px" });
+    setTimeout(() => io.observe(img), 0);
+  } else load();
+  return img;
+}
+const GROUP_SHORT = { "roblox-simulators": "Roblox Sims", "roblox-social": "Roblox Social", "roblox-action": "Roblox Action", mobile: "Mobile", nintendo: "Nintendo", "big-3d": "Big 3D", "pc-indie": "Indie" };
+const coverOf = (g) => g.pictures.find((p) => !/-(icon)\./.test(p)) || g.pictures[0];
+function openGame(g) {
+  const L = g.learn;
+  const big = el("div", { class: "ref-big" });
+  const showBig = (p) => big.replaceChildren(refPic(p, { alt: g.name }));
+  if (g.pictures.length) showBig(coverOf(g));
+  sheet(g.name,
+    g.pictures.length ? big : el("div", { class: "note" }, "No pictures yet. Press Download Pictures on the Inspiration page."),
+    g.pictures.length > 1 ? el("div", { class: "ref-strip" }, g.pictures.map((p) => el("button", { class: "ref-thumb", onclick: () => showBig(p) }, refPic(p)))) : null,
+    el("div", { class: "ref-learn" },
+      el("p", {}, el("b", {}, "Steal this: "), L.steal),
+      el("p", {}, el("b", {}, "UI: "), L.ui),
+      el("p", {}, el("b", {}, "Characters and shapes: "), L.characters),
+      el("p", {}, el("b", {}, "World: "), L.world)),
+    el("div", { class: "note" }, "Borrow the rule, never the art. These pictures are other companies' work, kept on this computer for study."));
+}
+async function viewInspo() {
+  const nav = navSeq;
+  await freshStatus();
+  let lib;
+  try { lib = await invoke("refs_library"); } catch (e) { return showIf(nav, page(head("Inspiration"), el("div", { class: "card" }, String(e)))); }
+  const f = (state.inspo ||= { group: "all", tag: "all", q: "" });
+  const have = lib.games.filter((g) => g.pictures.length).length;
+  const grid = el("div", { class: "ref-grid", id: "ref-grid" });
+  const draw = () => {
+    const q = f.q.trim().toLowerCase();
+    const list = lib.games.filter((g) => (f.group === "all" || g.group === f.group) && (f.tag === "all" || g.tags.includes(f.tag)) && (!q || (g.name + " " + Object.values(g.learn).join(" ")).toLowerCase().includes(q)));
+    grid.replaceChildren(...(list.length ? list.map((g) => el("button", { class: "ref-card", "data-game": g.id, onclick: () => openGame(g) },
+      el("div", { class: "ref-cover" }, g.pictures.length ? refPic(coverOf(g), { alt: g.name }) : el("span", { class: "note" }, "No pictures yet")),
+      el("div", { class: "ref-name" }, g.name),
+      el("div", { class: "ref-steal" }, g.learn.steal))) : [el("div", { class: "empty" }, el("div", { class: "empty-title" }, "Nothing matches"), el("div", {}, "Try another filter or fewer words."))]));
+  };
+  const q = el("input", { type: "search", class: "search", id: "ref-q", placeholder: "Search games and ideas (e.g. pets, buttons, horror)", value: f.q });
+  let t; q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => { f.q = q.value; draw(); }, 120); });
+  const per = el("select", { id: "ref-per" }, [4, 6, 8, 12].map((n) => el("option", { value: n }, `${n} per game`)));
+  per.value = "8";
+  const status = el("div", { class: "hint", id: "ref-status" }, have
+    ? `${lib.total_pictures} pictures from ${have} of ${lib.games.length} games. Download again to get the rest or new games.`
+    : `${lib.games.length} popular games ready. Download their pictures once (about 2 MB a game, from Roblox, Steam, the App Store and Wikipedia).`);
+  const go = el("button", { class: "btn primary", id: "ref-download", disabled: !!state.refBusy, onclick: async () => {
+    go.disabled = true; state.refBusy = true; status.textContent = "Starting...";
+    try { await invoke("refs_download", { ids: [], perGame: parseInt(per.value, 10), refresh: false }); } catch (e) { go.disabled = false; state.refBusy = false; toast(String(e), true); }
+  } }, have ? "Download Missing Pictures" : "Download Pictures");
+  draw();
+  showIf(nav, page(
+    head("Inspiration", el("span", {}, "UI, characters and worlds from popular games, and the one thing to copy from each")),
+    el("div", { class: "card" }, status, el("div", { class: "inline", style: "margin-top:10px" }, per, go,
+      el("button", { class: "btn secondary", onclick: () => openNote("16-Market-Research/visual-refs-shape-language.md") }, "Shape Language Sheet"))),
+    el("div", { class: "inline", style: "margin:14px 0 8px;flex-wrap:wrap" }, segmented([["all", "All"], ...lib.groups.map((g) => [g.id, GROUP_SHORT[g.id] || g.title])], f.group, (v) => { f.group = v; viewInspo(); })),
+    el("div", { class: "inline", style: "margin-bottom:12px" }, segmented([["all", "Everything"], ["ui", "UI"], ["characters", "Characters"], ["world", "Worlds"], ["thumbnail", "Thumbnails"]], f.tag, (v) => { f.tag = v; viewInspo(); }), q),
+    grid));
+}
+T.event.listen("ref-line", (ev) => { const n = $("ref-status"); if (n) n.textContent = `Downloading ${ev.payload.line}`; });
+T.event.listen("ref-done", (ev) => {
+  state.refBusy = false;
+  toast(ev.payload.message, !ev.payload.ok);
+  if ((location.hash || "") === "#inspo") viewInspo();
 });
 
 // The vault as a second-brain map: the hub in the middle, a spike to each

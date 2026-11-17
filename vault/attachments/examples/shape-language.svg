@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="Inter, Arial, sans-serif">
+  <rect width="960" height="560" fill="#16161a"/>
+  <text x="32" y="48" fill="#fff" font-size="26" font-weight="700">Shape language: what a shape tells a player before they read anything</text>
+  <g transform="translate(32,80)">
+    <rect width="280" height="250" rx="18" fill="#22222a"/>
+    <circle cx="140" cy="100" r="62" fill="#ffb347"/><circle cx="118" cy="92" r="9" fill="#16161a"/><circle cx="162" cy="92" r="9" fill="#16161a"/>
+    <text x="140" y="200" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">Circle</text>
+    <text x="140" y="228" fill="#b8b8c0" font-size="15" text-anchor="middle">friendly, safe, cute: pets, helpers</text>
+  </g>
+  <g transform="translate(340,80)">
+    <rect width="280" height="250" rx="18" fill="#22222a"/>
+    <rect x="80" y="40" width="120" height="120" rx="10" fill="#5aa0ff"/><rect x="104" y="80" width="20" height="14" fill="#16161a"/><rect x="156" y="80" width="20" height="14" fill="#16161a"/>
+    <text x="140" y="200" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">Square</text>
+    <text x="140" y="228" fill="#b8b8c0" font-size="15" text-anchor="middle">strong, steady, tank: guards, bases</text>
+  </g>
+  <g transform="translate(648,80)">
+    <rect width="280" height="250" rx="18" fill="#22222a"/>
+    <polygon points="140,30 210,165 70,165" fill="#ff3b30"/><polygon points="118,112 132,104 132,120" fill="#16161a"/><polygon points="162,112 148,104 148,120" fill="#16161a"/>
+    <text x="140" y="200" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">Triangle</text>
+    <text x="140" y="228" fill="#b8b8c0" font-size="15" text-anchor="middle">danger, fast, sharp: enemies, villains</text>
+  </g>
+  <g transform="translate(32,352)">
+    <rect width="440" height="180" rx="18" fill="#22222a"/>
+    <text x="20" y="34" fill="#fff" font-size="18" font-weight="700">Silhouette test</text>
+    <text x="20" y="58" fill="#b8b8c0" font-size="14">Fill every character black. If you can't tell them apart, redesign.</text>
+    <circle cx="80" cy="120" r="34" fill="#000"/><rect x="58" y="70" width="12" height="22" fill="#000"/><rect x="90" y="70" width="12" height="22" fill="#000"/>
+    <rect x="160" y="84" width="72" height="72" fill="#000"/><rect x="150" y="96" width="14" height="40" fill="#000"/>
+    <polygon points="320,76 362,156 278,156" fill="#000"/><rect x="356" y="100" width="40" height="8" fill="#000"/>
+    <text x="80" y="172" fill="#7cfc9a" font-size="13" text-anchor="middle">pet</text><text x="196" y="172" fill="#7cfc9a" font-size="13" text-anchor="middle">guard</text><text x="320" y="172" fill="#7cfc9a" font-size="13" text-anchor="middle">enemy</text>
+  </g>
+  <g transform="translate(496,352)">
+    <rect width="432" height="180" rx="18" fill="#22222a"/>
+    <text x="20" y="34" fill="#fff" font-size="18" font-weight="700">Same rules for worlds and UI</text>
+    <path d="M30 140 Q80 80 130 140 T230 140" stroke="#7cfc9a" stroke-width="10" fill="none"/>
+    <polyline points="250,140 280,80 310,140 340,80 370,140 400,80" stroke="#ff3b30" stroke-width="10" fill="none"/>
+    <text x="130" y="168" fill="#b8b8c0" font-size="13" text-anchor="middle">round hills: safe zone</text>
+    <text x="325" y="168" fill="#b8b8c0" font-size="13" text-anchor="middle">spikes: danger zone</text>
+    <rect x="30" y="50" width="120" height="34" rx="17" fill="#ffb347" stroke="#16161a" stroke-width="4"/><text x="90" y="73" fill="#16161a" font-size="14" font-weight="700" text-anchor="middle">PLAY</text>
+    <text x="164" y="72" fill="#b8b8c0" font-size="13">rounded, outlined buttons read as tappable</text>
+  </g>
+</svg>

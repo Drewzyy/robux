@@ -517,7 +517,7 @@ pub fn refresh_from_template(root: &Path, template: &Path) -> Result<String, Str
     untar(template, &tmp)?;
     // Things the app and Andrew add inside the vault survive updates: game
     // memory and references, downloaded textures, Obsidian's own settings.
-    const KEEP: [&str; 3] = ["19-Project-Memory", "10-Art-Environment/textures", ".obsidian"];
+    const KEEP: [&str; 4] = ["19-Project-Memory", "10-Art-Environment/textures", "attachments/game-refs", ".obsidian"];
     let kept = tmp.join("kept");
     for k in KEEP {
         let from = root.join("vault").join(k);

@@ -596,6 +596,33 @@ async fn textures_status() -> Result<Value, String> {
     Ok(json!({ "count": lib.len(), "groups": studio_core::textures::GROUPS.iter().map(|(g, _)| *g).collect::<Vec<_>>() }))
 }
 
+#[tauri::command]
+async fn refs_library() -> Result<Value, String> {
+    studio_core::refs::library(&root()?)
+}
+
+#[tauri::command]
+async fn refs_picture(path: String) -> Result<String, String> {
+    studio_core::refs::picture(&root()?, &path)
+}
+
+/// Download game reference pictures into the vault (progress events).
+#[tauri::command]
+async fn refs_download(app: AppHandle, ids: Vec<String>, per_game: usize, refresh: bool) -> Result<(), String> {
+    let r = root()?;
+    std::thread::spawn(move || {
+        let app2 = app.clone();
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            studio_core::refs::download(&r, &ids, per_game.clamp(1, 20), refresh, &mut |l| {
+                let _ = app2.emit("ref-line", json!({ "line": l }));
+            })
+        }))
+        .unwrap_or_else(|_| Err("the download crashed inside the app".into()));
+        let _ = app.emit("ref-done", match res { Ok(m) => json!({ "ok": true, "message": m }), Err(e) => json!({ "ok": false, "message": e }) });
+    });
+    Ok(())
+}
+
 /// Download CC0 textures from Poly Haven into the vault (progress events).
 #[tauri::command]
 async fn textures_download(app: AppHandle, groups: Vec<String>, per_group: usize) -> Result<(), String> {
@@ -916,6 +943,9 @@ fn main() {
             money_summary,
             textures_status,
             textures_download,
+            refs_library,
+            refs_picture,
+            refs_download,
             plans_list,
             plan_set,
             plan_mock,
