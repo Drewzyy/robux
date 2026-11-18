@@ -237,6 +237,48 @@ function route() {
 }
 window.addEventListener("hashchange", route);
 
+// ---------- the game you are working on ----------
+// One picker at the top of the sidebar. Every tab follows it, and it is
+// remembered after a restart.
+try { state.game = localStorage.getItem("game") || ""; } catch { state.game = ""; }
+state.projects = [];
+async function gameList() {
+  const [ap, projects, briefs, plans] = await Promise.all([invoke("autopilot_list").catch(() => []), invoke("projects_list").catch(() => []), invoke("brief_list").catch(() => []), invoke("plans_list").catch(() => [])]);
+  state.projects = projects;
+  const m = new Map();
+  ap.forEach((a) => m.set(a.slug, a.title));
+  briefs.forEach((b) => { if (!m.has(b.slug)) m.set(b.slug, b.title); });
+  plans.forEach((p) => { if (p.slug && !m.has(p.slug)) m.set(p.slug, p.title); });
+  projects.forEach((p) => { const g = p.replace(/^projects\//, ""); if (!m.has(g)) m.set(g, g); });
+  return [...m].map(([slug, title]) => ({ slug, title }));
+}
+// Point every page's notion of "the game" at the picked one.
+function syncGame() {
+  const pr = `projects/${state.game}`;
+  state.project = state.projects.includes(pr) ? pr : "";
+  state.chatGame = state.game;
+}
+function setGame(slug, redraw = true) {
+  if (!slug || slug === state.game) return;
+  state.game = slug;
+  try { localStorage.setItem("game", slug); } catch {}
+  syncGame();
+  drawGamePick();
+  if (redraw) route();
+}
+async function drawGamePick() {
+  const sel = $("game-pick");
+  if (!sel) return;
+  const games = await gameList();
+  if (!games.some((g) => g.slug === state.game)) { state.game = (games[0] && games[0].slug) || ""; try { localStorage.setItem("game", state.game); } catch {} }
+  syncGame();
+  sel.replaceChildren(
+    ...(games.length ? games.map((g) => el("option", { value: g.slug, selected: g.slug === state.game }, g.title)) : [el("option", { value: "" }, "No game yet")]),
+    el("option", { value: "__new" }, "+ New game"));
+  sel.onchange = () => { if (sel.value === "__new") { sel.value = state.game; location.hash = "#autopilot/new"; } else setGame(sel.value); };
+}
+drawGamePick();
+
 // =====================================================================
 // 0. Home: game ideas from the top 100 Roblox games and current trends
 // =====================================================================
@@ -343,9 +385,10 @@ async function viewBrief(arg) {
   const briefs = await invoke("brief_list");
   // A remembered idea that was deleted since falls back to the newest one.
   const known = (x) => x && briefs.some((b) => b.slug === x);
-  const slug = known(arg) ? arg : known(state.briefSlug) ? state.briefSlug : (briefs[0] && briefs[0].slug);
+  const slug = known(arg) ? arg : known(state.game) ? state.game : known(state.briefSlug) ? state.briefSlug : (briefs[0] && briefs[0].slug);
+  if (slug && slug !== state.game) setGame(slug, false);
   const name = el("input", { id: "brief-name", placeholder: "Name your game idea" });
-  const start = el("button", { class: "btn primary", id: "brief-new", onclick: async () => { try { state.briefSlug = await invoke("brief_create", { title: name.value }); viewBrief(state.briefSlug); } catch (e) { toast(String(e), true); } } }, "Start a Brief");
+  const start = el("button", { class: "btn primary", id: "brief-new", onclick: async () => { try { state.briefSlug = await invoke("brief_create", { title: name.value }); setGame(state.briefSlug, false); viewBrief(state.briefSlug); } catch (e) { toast(String(e), true); } } }, "Start a Brief");
   const newRow = el("div", { class: "inline" }, name, start);
   if (!slug) {
     showIf(nav, page(head("Game Brief", "Write down everything you want in the game, with images, before the team plans it"),
@@ -610,7 +653,7 @@ async function viewPlans(id) {
         el("div", {}, "On Home, press Plan This Game on an idea. Planner writes the full plan with mockups of the map, HUD, shop and character effects. Nothing is built until you check every item."))));
     return;
   }
-  const p = plans.find((x) => x.run_id === id) || plans[0];
+  const p = plans.find((x) => x.run_id === id) || plans.find((x) => x.slug === state.game) || plans[0];
   const ap = p.approvals || {};
   const checked = (ap.checked || {}), notes = (ap.notes || {});
   const bar = el("div", { class: "plan-bar" }, el("div", { class: "plan-fill", style: `width:${p.total ? Math.round((100 * p.done) / p.total) : 0}%` }));
@@ -1154,7 +1197,7 @@ async function startAutopilot(title, idea, slug) {
     go.disabled = true;
     try {
       const r = await invoke("autopilot_start", { title: name.value.trim() || "My game", idea, budgetUsd: parseFloat(budget.value) || 0, slug: slug || null });
-      closeSheet(); toast("Approved. The agents are starting on the plan."); location.hash = "#autopilot/" + r.slug;
+      closeSheet(); toast("Approved. The agents are starting on the plan."); setGame(r.slug, false); location.hash = "#autopilot/" + r.slug;
     } catch (e) { toast(String(e), true); go.disabled = false; }
   });
   sheet("Make this game",
@@ -1172,9 +1215,9 @@ function jobRow(j) {
     el("div", { class: "grow" },
       el("div", { class: "row-title" }, `${cap(j.agent)}${j.source.startsWith("agent:") ? " (asked by " + cap(j.source.slice(6)) + ")" : j.source === "andrew" ? " (your note)" : ""}`),
       el("div", { class: "row-sub" }, j.status === "working" ? el("span", { class: "ap-live", id: "live-" + j.run_id }, state.apLive[j.run_id] || "Working…") : (j.summary || j.text)),
-      j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}${j.rescuing ? ", then Lead works out a better approach" : ""}`) : null),
+      j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}${j.rescuing ? "; Lead is working out a new approach" : ""}`) : null),
     el("span", { class: j.stuck ? "pill red-soft" : j.status === "working" ? "pill red" : j.status === "done" ? "pill white" : "pill" },
-      j.stuck ? "Stuck" : j.rescuing ? "Lead is rescuing it" : j.launch_failed || (j.status === "queued" && j.retry_at) ? `Retrying ${j.retry_at ? "at " + new Date(j.retry_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "soon"}` : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
+      j.rescuing ? "Lead is finding a fix" : j.launch_failed || (j.status === "queued" && j.retry_at) ? `Retrying ${j.retry_at ? "at " + new Date(j.retry_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "soon"}` : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
     j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Open") : null,
     el("button", { class: "link", onclick: () => (location.hash = "#run/" + j.run_id) }, "Details"));
 }
@@ -1183,63 +1226,69 @@ async function viewAutopilot(slug) {
   await freshStatus();
   state.apLive ||= {};
   const games = await invoke("autopilot_list");
-  if (!games.length) {
-    const t = el("input", { type: "text", id: "ap-new-title", placeholder: "Game name" });
-    const idea = el("textarea", { id: "ap-new-idea", rows: 4, placeholder: "Your idea, in your own words. A sentence is enough; the planner fills in the rest and you approve the plan." });
-    return showIf(nav, page(head("Autopilot", "Approve an idea and the agents make the whole game. You supervise."),
+  if (slug && slug !== "new" && slug !== state.game) setGame(slug, false);
+  const cur = slug === "new" ? null : games.find((g) => g.slug === (slug || state.game));
+  if (!cur) {
+    // No autopilot for this game yet: one box for the idea, one button.
+    const named = slug === "new" ? "" : ((await gameList()).find((g) => g.slug === state.game) || {}).title || "";
+    const t = el("input", { type: "text", id: "ap-new-title", placeholder: "Game name", value: named });
+    const idea = el("textarea", { id: "ap-new-idea", rows: 4, placeholder: "Your idea, in your own words. A sentence is enough; the agents work out the rest and you approve each finished part." });
+    return showIf(nav, page(head("Make a game", "Say the idea once. The agents make it; you chime in whenever you like."),
       el("div", { class: "card" }, el("div", { class: "field" }, el("label", { for: "ap-new-title" }, "Game name"), t), idea,
-        el("div", { class: "inline", style: "margin-top:10px" }, el("button", { class: "btn primary", id: "ap-new", onclick: () => startAutopilot(t.value.trim(), idea.value.trim()) }, "Make This Game"),
-          el("span", { class: "note" }, "Or press Make This Game on an idea in Game Ideas or Game Brief.")))));
+        el("div", { class: "inline", style: "margin-top:10px" }, el("button", { class: "btn primary", id: "ap-new", onclick: () => startAutopilot(t.value.trim(), idea.value.trim(), named && slug !== "new" ? state.game : null) }, "Make This Game")))));
   }
-  const cur = games.find((g) => g.slug === slug) || games[0];
   let v;
   try { v = await invoke("autopilot_view", { slug: cur.slug }); } catch (e) { return showIf(nav, page(head("Autopilot"), el("div", { class: "card" }, String(e)))); }
-  const pick = games.length > 1 ? el("select", { onchange: (e) => (location.hash = "#autopilot/" + e.target.value) }, games.map((g) => el("option", { value: g.slug, selected: g.slug === v.slug }, g.title))) : null;
   const used = v.spent_usd + v.reserved_usd;
-  const ctl = (action, label, extra) => el("button", { class: "btn secondary", id: "ap-" + action, onclick: async () => { try { await invoke("autopilot_control", { slug: v.slug, action, budgetUsd: extra ? extra() : null }); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } } }, label);
-  const anyStuck = v.milestones.some((m) => m.jobs.some((j) => j.stuck));
-  const reviews = v.milestones.filter((m) => m.status === "review").map((m) => {
-    const notes = el("textarea", { class: "ap-review-notes", rows: 2, placeholder: "Notes for a revision (one per line). Leave empty to approve as it is." });
-    const drafts = m.jobs.filter((j) => j.status === "done");
-    const qs = [...new Map(drafts.flatMap((j) => (j.questions || []).map((q) => [q.toLowerCase(), { q, who: j.agent }]))).values()].slice(0, 10);
-    return el("div", { class: "card ap-review", "data-milestone": m.id },
-      el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, `Ready for your review: ${m.title}`), MS_PILL(m.status)),
-      el("p", { class: "note" }, m.review),
-      m.id === "plan" && v.plan_run ? el("button", { class: "btn secondary", onclick: () => (location.hash = "#plans/" + v.plan_run) }, "Open the Game Plan") : null,
-      m.id === "build" && v.project ? el("button", { class: "btn secondary", onclick: async () => { try { const pth = await invoke("project_open_in_studio", { project: v.project }); toast(`Opened in Studio: ${pth.split(/[\\/]/).pop()}. Nothing was published.`); } catch (e) { toast(String(e), true); } } }, "Play It in Roblox Studio") : null,
-      el("div", { class: "ap-drafts" }, drafts.map((j) => el("div", { class: "ap-draft" },
-        el("div", { class: "row-title" }, cap(j.agent)), el("div", { class: "note" }, j.summary || ""),
-        j.mockups.length ? el("div", { class: "ap-mocks" }, j.mockups.slice(0, 6).map((mk) => el("button", { class: "ap-mock", onclick: async () => sheet(mk.split("/").pop(), lazyImg(mk, { class: "plan-mock" })) }, lazyImg(mk)))) : null,
-        j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Read it") : null))),
-      qs.length ? el("div", { class: "ap-questions" }, el("div", { class: "row-title" }, "Questions for you"), el("div", { class: "note" }, "The agents picked a safe default for each. Answer any you care about in the notes; the rest stay as they are."),
-        el("ul", {}, qs.map((x) => el("li", {}, x.q, el("span", { class: "note" }, ` (${cap(x.who)})`))))) : null,
-      notes,
-      el("div", { class: "inline", style: "margin-top:8px" },
-        el("button", { class: "btn primary ap-approve", onclick: async (e) => { e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: true, notes: notes.value }); toast(`Approved: ${m.title}.`); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Approve"),
-        el("button", { class: "btn secondary ap-revise", onclick: async (e) => { if (!notes.value.trim()) { toast("Write what to change first.", true); return; } e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: false, notes: notes.value }); toast("Sent. The agents are revising it."); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Send Notes for a Revision")));
-  });
-  const chime = el("textarea", { id: "ap-note", rows: 2, placeholder: "Chime in any time: what you want changed or added. Enter sends." });
+  const ctl = (action, label, extra, cls = "btn secondary") => el("button", { class: cls, id: "ap-" + action, onclick: async () => { try { await invoke("autopilot_control", { slug: v.slug, action, budgetUsd: extra ? extra() : null }); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } } }, label);
+  const raise = () => { const n = parseFloat(prompt("New budget for this game ($)", (v.budget_usd * 1.5).toFixed(2))); return isNaN(n) ? v.budget_usd : n; };
+  // Chime in: the main thing on this page.
+  const chime = el("textarea", { id: "ap-note", rows: 3, placeholder: "Chime in: anything you want changed, added or fixed. Enter sends. The team works out the rest." });
   chime.value = state.apNote || "";
   chime.addEventListener("input", () => { state.apNote = chime.value; });
   const sendNote = async () => { const t = chime.value.trim(); if (!t) return; try { await invoke("autopilot_note", { slug: v.slug, text: t, agent: null }); state.apNote = ""; chime.value = ""; toast("Sent to the team."); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } };
   chime.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendNote(); } });
+  const reviews = v.milestones.filter((m) => m.status === "review").map((m) => {
+    const notes = el("textarea", { class: "ap-review-notes", rows: 2, placeholder: "Anything to change? Leave empty to approve." });
+    const drafts = m.jobs.filter((j) => j.status === "done");
+    const qs = [...new Map(drafts.flatMap((j) => (j.questions || []).map((q) => [q.toLowerCase(), { q, who: j.agent }]))).values()].slice(0, 10);
+    return el("div", { class: "card ap-review", "data-milestone": m.id },
+      el("h2", { style: "margin:0 0 4px" }, `Ready for you: ${m.title}`),
+      el("p", { class: "note", style: "margin:0 0 8px" }, m.review),
+      el("div", { class: "inline", style: "flex-wrap:wrap" },
+        m.id === "plan" && v.plan_run ? el("button", { class: "btn secondary", onclick: () => (location.hash = "#plans/" + v.plan_run) }, "Open the Plan") : null,
+        m.id === "build" && v.project ? el("button", { class: "btn secondary", onclick: async () => { try { const pth = await invoke("project_open_in_studio", { project: v.project }); toast(`Opened in Studio: ${pth.split(/[\\/]/).pop()}. Nothing was published.`); } catch (e) { toast(String(e), true); } } }, "Play It in Roblox Studio") : null),
+      el("div", { class: "ap-drafts" }, drafts.map((j) => el("div", { class: "ap-draft" },
+        el("div", { class: "row-title" }, cap(j.agent)), el("div", { class: "note" }, j.summary || ""),
+        j.mockups.length ? el("div", { class: "ap-mocks" }, j.mockups.slice(0, 6).map((mk) => el("button", { class: "ap-mock", onclick: async () => sheet(mk.split("/").pop(), lazyImg(mk, { class: "plan-mock" })) }, lazyImg(mk)))) : null,
+        j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Read it") : null))),
+      qs.length ? el("div", { class: "ap-questions" }, el("div", { class: "row-title" }, "Questions for you"), el("div", { class: "note" }, "Each already has a safe default. Answer only the ones you care about."),
+        el("ul", {}, qs.map((x) => el("li", {}, x.q, el("span", { class: "note" }, ` (${cap(x.who)})`))))) : null,
+      notes,
+      el("div", { class: "inline", style: "margin-top:8px" },
+        el("button", { class: "btn primary ap-approve", onclick: async (e) => { e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: !notes.value.trim(), notes: notes.value }); toast(notes.value.trim() ? "Sent. The agents are revising it." : `Approved: ${m.title}.`); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Approve"),
+        el("span", { class: "note" }, "With notes, Approve sends them back for a revision first.")));
+  });
+  // Progress: six steps in a line.
+  const steps = el("div", { class: "ap-steps" }, v.milestones.map((m) => el("div", { class: "ap-step " + m.status, title: m.title }, el("span", { class: "dot" }), el("span", { class: "lbl" }, m.title))));
+  const active = v.milestones.flatMap((m) => m.jobs).filter((j) => ["working", "queued", "paused"].includes(j.status) || j.rescuing);
   const nowM = v.milestones.find((m) => m.status === "working" || m.status === "revising");
   showIf(nav, page(
-    head(v.title, el("span", {}, `${AP_STATUS[v.status] || v.status}${nowM ? " · " + nowM.title : ""} · ${v.working} agent${v.working === 1 ? "" : "s"} working`), pick),
-    v.why ? el("div", { class: "card warn-card" }, v.why) : null,
-    el("div", { class: "card" },
-      el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, `Budget: ${usd(v.spent_usd, 2)} spent${v.reserved_usd ? ", " + usd(v.reserved_usd, 2) + " running" : ""} of ${usd(v.budget_usd, 2)}`),
-        el("div", { class: "inline" }, v.status === "running" ? ctl("pause", "Pause") : v.status !== "done" ? ctl("resume", "Resume") : null,
-          ctl("budget", "Raise Budget", () => { const n = parseFloat(prompt("New budget for this game ($)", (v.budget_usd * 1.5).toFixed(2))); return isNaN(n) ? v.budget_usd : n; }),
-          anyStuck ? ctl("retry", "Try Again") : null)),
-      el("div", { class: "bar", style: "margin-top:8px" }, el("div", { style: `width:${Math.min(100, (100 * used) / Math.max(0.01, v.budget_usd))}%` }))),
+    head(v.title, el("span", {}, `${({ running: "Being made", paused: "Paused", budget: "Waiting for more budget", done: "Done" })[v.status] || v.status}${nowM ? " · " + nowM.title : ""}`)),
+    v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", {}, "Paused. Nothing new starts until you resume."), el("div", { style: "margin-top:8px" }, ctl("resume", "Resume", null, "btn primary"))) : null,
+    v.status === "budget" ? el("div", { class: "card warn-card" }, el("div", {}, v.why || "This game's budget is used up."), el("div", { style: "margin-top:8px" }, ctl("budget", "Raise Budget", raise, "btn primary"))) : null,
+    el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", id: "ap-send", onclick: sendNote }, "Send"), el("span", { class: "note" }, "Problems are handled by the team: failed work is retried and fixed on its own."))),
     ...reviews,
-    el("div", { class: "card" }, el("div", { class: "row-title" }, "Chime in"), chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", id: "ap-send", onclick: sendNote }, "Send"), el("span", { class: "note" }, "The right agent picks it up, and every later job reads it."))),
-    el("div", { class: "section" }, el("div", { class: "section-label" }, "Milestones"),
-      ...v.milestones.map((m) => el("details", { class: "card ap-ms", open: m.status === "working" || m.status === "revising", "data-ms": m.id },
-        el("summary", { class: "inline", style: "justify-content:space-between" }, el("span", { class: "row-title" }, m.title), MS_PILL(m.status)),
-        m.jobs.length ? el("div", { class: "list" }, m.jobs.map(jobRow)) : el("div", { class: "note" }, m.status === "waiting" ? "Starts when the milestone before it is ready." : "")))),
-    el("div", { class: "section" }, el("div", { class: "section-label" }, "Team board"),
+    steps,
+    el("div", { class: "section" }, el("div", { class: "section-label" }, active.length ? `Working now (${active.filter((j) => j.status === "working").length} agents)` : "Working now"),
+      active.length ? el("div", { class: "list" }, active.map(jobRow)) : el("div", { class: "note" }, v.status === "done" ? "Every part is approved." : "Waiting for your review above, or starting the next part.")),
+    el("details", { class: "ap-more" }, el("summary", { class: "link" }, "Everything the team did"),
+      el("div", { class: "inline", style: "margin:10px 0" }, el("span", { class: "note" }, `Budget: ${usd(v.spent_usd, 2)} of ${usd(v.budget_usd, 2)} used`), v.status === "running" ? ctl("pause", "Pause") : v.status === "paused" ? ctl("resume", "Resume") : null, ctl("budget", "Raise Budget", raise)),
+      el("div", { class: "bar", style: "margin-bottom:12px" }, el("div", { style: `width:${Math.min(100, (100 * used) / Math.max(0.01, v.budget_usd))}%` })),
+      ...v.milestones.map((m) => el("details", { class: "card ap-ms", "data-ms": m.id },
+        el("summary", {}, el("span", { class: "row-title" }, m.title), MS_PILL(m.status)),
+        m.jobs.length ? el("div", { class: "list" }, m.jobs.map(jobRow)) : el("div", { class: "note" }, "Not started yet."))),
+      el("div", { class: "section-label", style: "margin-top:14px" }, "Team board"),
       el("div", { class: "list ap-board" }, v.board.map((b) => el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, `${cap(b.from)}${b.to ? " → " + cap(b.to) : ""}`), el("div", { class: "note" }, b.text)), el("span", { class: "note" }, ago(b.at))))))));
 }
 T.event.listen("run-line", (ev) => {
@@ -2001,6 +2050,12 @@ function studioButton() {
 }
 
 async function projectPicker(onChange) {
+  // The game is picked once, at the top of the sidebar.
+  state.projects = await invoke("projects_list").catch(() => []);
+  syncGame();
+  return null;
+}
+async function projectPickerOld(onChange) {
   const projects = await invoke("projects_list").catch(() => []);
   if (!state.project || !projects.includes(state.project)) state.project = projects[0] || "";
   const sel = el("select", { id: "project-pick", style: "width:260px" }, projects.length ? projects.map((p) => el("option", { value: p }, p.replace("projects/", ""))) : el("option", { value: "" }, "No projects yet"));
@@ -2109,13 +2164,8 @@ async function viewChat() {
     el("optgroup", { label: "Claude (your subscription)" }, el("option", { value: "claude:", selected: cur === "claude:" }, "Default"), models.map((m) => el("option", { value: `claude:${m.id}`, selected: cur === `claude:${m.id}` }, MODEL_NAMES[m.id] || m.id))),
     el("optgroup", { label: local.length ? "Free on this computer (Ollama)" : "Ollama: no local models yet (Settings)" }, local.map((m) => el("option", { value: `ollama:${m}`, selected: cur === `ollama:${m}` }, `${m} · free, local`))));
   modelPick.addEventListener("change", async () => { try { await invoke("chat_model_set", { choice: modelPick.value }); toast(modelPick.value.startsWith("ollama:") ? "Using your free local model." : "Using Claude."); } catch (e) { toast(String(e), true); } viewChat(); });
-  // Which game Ask Claude is helping with (remembered between visits).
-  const games = projects.map((x) => x.replace("projects/", ""));
-  if (state.chatGame === undefined) { try { state.chatGame = localStorage.getItem("chatGame") || ""; } catch { state.chatGame = ""; } }
-  if (state.chatGame && !games.includes(state.chatGame)) state.chatGame = "";
-  const gamePick = el("select", { id: "chat-game", class: "model-select", title: "The game Ask Claude is helping with" },
-    el("option", { value: "" }, "No game"), games.map((g) => el("option", { value: g, selected: g === state.chatGame }, `Game: ${g}`)));
-  gamePick.addEventListener("change", () => { state.chatGame = gamePick.value; try { localStorage.setItem("chatGame", state.chatGame); } catch {} drawQuick(); });
+  // The game Ask Claude helps with is the one picked at the top of the sidebar.
+  state.chatGame = state.game || "";
   const who = engine === "ollama" ? "Local model" : "Claude";
   const input = el("textarea", { id: "chat-input", placeholder: "Ask anything, paste a link, or drop images, videos or files here.", style: "min-height:64px" });
   const tray = el("div", { class: "att-tray", id: "chat-tray" });
@@ -2151,7 +2201,7 @@ async function viewChat() {
     ["What should I do next?", (g) => `Look at where my game ${g} is now (brief, plan, score, latest checks) and tell me the 3 most useful next steps, in plain words.`],
     ["Is it fun yet?", (g) => `Be honest: from what is built in ${g}, what would a 10-year-old enjoy in the first minute, and what would make them leave? Short.`],
   ];
-  const drawQuick = () => quick.replaceChildren(...(state.chatGame ? QUICK.map(([label, make]) => el("button", { class: "chip quick", onclick: () => !state.chatBusy && sendText(make(state.chatGame)) }, label)) : [el("span", { class: "note" }, "Pick a game above to get notes and next steps for it.")]));
+  const drawQuick = () => quick.replaceChildren(...(state.chatGame ? QUICK.map(([label, make]) => el("button", { class: "chip quick", onclick: () => !state.chatBusy && sendText(make(state.chatGame)) }, label)) : [el("span", { class: "note" }, "Pick a game at the top of the sidebar to get notes and next steps for it.")]));
   drawQuick();
   const msgs = chat.messages.map((m) =>
     el("div", { class: "bubble " + (m.role === "you" ? "me" : "them") + (m.failed ? " failed" : "") },
@@ -2164,7 +2214,7 @@ async function viewChat() {
     el("div", { class: "empty", style: "padding:56px 20px" }, el("div", { class: "ic-big", html: ICONS.chat }), el("div", { class: "empty-title" }, `Ask ${who} anything`),
       el("div", {}, "Pick a game to talk about it. Drop screenshots, videos, files or links and it will look at them. Each message counts toward your plan usage.")));
   const pageEl = el("div", { class: "page chat-page" },
-    head("Ask Claude", runningSubtitle(), el("div", { class: "inline" }, gamePick, chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null)),
+    head("Ask Claude", runningSubtitle(), el("div", { class: "inline" }, chat.messages.length ? el("button", { class: "btn secondary", onclick: async () => { await invoke("chat_reset"); viewChat(); } }, "New Chat") : null)),
     list,
     el("div", { class: "card chat-compose" }, quick, tray, input,
       el("div", { class: "inline", style: "justify-content:space-between;margin-top:10px" },

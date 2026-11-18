@@ -147,6 +147,17 @@ try:
     d.find_element(By.ID, "brief-plan").click(); time.sleep(2.5)
     pr = d.find_element(By.ID, "prompt").get_attribute("value")
     check("Plan This Game sends the brief to Planner", "Collect sugar, upgrade shop, repeat" in pr and "ui-test-idea" in pr and "(not answered)" in pr)
+    # One game picker at the top of the sidebar; every tab follows it.
+    check("making a brief switches the picked game to it", d.execute_script("return state.game") == "ui-test-idea" and d.execute_script("return document.getElementById('game-pick').value") == "ui-test-idea")
+    gp = Select(d.find_element(By.ID, "game-pick")); gp.select_by_value("dawn-watch"); time.sleep(2)
+    d.execute_script("location.hash='#changes'"); time.sleep(2.5)
+    check("the picked game carries to other tabs", d.execute_script("return state.project") == "projects/dawn-watch" and not d.find_elements(By.ID, "project-pick"), str(d.execute_script("return state.project")))
+    d.execute_script("location.hash='#chat'"); time.sleep(2.5)
+    check("Ask Claude follows the picked game", d.execute_script("return state.chatGame") == "dawn-watch" and not d.find_elements(By.ID, "chat-game"))
+    d.execute_script("location.hash='#autopilot'"); time.sleep(2.5)
+    check("Autopilot opens on the picked game", "dawn-watch" in d.find_element(By.ID, "ap-new-title").get_attribute("value") if d.find_elements(By.ID, "ap-new-title") else bool(d.find_elements(By.ID, "ap-note")), view()[:80])
+    names = [o.text for o in Select(d.find_element(By.ID, "game-pick")).options]
+    check("the picker offers + New game", "+ New game" in names, str(names))
     d.execute_script("location.hash='#score'"); time.sleep(10)
     check("Game Score rates the game out of 100 with what to add", "dawn-watch" in view() and "Keeps players playing" in view() and len(d.find_elements(By.CSS_SELECTOR, ".score-num")) >= 1, view()[:140].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-score.png"))
@@ -222,7 +233,7 @@ try:
       const done = arguments[0];
       const c = document.createElement('canvas'); c.width = 64; c.height = 40;
       const g = c.getContext('2d'); g.fillStyle = '#FF3B30'; g.fillRect(0, 0, 64, 40);
-      window.__TAURI__.core.invoke('refs_add', { project: document.getElementById('project-pick').value, name: 'test-ref.png', data: c.toDataURL('image/png'), category: 'Character', note: document.getElementById('ref-note').value, source: 'ui test' })
+      window.__TAURI__.core.invoke('refs_add', { project: state.project, name: 'test-ref.png', data: c.toDataURL('image/png'), category: 'Character', note: document.getElementById('ref-note').value, source: 'ui test' })
         .then(() => done('')).catch((e) => done(String(e)));
     """)
     d.execute_script("location.hash='#ideas'"); time.sleep(1); d.execute_script("location.hash='#references'"); time.sleep(2.5)

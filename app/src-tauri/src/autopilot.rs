@@ -23,8 +23,8 @@ use std::path::{Path, PathBuf};
 use crate::changes::{self, Change, Spec};
 
 pub const MAX_ATTEMPTS: u32 = 4;
-/// After all tries fail, Lead rescues the job this many times before it
-/// counts as stuck.
+/// After all tries fail, Lead rescues the job right away this many times;
+/// after that it keeps rescuing every 30 minutes (the budget is the limit).
 pub const MAX_RESCUES: usize = 2;
 pub const STRONG_MODEL: &str = "claude-opus-5-5";
 /// Extra jobs agents may start per milestone (stops runaway chains).
@@ -524,7 +524,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                 let why: Vec<String> = c.checks.iter().filter(|k| !k.passed).map(|k| format!("- {}: {}", k.name, k.detail.chars().take(300).collect::<String>())).collect();
                 let why = if why.is_empty() { c.summary.clone().unwrap_or_else(|| "the run did not finish".into()) } else { why.join("\n") };
                 let rescues = mine(root, &slug).iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|") && k.ends_with(&format!("|{key}"))).unwrap_or(false)).count();
-                if c.attempt + 1 >= MAX_ATTEMPTS && rescues < MAX_RESCUES {
+                if c.attempt + 1 >= MAX_ATTEMPTS {
                     // Out of tries: Lead works out why and how, then the job
                     // starts over with that advice.
                     let fails: Vec<String> = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && x.status == "failed").map(|x| format!("runs/{}", x.run_id)).collect();
@@ -532,15 +532,22 @@ pub fn on_finish(root: &Path, c: &Change) {
                         "Rescue: {agent} failed this job {MAX_ATTEMPTS} times: \"{text}\". What failed last time:\n{why}\nIts attempts are in {folders}. Read them and find out why it keeps failing. Then write change.md: the cause, and exactly what {agent} must do differently (which inputs to use, what to cut or simplify, how to pass each failing check). If an input from another agent is missing or wrong, start that agent with requests.json. Do not do {agent}'s job yourself.",
                         agent = c.agent, text = c.text.chars().take(300).collect::<String>(), folders = fails.join(", ")
                     );
-                    post(&mut a, "autopilot", Some("lead"), &format!("{} failed {MAX_ATTEMPTS} times; Lead is working out why and how to fix it (rescue {} of {MAX_RESCUES}).", c.agent, rescues + 1));
-                    let _ = queue(root, &mut a, &mid, "lead", &job, &format!("rescue|{}|{key}", rescues + 1), 0, "autopilot", None, "change");
-                } else if c.attempt + 1 < MAX_ATTEMPTS {
+                    // It never gives up: after the first rescues it keeps trying a new
+                    // approach every 30 minutes (only the game's budget stops it).
+                    let wait = if rescues < MAX_RESCUES { 0 } else { 30 };
+                    post(&mut a, "autopilot", Some("lead"), &format!("{} failed {MAX_ATTEMPTS} times; Lead is working out why and a new way to do it{}.", c.agent, if wait > 0 { format!(" (rescue {}, in {wait} min)", rescues + 1) } else { String::new() }));
+                    if rescues == MAX_RESCUES {
+                        crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is having a hard time", a.title, c.agent), &[c.text.chars().take(200).collect(), "The team keeps trying new approaches by itself. A note from you can steer it.".into()]);
+                    }
+                    if let Ok(n) = queue(root, &mut a, &mid, "lead", &job, &format!("rescue|{}|{key}", rescues + 1), 0, "autopilot", None, "change") {
+                        if wait > 0 {
+                            changes::delay(root, &n.id, wait);
+                        }
+                    }
+                } else {
                     let next = c.attempt + 1;
                     post(&mut a, "autopilot", Some(&c.agent), &format!("{} did not pass ({}); trying again{} (attempt {} of {MAX_ATTEMPTS}).", c.agent, why.lines().next().unwrap_or("").trim_start_matches("- "), if next >= 2 { " with a stronger model" } else { "" }, next + 1));
                     let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, next, &c.source, Some(&why), &c.kind);
-                } else {
-                    post(&mut a, "autopilot", Some("andrew"), &format!("Stuck: {} could not finish \"{}\" after {MAX_ATTEMPTS} tries. Everything else keeps going. Send a note to steer it, or press Try Again.\n{why}", c.agent, c.text.chars().take(100).collect::<String>()));
-                    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is stuck", a.title, c.agent), &[c.text.chars().take(200).collect(), why.chars().take(500).collect()]);
                 }
             }
             "paused" => post(&mut a, "autopilot", None, "Claude's usage limit is reached. Work continues by itself when it resets."),
@@ -726,7 +733,7 @@ pub fn view(root: &Path, slug: &str) -> Result<Value, String> {
             let key = c.key.clone().unwrap_or_default();
             let rescues = all.iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|") && k.ends_with(&format!("|{key}"))).unwrap_or(false)).count();
             let out_of_tries = stuck(&c);
-            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": out_of_tries && rescues >= MAX_RESCUES, "rescuing": out_of_tries && rescues < MAX_RESCUES, "launch_failed": changes::launch_failed(&c), "retry_at": c.not_before, "questions": questions, "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
+            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": false, "rescuing": out_of_tries, "rescues": rescues, "launch_failed": changes::launch_failed(&c), "retry_at": c.not_before, "questions": questions, "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
                     "output": d.join(&out).is_file().then(|| format!("runs/{}/{out}", c.run_id)), "mockups": mocks })
         }).collect();
         json!({ "id": m.id, "title": m.title, "status": m.status, "review": tpl.get(i).map(|t| t.2).unwrap_or(""), "jobs": jobs })
