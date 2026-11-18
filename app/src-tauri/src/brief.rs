@@ -170,13 +170,25 @@ fn ask_model(prompt: &str) -> Result<String, String> {
     let tmp = std::env::temp_dir().join("brewix-brief");
     let _ = fs::create_dir_all(&tmp);
     // One answer, no tools, no files, the smallest model, a hard cap.
-    let out = crate::paths::command(&bin)
-        .args(["-p", prompt, "--model", "claude-haiku-5-5", "--output-format", "json", "--max-turns", "1", "--max-budget-usd", "0.10", "--strict-mcp-config", "--permission-mode", "dontAsk", "--no-session-persistence", "--setting-sources", "project"])
+    // The word dump can be long: it goes in on stdin, never on the command
+    // line (Windows refuses command lines over 32,767 characters).
+    let mut child = crate::paths::command(&bin)
+        .args(["-p", "--model", "claude-haiku-5-5", "--output-format", "json", "--max-turns", "1", "--max-budget-usd", "0.10", "--strict-mcp-config", "--permission-mode", "dontAsk", "--no-session-persistence", "--setting-sources", "project"])
         .current_dir(&tmp)
         .env_remove("ANTHROPIC_API_KEY")
-        .stdin(std::process::Stdio::null())
-        .output()
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
         .map_err(|e| format!("could not start Claude: {e}"))?;
+    if let Some(mut si) = child.stdin.take() {
+        let p = prompt.to_string();
+        std::thread::spawn(move || {
+            use std::io::Write;
+            let _ = si.write_all(p.as_bytes());
+        });
+    }
+    let out = child.wait_with_output().map_err(|e| format!("Claude stopped: {e}"))?;
     let v: Value = serde_json::from_slice(&out.stdout).map_err(|_| format!("Claude did not answer: {}", String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or("")))?;
     Ok(v["result"].as_str().unwrap_or("").to_string())
 }

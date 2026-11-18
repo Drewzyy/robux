@@ -65,6 +65,9 @@ pub struct Change {
     /// Wait for this change to finish first.
     #[serde(default)]
     pub after: Option<String>,
+    /// Do not start before this time (RFC 3339): a retry waiting it out.
+    #[serde(default)]
+    pub not_before: Option<String>,
 }
 
 fn kind_change() -> String {
@@ -137,6 +140,7 @@ pub fn enqueue(root: &Path, spec: Spec) -> Result<Change, String> {
         group: spec.group,
         depth: spec.depth,
         after: spec.after,
+        not_before: None,
     };
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
@@ -375,6 +379,7 @@ pub fn submit(root: &Path, target: &str, reqs: &[Request]) -> Result<Vec<Change>
             group: None,
             depth: 0,
             after: None,
+            not_before: None,
         };
         {
             let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
@@ -401,6 +406,9 @@ pub fn take_next(root: &Path) -> Vec<Change> {
             break;
         }
         if c.after.as_ref().map(|a| !finished.contains(a)).unwrap_or(false) {
+            continue;
+        }
+        if c.not_before.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t > chrono::Utc::now()).unwrap_or(false) {
             continue;
         }
         if busy.iter().any(|(a, t)| *a == c.agent && *t == c.target) {
@@ -570,6 +578,55 @@ fn cap_first(s: &str) -> String {
     c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
 }
 
+/// True when the job never really ran because Claude could not be started
+/// (a problem with the app or the computer, not with the agent's work).
+pub fn launch_failed(c: &Change) -> bool {
+    let t = |s: &str| {
+        let l = s.to_lowercase();
+        l.contains("could not start") || l.contains("os error") || l.contains("claude code was not found") || l.contains("no such file or directory")
+    };
+    c.status == "failed" && (c.checks.iter().any(|k| !k.passed && t(&k.detail)) || c.summary.as_deref().map(t).unwrap_or(false))
+}
+
+/// Hold a queued change until `minutes` from now.
+pub fn delay(root: &Path, id: &str, minutes: i64) {
+    update(root, id, |x| x.not_before = Some((chrono::Utc::now() + chrono::Duration::minutes(minutes)).to_rfc3339()));
+}
+
+/// Outside an autopilot: a job whose Claude could not start is queued
+/// again by itself, waiting a little longer each time (1, 5, 15, then
+/// every 30 minutes). Returns the new job.
+pub fn retry_launch(root: &Path, c: &Change) -> Option<Change> {
+    if !launch_failed(c) || c.autopilot.is_some() {
+        return None;
+    }
+    let tries = list(root).iter().filter(|x| x.text == c.text && x.target == c.target && x.agent == c.agent && launch_failed(x)).count();
+    let prompt = crate::runs::load(root, &c.run_id).ok()?.prompt;
+    let n = enqueue(root, Spec {
+        target: c.target.clone(),
+        text: c.text.clone(),
+        prompt,
+        agent: c.agent.clone(),
+        kind: c.kind.clone(),
+        autopilot: None,
+        milestone: None,
+        key: c.key.clone(),
+        attempt: c.attempt,
+        source: c.source.clone(),
+        model: None,
+        parent_run: c.parent_run.clone(),
+        group: c.group.clone(),
+        depth: c.depth,
+        after: None,
+    }).ok()?;
+    delay(root, &n.id, backoff_minutes(tries));
+    list(root).into_iter().find(|x| x.id == n.id)
+}
+
+pub fn backoff_minutes(tries: usize) -> i64 {
+    [1, 5, 15, 30][tries.saturating_sub(1).min(3)]
+}
+
 /// Record a result directly (tests, and changes whose run cannot start).
 pub fn set_result(root: &Path, id: &str, status: &str, checks: Vec<crate::queue::GateCheck>) {
     update(root, id, |x| {
@@ -627,7 +684,7 @@ mod tests {
     }
 
     fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
-        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None }
+        Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None }
     }
 
     #[test]

@@ -40,6 +40,8 @@ drv = subprocess.Popen(["tauri-driver"], env=env, stdout=subprocess.DEVNULL, std
 o = webdriver.ChromeOptions(); o.set_capability("browserName", "wry"); o.set_capability("tauri:options", {"application": str(ROOT / "app/src-tauri/target/debug/brewixgames")})
 d = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=o); d.set_window_size(1280, 820); time.sleep(3)
 view = lambda: d.find_element(By.ID, "view").text
+TEMP_DIRS = []  # removed when the test ends, pass or fail
+
 try:
     time.sleep(1)
     check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 7 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 7, view()[:60])
@@ -167,7 +169,7 @@ try:
     check("Tune-Up scans the game's code and map", "dawn-watch" in view() and "code files" in view() and "parts" in view() and len(d.find_elements(By.ID, "tuneup-run")) == 1, view()[:120].replace("\n", " "))
     d.save_screenshot(str(SHOTS / "ui-tuneup.png"))
     import tempfile, shutil as _sh
-    lost = Path(tempfile.mkdtemp(prefix="lost-", dir=str(Path.home())))
+    lost = Path(tempfile.mkdtemp(prefix="lost-", dir=str(Path.home()))); TEMP_DIRS.append(lost)
     (lost / "OldCopy/vault/00-Start-Here").mkdir(parents=True); (lost / "OldCopy/vault/02-Game-Design").mkdir(parents=True)
     (lost / "OldCopy/vault/00-Start-Here/index.md").write_text("x"); (lost / "OldCopy/vault/02-Game-Design/ui-test-lost-note.md").write_text("---\ndescription: test\n---\n")
     d.execute_script("location.hash='#files'"); time.sleep(25)
@@ -309,7 +311,7 @@ try:
     check("vault search finds notes with highlights", len(rows) >= 2 and "DataStore" in rows[0].text and d.find_elements(By.CSS_SELECTOR, "#vault-results mark"), rows[0].text.replace("\n", " ")[:90] if rows else "none")
     d.save_screenshot(str(SHOTS / "ui-vault-search.png"))
     import tempfile, json as _j, shutil as _sh2
-    newdir = Path(tempfile.mkdtemp()) / "MovedStudio"
+    newdir = Path(tempfile.mkdtemp()) / "MovedStudio"; TEMP_DIRS.append(newdir.parent)
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     box = d.find_element(By.ID, "studio-root"); box.clear(); box.send_keys(str(newdir))
     d.find_element(By.ID, "studio-move").click()
@@ -323,7 +325,7 @@ try:
     d.execute_script("location.hash='#settings'"); time.sleep(3)
     check("Settings lists the apps in the Downloads folder", "Apps in your Downloads folder" in view() and "Roblox always installs Studio" in view())
     import tempfile as _tf
-    tdir = Path(_tf.mkdtemp()) / "BrewixDownloads"
+    tdir = Path(_tf.mkdtemp()) / "BrewixDownloads"; TEMP_DIRS.append(tdir.parent)
     box = d.find_element(By.ID, "tools-dir"); box.clear(); box.send_keys(str(tdir))
     d.find_element(By.ID, "tools-dir-save").click(); time.sleep(2)
     d.find_element(By.ID, "claude-install").click()
@@ -404,6 +406,10 @@ try:
     d.save_screenshot(str(ROOT / ".cache/ui-inspiration.png"))
 finally:
     d.quit(); drv.terminate()
+    # Temporary copies (a moved studio is about 350 MB) never pile up.
+    import shutil as _shx
+    for _t in TEMP_DIRS:
+        _shx.rmtree(_t, ignore_errors=True)
     # leave no test game behind (folders and its row in the memory index)
     import shutil as _shc
     for _p in ["projects/ui-test-idea", "projects/ui-dump-idea", "vault/19-Project-Memory/references/ui-test-idea", "vault/19-Project-Memory/references/ui-dump-idea"]:

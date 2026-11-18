@@ -34,6 +34,27 @@ pub struct RunOutcome {
 /// sent as `/<agent> <instruction>` so Claude Code loads that skill
 /// deterministically (skills are `disable-model-invocation`, so agents cannot
 /// pull in other agents' skills on their own).
+/// Move the long parts off the command line: the prompt (after -p) is
+/// returned to send on stdin, the run context is written to a file and
+/// passed with --append-system-prompt-file.
+pub fn to_launch(mut args: Vec<String>, dir: &Path) -> Result<(Vec<String>, String), String> {
+    let mut prompt = String::new();
+    if let Some(i) = args.iter().position(|a| a == "-p") {
+        if i + 1 < args.len() && !args[i + 1].starts_with("--") {
+            prompt = args.remove(i + 1);
+        }
+    }
+    if let Some(i) = args.iter().position(|a| a == "--append-system-prompt") {
+        if i + 1 < args.len() {
+            let f = dir.join("run-context.md");
+            fs::write(&f, &args[i + 1]).map_err(|e| format!("could not write the run context: {e}"))?;
+            args[i] = "--append-system-prompt-file".into();
+            args[i + 1] = f.display().to_string();
+        }
+    }
+    Ok((args, prompt))
+}
+
 /// How any agent starts other agents: the app reads requests.json when the
 /// run ends (changes::ingest_requests). Never tell Andrew to start them.
 pub const DISPATCH: &str = " You can start other agents yourself; never tell Andrew he has to. Write requests.json in your run folder: \
@@ -233,6 +254,11 @@ pub fn run_approved_with<F: FnMut(&str)>(
             args[i + 1].push_str(&notes);
         }
     }
+    // Windows refuses command lines over 32,767 characters (8,191 through a
+    // .cmd wrapper), and a game's brief, notes and team folders get long. So
+    // the prompt goes in on stdin and the run context in a file; only short
+    // flags stay on the command line.
+    let (args, stdin_prompt) = to_launch(args, &dir)?;
     fs::write(
         dir.join("command.json"),
         serde_json::to_string_pretty(&serde_json::json!({
@@ -263,7 +289,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
         // Agents always run on Andrew's Claude login (his subscription),
         // never on an API key, even if one is set in the environment.
         .env_remove("ANTHROPIC_API_KEY")
-        .stdin(Stdio::null())
+        .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -274,6 +300,13 @@ pub fn run_approved_with<F: FnMut(&str)>(
             let _ = runs::save(root, &req);
             msg
         })?;
+    // The prompt, on stdin (then closed so Claude starts).
+    if let Some(mut si) = child.stdin.take() {
+        std::thread::spawn(move || {
+            use std::io::Write;
+            let _ = si.write_all(stdin_prompt.as_bytes());
+        });
+    }
 
     // Drain stderr on a thread so a full pipe never blocks the child.
     let stderr = child.stderr.take().unwrap();
@@ -362,6 +395,21 @@ pub fn run_approved_with<F: FnMut(&str)>(
 mod tests {
     use super::*;
     use crate::cost::Estimate;
+
+    #[test]
+    fn long_text_never_goes_on_the_command_line() {
+        let dir = std::env::temp_dir().join(format!("launch-t-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let long = "x".repeat(60_000);
+        let args = vec!["-p".to_string(), format!("/planner {long}"), "--append-system-prompt".into(), long.clone(), "--agent".into(), "planner".into()];
+        let (a, prompt) = to_launch(args, &dir).unwrap();
+        assert!(prompt.starts_with("/planner ") && prompt.len() > 60_000);
+        assert_eq!(a[0], "-p");
+        assert_eq!(a[1], "--append-system-prompt-file");
+        assert_eq!(fs::read_to_string(&a[2]).unwrap().len(), 60_000);
+        assert!(a.iter().map(|x| x.len() + 1).sum::<usize>() < 2_000, "command line stays short");
+        let _ = fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn args_always_carry_cap_and_dont_ask() {

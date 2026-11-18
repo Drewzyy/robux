@@ -1172,8 +1172,9 @@ function jobRow(j) {
     el("div", { class: "grow" },
       el("div", { class: "row-title" }, `${cap(j.agent)}${j.source.startsWith("agent:") ? " (asked by " + cap(j.source.slice(6)) + ")" : j.source === "andrew" ? " (your note)" : ""}`),
       el("div", { class: "row-sub" }, j.status === "working" ? el("span", { class: "ap-live", id: "live-" + j.run_id }, state.apLive[j.run_id] || "Working…") : (j.summary || j.text)),
-      j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}`) : null),
-    el("span", { class: j.stuck ? "pill red-soft" : j.status === "working" ? "pill red" : j.status === "done" ? "pill white" : "pill" }, j.stuck ? "Stuck" : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
+      j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}${j.rescuing ? ", then Lead works out a better approach" : ""}`) : null),
+    el("span", { class: j.stuck ? "pill red-soft" : j.status === "working" ? "pill red" : j.status === "done" ? "pill white" : "pill" },
+      j.stuck ? "Stuck" : j.rescuing ? "Lead is rescuing it" : j.launch_failed || (j.status === "queued" && j.retry_at) ? `Retrying ${j.retry_at ? "at " + new Date(j.retry_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "soon"}` : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
     j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Open") : null,
     el("button", { class: "link", onclick: () => (location.hash = "#run/" + j.run_id) }, "Details"));
 }

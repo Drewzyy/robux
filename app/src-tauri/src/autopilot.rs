@@ -23,6 +23,9 @@ use std::path::{Path, PathBuf};
 use crate::changes::{self, Change, Spec};
 
 pub const MAX_ATTEMPTS: u32 = 4;
+/// After all tries fail, Lead rescues the job this many times before it
+/// counts as stuck.
+pub const MAX_RESCUES: usize = 2;
 pub const STRONG_MODEL: &str = "claude-opus-5-5";
 /// Extra jobs agents may start per milestone (stops runaway chains).
 pub const MAX_AGENT_REQUESTS: usize = 6;
@@ -225,7 +228,10 @@ pub fn context_dirs(root: &Path, slug: &str) -> Vec<PathBuf> {
             v.push(root.join("runs").join(p));
         }
     }
-    for c in mine(root, slug).into_iter().filter(|c| c.status == "done") {
+    // Finished and failed work (a rescuer reads the failed attempts); the
+    // most recent 40, so the list stays reasonable on a long game.
+    let all: Vec<Change> = mine(root, slug).into_iter().filter(|c| c.status == "done" || c.status == "failed").collect();
+    for c in all.iter().skip(all.len().saturating_sub(40)) {
         v.push(root.join("runs").join(&c.run_id));
     }
     v
@@ -316,18 +322,17 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
 /// Latest attempt of every piece of work in a milestone, by key.
 fn latest(all: &[Change], milestone: &str) -> Vec<Change> {
     let mut by: std::collections::BTreeMap<String, Change> = Default::default();
+    // `all` is in the order jobs were queued: the last one for a key wins
+    // (a fresh start after a rescue has attempt 0 but is still the newest).
     for c in all.iter().filter(|c| c.milestone.as_deref() == Some(milestone) && c.status != "cancelled") {
         let k = c.key.clone().unwrap_or_else(|| c.id.clone());
-        let newer = by.get(&k).map(|o| (c.attempt, &c.created_at) >= (o.attempt, &o.created_at)).unwrap_or(true);
-        if newer {
-            by.insert(k, c.clone());
-        }
+        by.insert(k, c.clone());
     }
     by.into_values().collect()
 }
 
 fn stuck(c: &Change) -> bool {
-    c.status == "failed" && c.attempt + 1 >= MAX_ATTEMPTS
+    c.status == "failed" && c.attempt + 1 >= MAX_ATTEMPTS && !changes::launch_failed(c)
 }
 
 /// Move a game forward: start milestones and waves whose turn has come,
@@ -379,6 +384,18 @@ pub fn advance(root: &Path, slug: &str) {
                         let _ = save(root, &a);
                         return;
                     }
+                }
+            }
+        }
+        let all = mine(root, slug);
+        if st == "working" || st == "revising" {
+            // Jobs that failed only because Claude could not start (for
+            // example on an older version of the app) are queued again.
+            for c in latest(&all, mid).into_iter().filter(changes::launch_failed) {
+                let key = c.key.clone().unwrap_or(c.id.clone());
+                if let Ok(n) = queue(root, &mut a, mid, &c.agent, &c.text, &key, 0, &c.source, None, &c.kind) {
+                    changes::delay(root, &n.id, 1);
+                    post(&mut a, "autopilot", Some(&c.agent), &format!("{} could not start Claude before; trying again by itself.", c.agent));
                 }
             }
         }
@@ -446,6 +463,9 @@ pub fn on_finish(root: &Path, c: &Change) {
         let mid = c.milestone.clone().unwrap_or_default();
         let key = c.key.clone().unwrap_or_else(|| c.id.clone());
         match c.status.as_str() {
+            "done" if key.starts_with("rescue|") => {
+                rescue_done(root, &mut a, &mid, &key, c, true);
+            }
             "done" => {
                 post(&mut a, &c.agent, None, &format!("Done: {}", c.summary.clone().unwrap_or_else(|| c.text.chars().take(120).collect())));
                 // Messages to other agents.
@@ -480,10 +500,41 @@ pub fn on_finish(root: &Path, c: &Change) {
                     let _ = queue(root, &mut a, &mid, to, task, &format!("{k}/{to}"), 0, &format!("agent:{}", c.agent), None, "change");
                 }
             }
+            "failed" if changes::launch_failed(c) => {
+                // Claude never started: the app or the computer, not the
+                // agent. Try again by itself, waiting longer each time, and
+                // without using up the agent's tries.
+                let tries = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && changes::launch_failed(x)).count();
+                let wait = changes::backoff_minutes(tries);
+                let detail = c.checks.iter().find(|k| !k.passed).map(|k| k.detail.clone()).unwrap_or_default();
+                post(&mut a, "autopilot", Some(&c.agent), &format!("Could not start Claude for {} ({}). Trying again by itself in {wait} min.", c.agent, detail.chars().take(160).collect::<String>()));
+                if tries == 3 {
+                    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude will not start", a.title), &[detail.chars().take(300).collect(), "BrewixGames keeps retrying every 30 minutes. Check Settings, Claude Code, if this keeps happening.".into()]);
+                }
+                if let Ok(n) = queue(root, &mut a, &mid, &c.agent, &c.text, &key, c.attempt, &c.source, None, &c.kind) {
+                    changes::delay(root, &n.id, wait);
+                }
+            }
+            "failed" if key.starts_with("rescue|") => {
+                // The rescuer itself failed: count it as a used rescue and go
+                // back to the job with what we have.
+                rescue_done(root, &mut a, &mid, &key, c, false);
+            }
             "failed" => {
                 let why: Vec<String> = c.checks.iter().filter(|k| !k.passed).map(|k| format!("- {}: {}", k.name, k.detail.chars().take(300).collect::<String>())).collect();
                 let why = if why.is_empty() { c.summary.clone().unwrap_or_else(|| "the run did not finish".into()) } else { why.join("\n") };
-                if c.attempt + 1 < MAX_ATTEMPTS {
+                let rescues = mine(root, &slug).iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|") && k.ends_with(&format!("|{key}"))).unwrap_or(false)).count();
+                if c.attempt + 1 >= MAX_ATTEMPTS && rescues < MAX_RESCUES {
+                    // Out of tries: Lead works out why and how, then the job
+                    // starts over with that advice.
+                    let fails: Vec<String> = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && x.status == "failed").map(|x| format!("runs/{}", x.run_id)).collect();
+                    let job = format!(
+                        "Rescue: {agent} failed this job {MAX_ATTEMPTS} times: \"{text}\". What failed last time:\n{why}\nIts attempts are in {folders}. Read them and find out why it keeps failing. Then write change.md: the cause, and exactly what {agent} must do differently (which inputs to use, what to cut or simplify, how to pass each failing check). If an input from another agent is missing or wrong, start that agent with requests.json. Do not do {agent}'s job yourself.",
+                        agent = c.agent, text = c.text.chars().take(300).collect::<String>(), folders = fails.join(", ")
+                    );
+                    post(&mut a, "autopilot", Some("lead"), &format!("{} failed {MAX_ATTEMPTS} times; Lead is working out why and how to fix it (rescue {} of {MAX_RESCUES}).", c.agent, rescues + 1));
+                    let _ = queue(root, &mut a, &mid, "lead", &job, &format!("rescue|{}|{key}", rescues + 1), 0, "autopilot", None, "change");
+                } else if c.attempt + 1 < MAX_ATTEMPTS {
                     let next = c.attempt + 1;
                     post(&mut a, "autopilot", Some(&c.agent), &format!("{} did not pass ({}); trying again{} (attempt {} of {MAX_ATTEMPTS}).", c.agent, why.lines().next().unwrap_or("").trim_start_matches("- "), if next >= 2 { " with a stronger model" } else { "" }, next + 1));
                     let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, next, &c.source, Some(&why), &c.kind);
@@ -498,6 +549,21 @@ pub fn on_finish(root: &Path, c: &Change) {
         let _ = save(root, &a);
     }
     advance(root, &slug);
+}
+
+/// A rescue ended: start the rescued job over (fresh tries) with Lead's
+/// advice as feedback.
+fn rescue_done(root: &Path, a: &mut Autopilot, mid: &str, key: &str, rescue: &Change, ok: bool) {
+    let orig_key = key.splitn(3, '|').nth(2).unwrap_or("").to_string();
+    let Some(orig) = latest(&mine(root, &a.slug), mid).into_iter().find(|x| x.key.as_deref() == Some(orig_key.as_str())) else { return };
+    let advice = fs::read_to_string(root.join("runs").join(&rescue.run_id).join("change.md")).unwrap_or_default();
+    let fb = if ok && !advice.trim().is_empty() {
+        format!("Earlier attempts all failed. Lead looked into why; follow this advice:\n{}", advice.chars().take(3000).collect::<String>())
+    } else {
+        "Earlier attempts all failed. Read their change.md and checks in the earlier run folders and take a clearly different, simpler approach.".to_string()
+    };
+    post(a, "lead", Some(&orig.agent), &format!("Rescue {}: {}", if ok { "advice" } else { "did not finish" }, rescue.summary.clone().unwrap_or_default()));
+    let _ = queue(root, a, mid, &orig.agent, &orig.text, &orig_key, 0, &orig.source, Some(&fb), &orig.kind);
 }
 
 /// Andrew's note at any time: every later job reads it, and it goes to the
@@ -657,7 +723,10 @@ pub fn view(root: &Path, slug: &str) -> Result<Value, String> {
             let d = root.join("runs").join(&c.run_id);
             let mocks: Vec<String> = fs::read_dir(d.join("mockups")).into_iter().flatten().flatten().map(|e| format!("runs/{}/mockups/{}", c.run_id, e.file_name().to_string_lossy())).filter(|p| p.ends_with(".svg")).collect();
             let questions = questions_in(&d.join(&out)).into_iter().chain(questions_in(&d.join("change.md"))).collect::<Vec<_>>();
-            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": stuck(&c), "questions": questions, "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
+            let key = c.key.clone().unwrap_or_default();
+            let rescues = all.iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|") && k.ends_with(&format!("|{key}"))).unwrap_or(false)).count();
+            let out_of_tries = stuck(&c);
+            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": out_of_tries && rescues >= MAX_RESCUES, "rescuing": out_of_tries && rescues < MAX_RESCUES, "launch_failed": changes::launch_failed(&c), "retry_at": c.not_before, "questions": questions, "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
                     "output": d.join(&out).is_file().then(|| format!("runs/{}/{out}", c.run_id)), "mockups": mocks })
         }).collect();
         json!({ "id": m.id, "title": m.title, "status": m.status, "review": tpl.get(i).map(|t| t.2).unwrap_or(""), "jobs": jobs })
@@ -685,7 +754,7 @@ mod tests {
     }
 
     fn ch(key: &str, attempt: u32, status: &str, at: &str) -> Change {
-        Change { id: format!("{key}-{attempt}"), target: "game:g".into(), item: None, text: "x".into(), agent: "frame".into(), status: status.into(), run_id: "r".into(), created_at: at.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "task".into(), autopilot: Some("g".into()), milestone: Some("ui".into()), key: Some(key.into()), attempt, source: "autopilot".into(), parent_run: None, group: None, depth: 0, after: None }
+        Change { id: format!("{key}-{attempt}"), target: "game:g".into(), item: None, text: "x".into(), agent: "frame".into(), status: status.into(), run_id: "r".into(), created_at: at.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "task".into(), autopilot: Some("g".into()), milestone: Some("ui".into()), key: Some(key.into()), attempt, source: "autopilot".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None }
     }
 
     fn studio() -> PathBuf {
@@ -768,6 +837,44 @@ mod tests {
         note(&root, &a.slug, "Make the rocket glow when it levels up", None, None).unwrap();
         let n = queued(&root, &a.slug).into_iter().find(|c| c.source == "andrew").unwrap();
         assert_eq!(n.agent, "motion");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn launch_failures_retry_by_themselves_and_lead_rescues_real_failures() {
+        let root = studio();
+        let a = start(&root, "Rescue Game", "Catch falling stars.", 500.0, None).unwrap();
+        let planner = queued(&root, &a.slug).remove(0);
+        // Claude could not start (the Windows command-line limit): no try used.
+        changes::set_result(&root, &planner.id, "failed", vec![crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "could not start D:\\claude.exe: The filename or extension is too long. (os error 206)".into() }]);
+        let c = changes::list(&root).into_iter().find(|x| x.id == planner.id).unwrap();
+        on_finish(&root, &c);
+        let again = queued(&root, &a.slug);
+        assert_eq!(again.len(), 1);
+        assert_eq!((again[0].agent.as_str(), again[0].attempt), ("planner", 0), "no try used up");
+        assert!(again[0].not_before.is_some(), "waits a minute first");
+        assert!(changes::take_next(&root).is_empty(), "not started before its time");
+        // Four real failures: Lead is called in instead of giving up.
+        let mut cur = again[0].clone();
+        for _ in 0..MAX_ATTEMPTS {
+            finish_as(&root, &cur, "failed", "has a Loaded section");
+            let q = queued(&root, &a.slug);
+            cur = q.last().unwrap().clone();
+        }
+        assert_eq!(cur.agent, "lead", "Lead rescues after {MAX_ATTEMPTS} failed tries");
+        assert!(cur.key.as_deref().unwrap().starts_with("rescue|1|"));
+        let rp = crate::runs::load(&root, &cur.run_id).unwrap().prompt;
+        assert!(rp.contains("failed this job") && rp.contains("has a Loaded section"), "{rp}");
+        let rd = root.join("runs").join(&cur.run_id);
+        fs::create_dir_all(&rd).unwrap();
+        fs::write(rd.join("change.md"), "Cause: the plan had no Loaded section. Add one listing the notes read.").unwrap();
+        finish_as(&root, &cur, "done", "");
+        let fresh = queued(&root, &a.slug);
+        assert_eq!((fresh[0].agent.as_str(), fresh[0].attempt), ("planner", 0), "fresh tries with the advice");
+        let fp = crate::runs::load(&root, &fresh[0].run_id).unwrap().prompt;
+        assert!(fp.contains("Lead looked into why") && fp.contains("Add one listing the notes read"), "{fp}");
+        let v = view(&root, &a.slug).unwrap();
+        assert_eq!(v["milestones"][0]["jobs"].as_array().unwrap().iter().filter(|j| j["agent"] == "planner").next().unwrap()["status"], "queued", "the screen shows the fresh start, not the old failure");
         let _ = fs::remove_dir_all(&root);
     }
 
