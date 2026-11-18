@@ -75,6 +75,9 @@ pub struct PipelineRun {
     pub queue_item: Option<String>,
     #[serde(default)]
     pub actual_cost_usd: Option<f64>,
+    /// Plain-language reason the pipeline stopped early (None when it did not).
+    #[serde(default)]
+    pub stopped_reason: Option<String>,
 }
 
 pub fn load_config(root: &Path) -> Result<PipelinesConfig, String> {
@@ -197,6 +200,7 @@ pub fn prepare(root: &Path, name: &str, input: &str, project: Option<&str>) -> R
         finished_at: None,
         queue_item: None,
         actual_cost_usd: None,
+        stopped_reason: None,
     };
     save(root, &p)?;
     Ok(p)
@@ -325,6 +329,31 @@ pub fn due(root: &Path) -> Vec<PipelineRun> {
         .collect()
 }
 
+/// Whether the pipeline should stop before the next stage. A stage that
+/// exited fine but failed its own check still stops the run, so later
+/// stages do not spend their budget on bad input.
+pub fn should_stop(output_exists: bool, process_ok: bool, gate_passed: bool) -> bool {
+    !output_exists || !process_ok || !gate_passed
+}
+
+/// A short, human reason for stopping, using the gate's own failure details.
+fn stop_reason(agent: &str, gate: &Gate, output_exists: bool, process_ok: bool, next: Option<&str>) -> String {
+    let mut why: Vec<String> = gate
+        .checks
+        .iter()
+        .filter(|c| !c.passed)
+        .map(|c| if c.detail.trim().is_empty() { c.name.clone() } else { format!("{} ({})", c.name, c.detail.trim()) })
+        .collect();
+    if why.is_empty() {
+        why.push(if !output_exists { "no output file was written".into() } else if !process_ok { "the run did not finish cleanly".into() } else { "its check failed".into() });
+    }
+    let tail = match next {
+        Some(n) => format!(" {} was not started, so no budget was spent on it.", cap_first(n)),
+        None => String::new(),
+    };
+    format!("Stopped after {agent}: its check failed, {}.{tail} Files so far are kept.", why.join("; "))
+}
+
 /// Events reported while a pipeline runs.
 pub enum Event<'a> {
     StageStart { index: usize, agent: &'a str, run_id: &'a str },
@@ -397,8 +426,14 @@ pub fn run<F: FnMut(Event)>(root: &Path, id: &str, claude_bin: &Path, mut on: F)
         save(root, &p)?;
         // Stop when nothing usable came out, or the run itself failed (cap hit,
         // error): later stages would spend their caps on bad input.
-        if !output_exists || !matches!(&outcome, Ok(o) if o.ok) {
+        let process_ok = matches!(&outcome, Ok(o) if o.ok);
+        // A failed check on the very last stage has nothing after it to
+        // protect; it is reported on the stage itself and the run ends as usual.
+        let last = i + 1 == p.stages.len();
+        if should_stop(output_exists, process_ok, gate.passed) && !(last && output_exists && process_ok) {
             stopped = true;
+            let next = p.stages.get(i + 1).map(|s| s.agent.clone());
+            p.stopped_reason = Some(stop_reason(&agent, &gate, output_exists, process_ok, next.as_deref()));
         }
         prior_dirs.push(run_dir);
     }
@@ -829,7 +864,29 @@ dir=""; prev=""
 for a in "$@"; do if [ "$prev" = "--add-dir" ]; then [ -z "$dir" ] && case "$a" in */runs/*) dir="$a";; esac; fi; prev="$a"; done
 n=$(wc -l < "{c}")
 if [ "$n" = "2" ]; then echo '{{"type":"result","is_error":true,"result":"Claude AI usage limit reached|4102444800","total_cost_usd":0.1}}'; exit 1; fi
-for f in pitch.md plan.md design.md build.md; do echo ok > "$dir/$f"; done
+for f in pitch.md plan.md design.md build.md; do cat > "$dir/$f" <<'DOC'
+# Loaded
+none
+# Data sources
+https://example.com
+# Ranked pitches
+1. x
+# Style kit
+# Core loop
+# First 60 seconds
+0-5 a, 5-10 b, 10-30 c, 30-60 d
+# Will not do
+nothing
+# Blocked
+none
+| a | b |
+| - | - |
+| 1 | 2 |
+| 3 | 4 |
+Ends in the review queue.
+DOC
+done
+echo '{{"passed":true,"checks":[{{"name":"x","passed":true,"detail":""}}]}}' > "$dir/gate.json"
 echo '{{"type":"result","is_error":false,"result":"done","total_cost_usd":0.2,"num_turns":1}}'
 "#, c = d.join("calls").display())).unwrap();
         use std::os::unix::fs::PermissionsExt;
@@ -837,7 +894,7 @@ echo '{{"type":"result","is_error":false,"result":"done","total_cost_usd":0.2,"n
         let p = prepare(&d, "pitch-to-build", "a game", None).unwrap();
         approve(&d, &p.pipeline_id, p.cap_usd).unwrap();
         let after = run(&d, &p.pipeline_id, &fake, |_| {}).unwrap();
-        assert_eq!(after.status, "paused");
+        assert_eq!(after.status, "paused", "{:?}", after.stopped_reason);
         assert_ne!(after.stages[0].status, "pending"); // finished (its own gate needs gate.json)
         assert_eq!(after.stages[1].status, "paused");
         assert!(after.stages[2..].iter().all(|s| s.status == "pending"));
@@ -859,5 +916,29 @@ echo '{{"type":"result","is_error":false,"result":"done","total_cost_usd":0.2,"n
         assert!((r1.actual_cost_usd.unwrap() - 0.3).abs() < 1e-9, "{:?}", r1.actual_cost_usd);
         assert!((done.actual_cost_usd.unwrap() - 0.9).abs() < 1e-6, "{:?}", done.actual_cost_usd);
         let _ = fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(test)]
+mod gate_stop_tests {
+    use super::*;
+
+    #[test]
+    fn stops_when_the_gate_fails_even_if_the_process_was_fine() {
+        assert!(!should_stop(true, true, true));
+        assert!(should_stop(true, true, false));
+        assert!(should_stop(true, false, true));
+        assert!(should_stop(false, true, true));
+    }
+
+    #[test]
+    fn the_stop_reason_is_plain_and_uses_the_gate_details() {
+        let g = Gate { passed: false, checks: vec![check("design has every section", false, "missing Risks"), check("ok", true, "")] };
+        let r = stop_reason("architect", &g, true, true, Some("builder"));
+        assert!(r.starts_with("Stopped after architect: its check failed, design has every section (missing Risks)."), "{r}");
+        assert!(r.contains("Builder was not started") && r.contains("Files so far are kept"), "{r}");
+        assert!(!r.contains('\u{2014}'));
+        let last = stop_reason("builder", &g, true, true, None);
+        assert!(!last.contains("not started"), "{last}");
     }
 }

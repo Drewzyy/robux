@@ -1734,6 +1734,7 @@ async function viewRunDetail(id) {
         el("div", {}, el("div", { class: "k" }, "Actual after"), el("div", { class: "v", id: "actual-cost" }, usd(d.actual_usd, 4))),
         d.queue_item ? el("div", {}, el("div", { class: "k" }, "Result"), el("button", { class: "link", style: "padding-top:8px", onclick: () => (location.hash = "#queue") }, "In the review queue")) : null)
     ),
+    d.stopped_reason ? el("div", { class: "card warn-card", id: "stopped-card" }, el("div", { class: "row-title" }, "Stopped early"), el("p", { class: "note" }, d.stopped_reason)) : null,
     d.status === "paused" ? el("div", { class: "card paused-card", id: "paused-card" },
       el("div", { class: "row-title" }, "Paused, not lost"),
       el("p", { class: "note" }, "Claude stopped partway (usage limit reached, or the app closed). Everything it made so far is kept. It continues by itself from where it stopped" + (d.resume_at ? ` at about ${new Date(d.resume_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "") + ", and finished steps are not run again."),
@@ -1748,6 +1749,9 @@ async function viewRunDetail(id) {
           el("div", {},
             el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, cap(s.agent)), runPill(s.status)),
             el("div", { class: "note" }, `est. ${usd(s.estimate_usd, 4)} · cap ${usd(s.cap_usd)} · actual ${usd(s.actual_usd, 4)}`),
+            stepUsage(s) ? el("div", { class: "note" }, stepUsage(s)) : null,
+            s.stop_reason === "turn_limit" ? el("div", { class: "note warn" }, `Stopped at its ${s.turn_limit || ""} turn limit. Files it wrote are kept.`) : s.stop_reason === "budget_cap" ? el("div", { class: "note warn" }, "Stopped at its cap. Files it wrote are kept.") : null,
+            s.error && s.status !== "paused" ? el("div", { class: "log", style: "margin-top:8px;white-space:pre-wrap" }, s.error) : null,
             el("div", { class: "files" }, s.output ? el("button", { class: "link", onclick: () => openText(s.output) }, "Open " + s.output.split("/").pop()) : el("span", { class: "note" }, "Nothing produced yet"),
               s.loaded.length ? el("span", { class: "note" }, `Read ${s.loaded.length} vault file${s.loaded.length === 1 ? "" : "s"}: ` + s.loaded.map((x) => x.split("/").slice(-2).join("/")).slice(0, 6).join(", ") + (s.loaded.length > 6 ? "…" : "")) : null),
             s.result_text ? el("details", { style: "margin-top:8px" }, el("summary", { class: "note", style: "cursor:pointer" }, "What the agent said"), el("div", { class: "log", style: "margin-top:6px" }, s.result_text)) : null,
@@ -1758,6 +1762,18 @@ async function viewRunDetail(id) {
   ));
 }
 
+// Real numbers from the finished run: time, turns, tokens.
+function stepUsage(s) {
+  const u = s.usage || {};
+  const parts = [];
+  if (s.elapsed_ms) { const m = Math.round(s.elapsed_ms / 60000); parts.push(m >= 1 ? `${m} min` : `${Math.max(1, Math.round(s.elapsed_ms / 1000))} s`); }
+  if (s.turns != null) parts.push(`${s.turns}${s.turn_limit ? " of " + s.turn_limit : ""} turns`);
+  const k = (n) => n >= 1000 ? Math.round(n / 1000) + "k" : String(n);
+  const inTok = (u.input_tokens || 0) + (u.cache_read_tokens || 0) + (u.cache_write_tokens || 0);
+  if (inTok) parts.push(`${k(inTok)} tokens read (${k(u.cache_read_tokens || 0)} cached)`);
+  if (u.output_tokens) parts.push(`${k(u.output_tokens)} written`);
+  return parts.join(" · ");
+}
 async function continueNow(id, btn) {
   if (btn) btn.disabled = true;
   try {

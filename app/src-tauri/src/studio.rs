@@ -139,6 +139,20 @@ pub struct Step {
     pub loaded: Vec<String>,
     /// What the agent said at the end of its run (first 1,500 characters).
     pub result_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub elapsed_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turns: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub usage: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// The process finished but the work did not pass its check.
+    pub gate_failed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -155,6 +169,9 @@ pub struct RunDetail {
     pub steps: Vec<Step>,
     /// When paused work continues by itself.
     pub resume_at: Option<String>,
+    /// Why a pipeline stopped early, in plain words.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stopped_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -184,7 +201,22 @@ fn step_for(root: &Path, r: &runs::RunRequest, gate: Option<queue::Gate>, output
         let rel = format!("runs/{}/{}", r.run_id, o);
         root.join(&rel).is_file().then_some(rel)
     });
+    let usage = r.usage.clone();
+    let from_usage = |k: &str| usage.as_ref().and_then(|u| u.get(k)).and_then(|v| v.as_u64());
+    let elapsed_ms = from_usage("duration_ms").or_else(|| {
+        let a = chrono::DateTime::parse_from_rfc3339(r.approved_at.as_deref()?).ok()?;
+        let b = chrono::DateTime::parse_from_rfc3339(r.finished_at.as_deref()?).ok()?;
+        u64::try_from((b - a).num_milliseconds()).ok()
+    });
+    let gate_failed = r.status != "running" && r.status != "approved" && r.status != "paused" && r.status != "cancelled" && gate.as_ref().map(|g| !g.passed).unwrap_or(false);
     Step {
+        turns: from_usage("turns"),
+        turn_limit: r.turn_limit,
+        stop_reason: r.stop_reason.clone(),
+        error: r.error.clone(),
+        elapsed_ms,
+        usage,
+        gate_failed,
         agent: r.agent.clone(),
         run_id: r.run_id.clone(),
         status: r.status.clone(),
@@ -259,6 +291,7 @@ pub fn run_detail(root: &Path, id: &str) -> Result<RunDetail, String> {
             actual_usd: p.actual_cost_usd,
             queue_item: p.queue_item,
             resume_at: p.stages.iter().filter_map(|s| runs::load(root, &s.run_id).ok()).find_map(|r| r.resume_at),
+            stopped_reason: p.stopped_reason,
             steps,
         });
     }
@@ -277,6 +310,7 @@ pub fn run_detail(root: &Path, id: &str) -> Result<RunDetail, String> {
         actual_usd: r.actual_cost_usd,
         queue_item: item.as_ref().map(|i| i.id.clone()),
         resume_at: r.resume_at.clone(),
+        stopped_reason: None,
         steps: vec![step_for(root, &r, item.map(|i| i.gate), output)],
     })
 }
@@ -802,5 +836,30 @@ mod update_keeps_tests {
             assert_eq!(fs::read_to_string(root.join(f)).unwrap(), "mine", "{f}");
         }
         let _ = fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(test)]
+mod step_fields_tests {
+    use super::*;
+
+    #[test]
+    fn a_step_carries_usage_stop_reason_and_a_failed_gate() {
+        let r: runs::RunRequest = serde_json::from_value(serde_json::json!({
+            "run_id": "r1", "agent": "architect", "prompt": "p", "status": "done", "created_at": "2026-01-01T00:00:00Z",
+            "estimate": {"agent":"architect","model":"m","low_usd":0.1,"expected_usd":0.2,"high_usd":0.3,"cap_usd":1.0,
+                "cache_write_tokens":0,"cache_read_tokens":0,"output_tokens":0,"assumptions":[],"pricing_checked":"","subscription_note":""},
+            "stop_reason": "max_turns", "turn_limit": 40,
+            "usage": {"turns": 40, "duration_ms": 61000}, "error": "ran out of turns"
+        })).unwrap();
+        let gate = queue::Gate { passed: false, checks: vec![] };
+        let s = step_for(Path::new("/nonexistent"), &r, Some(gate), None);
+        assert_eq!((s.elapsed_ms, s.turns, s.turn_limit), (Some(61000), Some(40), Some(40)));
+        assert_eq!(s.stop_reason.as_deref(), Some("max_turns"));
+        assert_eq!(s.error.as_deref(), Some("ran out of turns"));
+        assert!(s.gate_failed);
+        let j = serde_json::to_value(&s).unwrap();
+        assert_eq!(j["gate_failed"], true);
+        assert_eq!(j["usage"]["turns"], 40);
     }
 }

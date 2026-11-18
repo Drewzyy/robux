@@ -250,6 +250,7 @@ input.search:focus { outline: none; border-color: #FF3B30; box-shadow: 0 0 0 3px
 details.sources { margin-top: 16px; color: #8E8E93; font-size: 13px; }
 details.sources li { word-break: break-all; }
 .warn-card { border-color: rgba(255, 59, 48, .45); background: rgba(255, 59, 48, .08); margin-bottom: 14px; color: #E5E5EA; }
+.note.warn { color: #FF8A80; margin-top: 6px; }
 
 /* References */
 .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
