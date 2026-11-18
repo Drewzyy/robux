@@ -507,8 +507,15 @@ pub fn on_finish(root: &Path, c: &Change) {
                 let tries = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && changes::launch_failed(x)).count();
                 let wait = changes::backoff_minutes(tries);
                 let detail = c.checks.iter().find(|k| !k.passed).map(|k| k.detail.clone()).unwrap_or_default();
-                post(&mut a, "autopilot", Some(&c.agent), &format!("Could not start Claude for {} ({}). Trying again by itself in {wait} min.", c.agent, detail.chars().take(160).collect::<String>()));
-                if tries == 3 {
+                let kind = changes::env_problem(c).unwrap_or("launch");
+                let what = match kind { "signin" => "Claude is signed out", "network" => "No connection to Claude (the network or Claude's servers)", _ => "Could not start Claude" };
+                post(&mut a, "autopilot", Some(&c.agent), &format!("{what} for {}. Trying again by itself in {wait} min. ({})", c.agent, detail.chars().take(140).collect::<String>()));
+                if kind == "signin" && tries == 1 {
+                    // Only Andrew can sign in; tell him at once. Work picks up by itself after.
+                    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude is signed out", a.title), &["Open BrewixGames, Settings, Claude Code, and sign in. The agents carry on by themselves once you have.".into()]);
+                    post(&mut a, "autopilot", Some("andrew"), "Claude is signed out. Sign in from Settings (Claude Code); the agents carry on by themselves once you have.");
+                }
+                if tries == 3 && kind != "signin" {
                     crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude will not start", a.title), &[detail.chars().take(300).collect(), "BrewixGames keeps retrying every 30 minutes. Check Settings, Claude Code, if this keeps happening.".into()]);
                 }
                 if let Ok(n) = queue(root, &mut a, &mid, &c.agent, &c.text, &key, c.attempt, &c.source, None, &c.kind) {

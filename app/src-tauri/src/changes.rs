@@ -578,14 +578,29 @@ fn cap_first(s: &str) -> String {
     c.next().map(|f| f.to_uppercase().collect::<String>() + c.as_str()).unwrap_or_default()
 }
 
-/// True when the job never really ran because Claude could not be started
-/// (a problem with the app or the computer, not with the agent's work).
+/// When a job failed because of the computer, the network or the Claude
+/// sign-in (not the agent's work): which one. Such jobs are retried by
+/// themselves and never use up the agent's tries.
+pub fn env_problem(c: &Change) -> Option<&'static str> {
+    if c.status != "failed" {
+        return None;
+    }
+    let text = c.checks.iter().filter(|k| !k.passed).map(|k| k.detail.to_lowercase()).chain(c.summary.iter().map(|s| s.to_lowercase())).collect::<Vec<_>>().join(" ");
+    let any = |ws: &[&str]| ws.iter().any(|w| text.contains(w));
+    if any(&["not logged in", "please run /login", "invalid api key", "authentication_error", "oauth token has expired", "token expired", "401 "]) {
+        Some("signin")
+    } else if any(&["could not start", "os error", "claude code was not found", "no such file or directory"]) {
+        Some("launch")
+    } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
+        Some("network")
+    } else {
+        None
+    }
+}
+
+/// True when the job failed for a reason outside the agent's work.
 pub fn launch_failed(c: &Change) -> bool {
-    let t = |s: &str| {
-        let l = s.to_lowercase();
-        l.contains("could not start") || l.contains("os error") || l.contains("claude code was not found") || l.contains("no such file or directory")
-    };
-    c.status == "failed" && (c.checks.iter().any(|k| !k.passed && t(&k.detail)) || c.summary.as_deref().map(t).unwrap_or(false))
+    env_problem(c).is_some()
 }
 
 /// Hold a queued change until `minutes` from now.
@@ -756,5 +771,19 @@ mod tests {
         let (m2, n2) = ingest_requests(&d, &deep.run_id, Some(&deep));
         assert!(m2.is_empty() && n2[0].contains("deep"), "{n2:?}");
         let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn tells_computer_network_and_signin_problems_from_bad_work() {
+        let mut c = Change { id: "x".into(), target: "game:g".into(), item: None, text: "t".into(), agent: "frame".into(), status: "failed".into(), run_id: "r".into(), created_at: "1".into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "task".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None };
+        let with = |c: &mut Change, d: &str| c.checks = vec![crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: d.into() }];
+        with(&mut c, "could not start D:\\claude.exe: The filename or extension is too long. (os error 206)");
+        assert_eq!(env_problem(&c), Some("launch"));
+        with(&mut c, "claude reported an error (exit Some(1)): API Error: Connection error.");
+        assert_eq!(env_problem(&c), Some("network"));
+        with(&mut c, "claude reported an error (exit Some(1)): Invalid API key · Please run /login");
+        assert_eq!(env_problem(&c), Some("signin"));
+        with(&mut c, "first 60 seconds covers 0-5, 5-10, 10-30, 30-60");
+        assert_eq!(env_problem(&c), None, "bad work is the agent's to fix");
     }
 }

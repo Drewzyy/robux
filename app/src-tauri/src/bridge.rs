@@ -370,7 +370,9 @@ pub fn run_approved_with<F: FnMut(&str)>(
         req.error = Some(if final_result.is_none() {
             format!("no result line from claude (exit {:?}). stderr:\n{stderr_tail}", status.code())
         } else {
-            format!("claude reported an error (exit {:?})", status.code())
+            // Keep Claude's own words: they tell a network or sign-in problem
+            // apart from bad work (changes::env_problem).
+            format!("claude reported an error (exit {:?}): {}", status.code(), result_text.chars().take(300).collect::<String>())
         });
     }
     runs::save(root, &req)?;
