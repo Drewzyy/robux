@@ -58,6 +58,7 @@ pub fn template() -> Vec<(&'static str, &'static str, &'static str, Vec<Vec<(&'s
             ],
             vec![("playtest", "Playtest projects/<game> (code walk and headless checks; say what you could not test) and list every problem with a severity.")],
         ]),
+        ("quality", "Up to the top games' standard", "How the game measures against the best Roblox games in its niche, area by area, after the team closed the gaps.", vec![vec![]]),
         ("polish", "Polished and ready to publish", "Fixed problems, phone performance, simulated players, thumbnails and the release checklist. You publish it yourself.", vec![
             vec![
                 ("builder", "Fix every blocker and major problem in the latest playtest report for projects/<game>."),
@@ -84,6 +85,12 @@ pub struct Milestone {
     pub ready_at: Option<String>,
     #[serde(default)]
     pub approved_at: Option<String>,
+    /// Quality milestone: the current benchmark round and each round's
+    /// overall score (0 to 10) against the top games.
+    #[serde(default)]
+    pub round: u32,
+    #[serde(default)]
+    pub history: Vec<f64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -127,7 +134,14 @@ pub fn load(root: &Path, slug: &str) -> Result<Autopilot, String> {
     if !crate::paths::valid_id(slug) {
         return Err("bad game id".into());
     }
-    crate::paths::read_json(&file(root, slug)).ok_or_else(|| format!("no autopilot for {slug}"))
+    let mut a: Autopilot = crate::paths::read_json(&file(root, slug)).ok_or_else(|| format!("no autopilot for {slug}"))?;
+    // Games started on an older version get milestones added since, in order.
+    let tpl = template();
+    if a.milestones.len() != tpl.len() || a.milestones.iter().zip(tpl.iter()).any(|(m, t)| m.id != t.0) {
+        let old = std::mem::take(&mut a.milestones);
+        a.milestones = tpl.iter().map(|(id, t, _, _)| old.iter().find(|m| m.id == *id).cloned().unwrap_or(Milestone { id: id.to_string(), title: t.to_string(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![] })).collect();
+    }
+    Ok(a)
 }
 
 fn save(root: &Path, a: &Autopilot) -> Result<(), String> {
@@ -174,6 +188,11 @@ pub fn estimate(root: &Path, idea: &str) -> Result<Value, String> {
             let prof = agents.agents.get(agent).ok_or_else(|| format!("agent {agent} is missing"))?;
             m += crate::cost::estimate(agent, prof, &format!("{job}\n{idea}"), &pricing)?.cap_usd;
         }
+        if id == "quality" {
+            // No fixed jobs: assume three rounds of a benchmark and four fixes.
+            let cap = |agent: &str, job: &str| -> f64 { agents.agents.get(agent).and_then(|p| crate::cost::estimate(agent, p, job, &pricing).ok()).map(|e| e.cap_usd).unwrap_or(0.0) };
+            m += 3.0 * (cap("director", BENCH_JOB) + 4.0 * cap("builder", "Close one gap to the top games in projects/<game>."));
+        }
         let m = if free { 0.0 } else { m };
         total += m;
         per.push(json!({ "id": id, "title": title, "cap_usd": m }));
@@ -202,7 +221,7 @@ pub fn start(root: &Path, title: &str, idea: &str, budget_usd: f64, slug: Option
         status: "running".into(),
         why: None,
         plan_run: None,
-        milestones: template().into_iter().map(|(id, t, _, _)| Milestone { id: id.into(), title: t.into(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None }).collect(),
+        milestones: template().into_iter().map(|(id, t, _, _)| Milestone { id: id.into(), title: t.into(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![] }).collect(),
         board: vec![Msg { at: crate::now_rfc3339(), from: "andrew".into(), to: None, text: format!("Approved the idea: {}", title.trim()) }],
         notes: vec![],
         created_at: crate::now_rfc3339(),
@@ -362,6 +381,11 @@ pub fn advance(root: &Path, slug: &str) {
             a.milestones[i].status = "working".into();
             a.milestones[i].wave = 0;
             post(&mut a, "autopilot", None, &format!("Starting: {title}."));
+            if *mid == "quality" {
+                a.milestones[i].round = 1;
+                quality_step(root, &mut a, i, &all);
+                continue;
+            }
             for (k, (agent, job)) in waves[0].iter().enumerate() {
                 let key = format!("{mid}/0/{k}");
                 let job = format!("{job}{}", if *mid == "plan" { format!("\n\nThe idea: {}\nUse the slug \"{}\" in plan.json.", a.idea, a.slug) } else { String::new() });
@@ -370,6 +394,10 @@ pub fn advance(root: &Path, slug: &str) {
                     return;
                 }
             }
+            continue;
+        }
+        if *mid == "quality" && st == "working" {
+            quality_step(root, &mut a, i, &all);
             continue;
         }
         if st == "working" {
@@ -453,6 +481,138 @@ pub fn advance(root: &Path, slug: &str) {
     let _ = save(root, &a);
 }
 
+/// The bar a game must reach against the best games in its niche.
+pub const QUALITY_OVERALL: f64 = 8.5;
+pub const QUALITY_MIN_AREA: f64 = 7.0;
+/// Game Score needed, as a share of the points reachable without a Second
+/// Opinion engine (which Andrew may not have set up).
+pub const QUALITY_SCORE: f64 = 0.88;
+const QUALITY_AGENTS: [&str; 10] = ["builder", "frame", "motion", "scenic", "modeler", "librarian", "merchant", "tuner", "crowd", "splash"];
+
+const BENCH_JOB: &str = "Benchmark projects/<game> against the 3 best Roblox games in its niche. Find them in 16-Market-Research (visual-refs-*, teardown-*, reviews-* notes; their pictures are in attachments/game-refs/<id>/). Read the game's code and UI, and the latest playtest and simulation in the earlier work. Score each area 0 to 10 against those games (10 = as good as the best of them): first-60-seconds, core-loop, progression, ui-polish, visuals, game-feel, retention, monetization-fairness, phone-performance, content. Be strict: a rough game is 3 to 5; 8.5 or more means it would hold its own next to them. Write benchmark.md, and benchmark.json exactly: {\"compared_to\": [\"<game>\", ...], \"areas\": {\"first-60-seconds\": n, ...}, \"overall\": n, \"gaps\": [{\"area\": \"...\", \"fix\": \"<one specific change>\", \"agent\": \"<builder|frame|motion|scenic|modeler|librarian|merchant|tuner|crowd|splash>\"}]} with the biggest gaps first (up to 6). Do not start other agents; the app assigns the fixes.";
+
+/// Read a benchmark: overall, the lowest area, and the gaps.
+pub fn read_benchmark(dir: &Path) -> Option<(f64, f64, Vec<(String, String, String)>, Vec<String>)> {
+    let v: Value = serde_json::from_str(&fs::read_to_string(dir.join("benchmark.json")).ok()?).ok()?;
+    let areas: Vec<f64> = v["areas"].as_object()?.values().filter_map(|x| x.as_f64()).collect();
+    if areas.len() < 5 {
+        return None;
+    }
+    let overall = v["overall"].as_f64().unwrap_or(areas.iter().sum::<f64>() / areas.len() as f64);
+    let lowest = areas.iter().cloned().fold(10.0, f64::min);
+    let gaps = v["gaps"].as_array().into_iter().flatten().filter_map(|g| Some((g["area"].as_str().unwrap_or("").to_string(), g["fix"].as_str()?.to_string(), g["agent"].as_str().unwrap_or("builder").to_string()))).take(6).collect();
+    let vs = v["compared_to"].as_array().into_iter().flatten().filter_map(|x| x.as_str().map(String::from)).collect();
+    Some((overall, lowest, gaps, vs))
+}
+
+/// Whether a benchmark round reaches the top-games bar.
+pub fn quality_pass(overall: f64, lowest: f64, score_share: f64) -> bool {
+    overall >= QUALITY_OVERALL && lowest >= QUALITY_MIN_AREA && score_share >= QUALITY_SCORE
+}
+
+/// The game's own score as a share of what it can reach (0 to 1).
+fn score_share(root: &Path, slug: &str) -> Option<f64> {
+    let v = crate::score::score(root, slug).ok()?;
+    let mut total = v["score"].as_f64()?;
+    let mut max = 100.0;
+    for p in v["parts"].as_array().into_iter().flatten() {
+        if p["name"] == "Second Opinion" && p["got"].as_f64() == Some(0.0) {
+            max -= p["max"].as_f64().unwrap_or(0.0);
+            total -= 0.0;
+        }
+    }
+    Some(total / max)
+}
+
+/// One step of the quality loop: benchmark against the top games, close the
+/// biggest gaps, benchmark again, until the game reaches the bar. It never
+/// stops on its own; only the game's budget (or Andrew's pause) does.
+fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
+    let r = a.milestones[i].round.max(1);
+    a.milestones[i].round = r;
+    let lat = latest(all, "quality");
+    let get = |k: &str| lat.iter().find(|c| c.key.as_deref() == Some(k)).cloned();
+    let open = |c: &Change| ["queued", "working", "paused"].contains(&c.status.as_str());
+    // Notes from Andrew in this milestone come first.
+    if lat.iter().any(|c| c.key.as_deref().map(|k| k.contains("/note/")).unwrap_or(false) && open(c)) {
+        return;
+    }
+    // Rethink (after scores stopped improving) must finish before benchmarking.
+    if let Some(t) = get(&format!("quality/{r}/rethink")) {
+        if t.status != "done" {
+            return;
+        }
+    }
+    let bench_key = format!("quality/{r}/bench");
+    let Some(bench) = get(&bench_key) else {
+        let _ = queue(root, a, "quality", "director", BENCH_JOB, &bench_key, 0, "autopilot", None, "change");
+        return;
+    };
+    if bench.status != "done" {
+        return; // running, or being retried by on_finish
+    }
+    let dir = root.join("runs").join(&bench.run_id);
+    let Some((overall, lowest, gaps, vs)) = read_benchmark(&dir) else {
+        // Done but no readable benchmark.json: do it again.
+        let _ = queue(root, a, "quality", "director", BENCH_JOB, &bench_key, bench.attempt + 1, "autopilot", Some("benchmark.json was missing or not in the required shape (at least 5 areas scored 0 to 10, overall, gaps). Write it exactly as described."), "change");
+        return;
+    };
+    let fix_keys: Vec<String> = lat.iter().filter_map(|c| c.key.clone()).filter(|k| k.starts_with(&format!("quality/{r}/fix/"))).collect();
+    if fix_keys.is_empty() {
+        if a.milestones[i].history.len() < r as usize {
+            a.milestones[i].history.push(overall);
+        }
+        let share = score_share(root, &a.slug).unwrap_or(0.0);
+        let pass = quality_pass(overall, lowest, share);
+        let line = format!("Round {r} against {}: overall {overall:.1}/10, lowest area {lowest:.1}, Game Score {:.0}% of reachable.", if vs.is_empty() { "the top games".into() } else { vs.join(", ") }, share * 100.0);
+        if pass {
+            post(a, "director", Some("andrew"), &format!("{line} The game reaches the bar ({QUALITY_OVERALL}+ overall, every area {QUALITY_MIN_AREA}+)."));
+            a.milestones[i].status = "review".into();
+            a.milestones[i].ready_at = Some(crate::now_rfc3339());
+            post(a, "autopilot", Some("andrew"), "Ready for your review: Up to the top games' standard.");
+            crate::notify::send_quiet(crate::notify::Kind::NeedsApproval, &format!("{}: it measures up to the top games", a.title), &[line]);
+            return;
+        }
+        post(a, "director", None, &format!("{line} Not there yet; fixing the biggest gaps."));
+        let mut queued = 0;
+        let mut list = gaps.clone();
+        if list.is_empty() {
+            list.push(("weakest areas".into(), format!("Raise the weakest areas in benchmark.md (runs/{}) toward the top games.", bench.run_id), "builder".into()));
+        }
+        if share < QUALITY_SCORE {
+            list.push(("game score".into(), "Work through the Game Score's keep-working list in projects/<game>/docs/score.json (the parts other than Second Opinion).".into(), "builder".into()));
+        }
+        for (k, (area, fix, agent)) in list.into_iter().enumerate() {
+            let agent = if QUALITY_AGENTS.contains(&agent.as_str()) { agent } else { "builder".into() };
+            let job = format!("Close this gap to the top games ({area}): {fix} The full benchmark is runs/{}/benchmark.md. Make the change in projects/<game>; the game must still build.", bench.run_id);
+            if queue(root, a, "quality", &agent, &job, &format!("quality/{r}/fix/{k}"), 0, "autopilot", None, "change").is_ok() {
+                queued += 1;
+            } else {
+                return; // budget: the game waits for Andrew
+            }
+        }
+        let _ = queued;
+        return;
+    }
+    // Fixes of this round: wait until every one is done (failures are
+    // retried and rescued by on_finish).
+    if !fix_keys.iter().all(|k| get(k).map(|c| c.status == "done").unwrap_or(false)) {
+        return;
+    }
+    // Next round. If the score stopped climbing for two rounds, Lead
+    // rethinks the approach first.
+    let h = a.milestones[i].history.clone();
+    let stalled = h.len() >= 3 && h[h.len() - 1] <= h[h.len() - 3] + 0.2;
+    a.milestones[i].round = r + 1;
+    if stalled {
+        let job = format!("Rethink: the game's benchmark against the top games stopped improving ({}). Read the last benchmarks (runs/{} and earlier) and the fixes made, find why the gaps are not closing, and decide bigger changes: what to rebuild, cut or add. Write the plan in change.md and start the agents that should do it with requests.json.", h.iter().map(|x| format!("{x:.1}")).collect::<Vec<_>>().join(" → "), bench.run_id);
+        post(a, "autopilot", Some("lead"), "The score stopped climbing; Lead is rethinking the approach before the next round.");
+        let _ = queue(root, a, "quality", "lead", &job, &format!("quality/{}/rethink", r + 1), 0, "autopilot", None, "change");
+    } else {
+        let _ = queue(root, a, "quality", "director", BENCH_JOB, &format!("quality/{}/bench", r + 1), 0, "autopilot", None, "change");
+    }
+}
+
 /// After a job ends: retry it with feedback if it failed, start or stop
 /// agents it asked for, then move the game forward.
 pub fn on_finish(root: &Path, c: &Change) {
@@ -510,7 +670,8 @@ pub fn on_finish(root: &Path, c: &Change) {
                 let kind = changes::env_problem(c).unwrap_or("launch");
                 let what = match kind { "signin" => "Claude is signed out", "network" => "No connection to Claude (the network or Claude's servers)", _ => "Could not start Claude" };
                 post(&mut a, "autopilot", Some(&c.agent), &format!("{what} for {}. Trying again by itself in {wait} min. ({})", c.agent, detail.chars().take(140).collect::<String>()));
-                if kind == "signin" && tries == 1 {
+                let signouts = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && changes::env_problem(x) == Some("signin")).count();
+                if kind == "signin" && signouts == 1 {
                     // Only Andrew can sign in; tell him at once. Work picks up by itself after.
                     crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude is signed out", a.title), &["Open BrewixGames, Settings, Claude Code, and sign in. The agents carry on by themselves once you have.".into()]);
                     post(&mut a, "autopilot", Some("andrew"), "Claude is signed out. Sign in from Settings (Claude Code); the agents carry on by themselves once you have.");
@@ -603,7 +764,11 @@ pub fn note(root: &Path, slug: &str, text: &str, agent: Option<&str>, milestone:
     // The milestone being worked on (or the last one), revising if in review.
     let i = milestone.and_then(|m| a.milestones.iter().position(|x| x.id == m)).or_else(|| a.milestones.iter().position(|m| m.status == "working" || m.status == "revising")).or_else(|| a.milestones.iter().rposition(|m| m.status == "review" || m.status == "approved")).unwrap_or(0);
     let mid = a.milestones[i].id.clone();
-    if a.milestones[i].status == "review" || a.milestones[i].status == "approved" {
+    if a.milestones[i].id == "quality" && ["review", "approved"].contains(&a.milestones[i].status.as_str()) {
+        // Notes on the quality milestone: make the change, then measure again.
+        a.milestones[i].status = "working".into();
+        a.milestones[i].round += 1;
+    } else if a.milestones[i].status == "review" || a.milestones[i].status == "approved" {
         a.milestones[i].status = "revising".into();
     }
     let was = a.status.clone();
@@ -889,6 +1054,80 @@ mod tests {
         assert!(fp.contains("Lead looked into why") && fp.contains("Add one listing the notes read"), "{fp}");
         let v = view(&root, &a.slug).unwrap();
         assert_eq!(v["milestones"][0]["jobs"].as_array().unwrap().iter().filter(|j| j["agent"] == "planner").next().unwrap()["status"], "queued", "the screen shows the fresh start, not the old failure");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    fn bench(root: &Path, c: &Change, overall: f64, areas: f64) {
+        let d = root.join("runs").join(&c.run_id);
+        fs::create_dir_all(&d).unwrap();
+        let a: serde_json::Map<String, Value> = ["first-60-seconds", "core-loop", "progression", "ui-polish", "visuals", "game-feel"].iter().map(|k| (k.to_string(), json!(areas))).collect();
+        fs::write(d.join("benchmark.json"), json!({"compared_to": ["Pet Simulator 99", "Adopt Me!"], "areas": a, "overall": overall,
+            "gaps": [{"area": "game-feel", "fix": "Add a squash and sparkle when a pet is caught", "agent": "motion"}, {"area": "ui-polish", "fix": "Bigger, outlined shop buttons", "agent": "frame"}, {"area": "x", "fix": "y", "agent": "wizard"}]}).to_string()).unwrap();
+    }
+
+    #[test]
+    fn quality_loop_benchmarks_fixes_and_never_stops_until_the_bar() {
+        assert!(quality_pass(8.6, 7.2, 0.9));
+        assert!(!quality_pass(9.5, 6.0, 1.0), "every area must reach the bar");
+        assert!(!quality_pass(8.6, 7.2, 0.5), "the Game Score must agree");
+        let root = studio();
+        let a = start(&root, "Quality Game", "Catch pets.", 500.0, None).unwrap();
+        // Jump to the quality milestone.
+        {
+            let mut g = load(&root, &a.slug).unwrap();
+            changes::cancel_queued(&root, |_| true);
+            for m in g.milestones.iter_mut() {
+                m.status = if m.id == "quality" { "waiting".into() } else if m.id == "polish" { "waiting".into() } else { "approved".into() };
+            }
+            save(&root, &g).unwrap();
+        }
+        advance(&root, &a.slug);
+        let b1 = queued(&root, &a.slug);
+        assert_eq!((b1.len(), b1[0].agent.as_str(), b1[0].key.as_deref()), (1, "director", Some("quality/1/bench")));
+        assert!(crate::runs::load(&root, &b1[0].run_id).unwrap().prompt.contains("3 best Roblox games in its niche"));
+        // Round 1: far from the bar: the gaps become fixes for the right agents.
+        bench(&root, &b1[0], 5.0, 5.0);
+        finish_as(&root, &b1[0], "done", "");
+        let fixes = queued(&root, &a.slug);
+        let agents: Vec<&str> = fixes.iter().map(|c| c.agent.as_str()).collect();
+        assert!(agents.contains(&"motion") && agents.contains(&"frame") && agents.contains(&"builder"), "{agents:?}");
+        assert!(fixes.iter().all(|c| c.key.as_deref().unwrap().starts_with("quality/1/fix/")));
+        assert!(load(&root, &a.slug).unwrap().board.iter().any(|m| m.text.contains("Round 1") && m.text.contains("5.0/10")));
+        // Fixes done: round 2 benchmark. Three flat rounds: Lead rethinks first.
+        let mut round_bench = None;
+        for r in 1..=3 {
+            for f in queued(&root, &a.slug).into_iter().filter(|c| c.key.as_deref().map(|k| k.contains("/fix/")).unwrap_or(false)) {
+                finish_as(&root, &f, "done", "");
+            }
+            let q = queued(&root, &a.slug);
+            if r < 3 {
+                let b = q.iter().find(|c| c.key.as_deref() == Some(&format!("quality/{}/bench", r + 1))).cloned().expect("next round's benchmark");
+                bench(&root, &b, 5.0, 5.0);
+                finish_as(&root, &b, "done", "");
+                round_bench = Some(b);
+            } else {
+                assert!(q.iter().any(|c| c.agent == "lead" && c.key.as_deref() == Some("quality/4/rethink")), "{:?}", q.iter().map(|c| c.key.clone()).collect::<Vec<_>>());
+                assert!(!q.iter().any(|c| c.key.as_deref() == Some("quality/4/bench")), "rethink comes first");
+            }
+        }
+        assert!(round_bench.is_some());
+        let m = load(&root, &a.slug).unwrap().milestones.into_iter().find(|m| m.id == "quality").unwrap();
+        assert_eq!(m.status, "working", "below the bar it never goes to review");
+        assert_eq!(m.history, vec![5.0, 5.0, 5.0]);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn older_games_get_the_new_milestone_in_order() {
+        let root = studio();
+        let a = start(&root, "Old Game", "x", 500.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones.retain(|m| m.id != "quality");
+        g.milestones[0].status = "approved".into();
+        save(&root, &g).unwrap();
+        let back = load(&root, &a.slug).unwrap();
+        assert_eq!(back.milestones.iter().map(|m| m.id.as_str()).collect::<Vec<_>>(), vec!["plan", "design", "ui", "world", "build", "quality", "polish"]);
+        assert_eq!(back.milestones[0].status, "approved", "statuses kept");
         let _ = fs::remove_dir_all(&root);
     }
 

@@ -395,6 +395,10 @@ fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, 
         if let Some(c) = &done {
             if c.autopilot.is_some() {
                 studio_core::autopilot::on_finish(&r, c);
+            } else if studio_core::changes::launch_failed(c) {
+                // Not the agent's fault (Claude could not start, no
+                // connection, signed out): queue it again to wait it out.
+                studio_core::changes::retry_launch(&r, c);
             } else {
                 handoff(&app, &r, &c.run_id, Some(c));
             }
