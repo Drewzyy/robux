@@ -32,3 +32,4 @@ Load only the note your task needs. Do not read every note in this section.
 | [[01-Roblox-Fundamentals/publishing-steps]] | Publishing a Roblox game: first publish, place settings, early testers, release, audience and access, private servers, fees and refund thresholds, with limits like 5 new releases per day. | draft |
 | [[01-Roblox-Fundamentals/roblox-premium-payouts]] | How Roblox pays creators for Premium and Plus subscribers and engagement: Creator Rewards (5 Robux daily, 35% audience expansion), Plus earnings, deprecated Premium payouts, safe design. | draft |
 | [[01-Roblox-Fundamentals/team-create-and-collaboration]] | Working in a team on a Roblox game: Team Create sessions, edit access and groups, early testers, Team Test, MCP permissions per person, plus workflow rules for AI agents and humans. | draft |
+| [[01-Roblox-Fundamentals/studio-ui-and-shortcuts]] | Studio's panels, tabs, building tools and every shortcut, from 6 popular tutorials. | draft |

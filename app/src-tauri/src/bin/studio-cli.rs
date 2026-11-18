@@ -41,6 +41,12 @@ fn real_main(args: &[String]) -> Result<(), String> {
             println!("agents: {}", cost::load_agents(&root)?.agents.keys().cloned().collect::<Vec<_>>().join(", "));
             Ok(())
         }
+        ["watch", url] => {
+            // Agents watch a video: captions and frames into runs/videos/<id>/.
+            let v = studio_core::video::watch(&root, url, &mut |l| eprintln!("{l}"))?;
+            println!("Watched \"{}\": {} frames, {} words of transcript. Read {} first, then the frames it lists.{}", v["title"].as_str().unwrap_or(""), v["frames"], v["transcript_words"], v["watch"].as_str().unwrap_or(""), v["note"].as_str().map(|n| if n.is_empty() { String::new() } else { format!(" {n}") }).unwrap_or_default());
+            Ok(())
+        }
         ["refs-download", ids @ ..] => {
             // Download game reference pictures (all games when no ids are given).
             let ids: Vec<String> = ids.iter().map(|s| s.to_string()).collect();

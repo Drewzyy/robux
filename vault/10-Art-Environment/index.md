@@ -33,3 +33,5 @@ Load only the note your task needs. Do not read every note in this section.
 | [[10-Art-Environment/youtube-packaging-lessons]] | What top YouTubers do with titles, thumbnails, the first 30 seconds and retention, translated into Roblox icons, thumbnails and the first 60 seconds of play. | draft |
 | [[10-Art-Environment/map-themes-and-biomes]] | Choosing and building map themes and biomes in Roblox: palette per biome, silhouette landmarks, material choices, transitions, lighting per zone, and a budget-friendly way to make 5 distinct zones. | draft |
 | [[10-Art-Environment/npc-and-character-design]] | Designing NPCs, pets and mascots for Roblox: silhouette, color roles, face and expression, voice lines, idle behavior, readability at small size, and an original-character checklist. | draft |
+| [[10-Art-Environment/map-building-from-tutorials]] | How builders make maps: blockout, spawn and POIs, paths, borders, styles, terrain. | draft |
+| [[10-Art-Environment/lighting-recipes-from-tutorials]] | LightingStyle, what each property does, the exact cartoon preset, more recipes. | draft |

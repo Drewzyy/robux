@@ -2,7 +2,7 @@
 description: Publishing a Roblox game: first publish, place settings, early testers, release, audience and access, private servers, fees and refund thresholds, with limits like 5 new releases per day.
 type: playbook
 status: draft
-last_checked: 2026-11-15
+last_checked: 2026-11-18
 keywords: publish, release, place, start place, early testers, audience, access settings, private servers, universe id, genre, publishing fee, expedited review, exclude from recommendations, playtest
 sources: creator-docs content/en-us/production/publishing/publish-games-and-places.md (read 2026-11-15); creator-docs content/en-us/production/publishing/kids-and-select.md (read 2026-11-15); creator-docs content/en-us/production/monetization/private-servers.md (read 2026-11-15); creator-docs content/en-us/discovery.md (read 2026-11-15)
 verify: Steps, limits and fee numbers read in the docs on 2026-11-15. Menu names can change with Studio updates. Group permission details live on a docs page not present in the clone: UNVERIFIED.
@@ -55,6 +55,16 @@ From a Studio file to a public game. Companion checklists: [[01-Roblox-Fundament
 - Publish updates from Studio with File > Publish to Roblox, then restart servers if the change must reach live players at once. Without a restart, old servers keep the old version until they close.
 - Before any update that touches content, check whether a questionnaire answer changed and resubmit.
 - After release, watch Analytics > Monitoring > Performance and Error Report for the new place version ([[14-QA-Optimization/performance-budgets]]).
+
+## In practice (from 4 publishing tutorials, 2026-11-18)
+- First save creates the game: File > Save to Roblox (or Publish to Roblox As > Create new experience). Fill name, description (searchable), creator, genre, devices. Studio then reloads the place.
+- Game Settings only show their full list (permissions, monetization, security) after that first save.
+- Make it public in Studio (Game Settings > Permissions > Public) or on the web (create.roblox.com > Creations > the game > Configure > Settings > Privacy > Public > Save changes).
+- If Public is refused ("not yet eligible for public access") or Save is greyed out: Learn more > Manage and meet a prerequisite (ID verification, or the eligibility request). Finish the maturity questionnaire too; the game stays unplayable until it has a rating.
+- Save is not Publish: players only see changes after File > Publish to Roblox ("changes published" bottom left).
+- If View on Roblox says unavailable right after going public: open it in Studio, Publish to Roblox again, refresh.
+- Share: Studio's Share button > Copy link (works once the game is public).
+Sources: Gauging Gadgets EeIs6yycGwM, GuideRealm 1YmMSdi7Aso, Upskill-Education 7vBzNdo-Zcw, ZacFix sj5hazmwBuA ([[18-Source-Library/video-tutorials-watched]]).
 
 ## For our Roblox games
 Copy the principle: publish privately, test with invited friends, rate honestly, then release to 16+ and earn the all-ages evaluation organically. Keep one reusable publish checklist.

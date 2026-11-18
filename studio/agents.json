@@ -54,7 +54,8 @@
         "Write",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -79,7 +80,8 @@
         "Write",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -132,7 +134,8 @@
         "Bash(graphify explain:*)",
         "Bash(graphify path:*)",
         "Bash(graphify affected:*)",
-        "Bash(graphify god-nodes:*)"
+        "Bash(graphify god-nodes:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -164,7 +167,8 @@
         "Edit",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -195,7 +199,8 @@
         "Bash(brewix gate stage:*)",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -225,7 +230,8 @@
         "Edit",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -297,7 +303,8 @@
         "WebFetch",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -420,7 +427,8 @@
         "Bash(graphify explain:*)",
         "Bash(graphify path:*)",
         "Bash(graphify affected:*)",
-        "Bash(graphify god-nodes:*)"
+        "Bash(graphify god-nodes:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [],
       "output": null,
@@ -478,7 +486,8 @@
         "Bash(graphify explain:*)",
         "Bash(graphify path:*)",
         "Bash(graphify affected:*)",
-        "Bash(graphify god-nodes:*)"
+        "Bash(graphify god-nodes:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -583,7 +592,8 @@
         "Write",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -644,7 +654,8 @@
         "Bash(brewix search:*)",
         "Bash(ls:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",
@@ -672,7 +683,8 @@
         "Write",
         "Bash(brewix search:*)",
         "Bash(brewix map:*)",
-        "Bash(brewix node:*)"
+        "Bash(brewix node:*)",
+        "Bash(brewix watch:*)"
       ],
       "allowed_sections": [
         "00-Start-Here",

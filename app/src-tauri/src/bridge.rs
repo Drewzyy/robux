@@ -192,6 +192,10 @@ pub fn run_approved_with<F: FnMut(&str)>(
 
     let vault = root.join("vault");
     let mut add_dirs = vec![root.join("projects"), dir.clone()];
+    // Videos watched with `brewix watch` (transcripts and frames).
+    let videos = crate::video::dir(root);
+    let _ = fs::create_dir_all(&videos);
+    add_dirs.push(videos);
     if req.chat.is_some() {
         let f = crate::chat::files_dir(root);
         let _ = fs::create_dir_all(&f);

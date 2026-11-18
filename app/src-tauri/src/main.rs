@@ -554,6 +554,15 @@ async fn paused_work() -> Result<Value, String> {
 
 // ---------- Ask Claude (chat) ----------
 
+/// Watch a video link (captions and frames) for Andrew or an agent.
+#[tauri::command]
+async fn video_watch(app: AppHandle, url: String) -> Result<Value, String> {
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio_core::video::watch(&r, &url, &mut |l| { let _ = app.emit("video-line", json!({ "line": l })); }))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 async fn chat_attach(name: String, data: String) -> Result<String, String> {
     chat::attach(&root()?, &name, &data)
@@ -591,7 +600,20 @@ async fn chat_send(app: AppHandle, text: String, project: Option<String>, attach
     let r = root()?;
     let bin = paths::claude_bin()?;
     let atts = attachments.unwrap_or_default();
-    let full = chat::with_context(&r, &text, project.as_deref(), &atts);
+    // Video links are watched first (captions and frames), so Claude can
+    // actually see and hear them instead of guessing from the title.
+    let mut text_full = text.clone();
+    for url in studio_core::video::links_in(&text).into_iter().take(3) {
+        let _ = app.emit("chat-line", json!({ "run_id": "", "line": json!({ "type": "assistant", "message": { "content": [{ "type": "text", "text": format!("Watching {url}…") }] } }).to_string() }));
+        let r2 = r.clone();
+        let u2 = url.clone();
+        match tauri::async_runtime::spawn_blocking(move || studio_core::video::watch(&r2, &u2, &mut |_| {})).await {
+            Ok(Ok(v)) => text_full.push_str(&format!("\n\n[The video {url} was watched for you: \"{}\". Read {} first (transcript with times), then open the frames it lists with Read; they are moments of the video in order.]", v["title"].as_str().unwrap_or(""), v["watch"].as_str().unwrap_or(""))),
+            Ok(Err(e)) => text_full.push_str(&format!("\n\n[The video {url} could not be watched: {e}]")),
+            Err(_) => {}
+        }
+    }
+    let full = chat::with_context(&r, &text_full, project.as_deref(), &atts);
     let run_id = chat::begin_with(&r, &text, &full, &atts)?;
     spawn_chat(app, r, bin, run_id.clone());
     Ok(run_id)
@@ -1125,6 +1147,7 @@ fn main() {
             models_list,
             chat_model_set,
             chat_attach,
+            video_watch,
             chat_file,
             reviews_list,
             review_start,

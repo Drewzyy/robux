@@ -15,3 +15,4 @@ Load only the note your task needs. Do not read every note in this section.
 | Note | What it holds | Status |
 |---|---|---|
 - [[18-Source-Library/sources]]: every source, with the date checked.
+| [[18-Source-Library/video-tutorials-watched]] | The 25 tutorials watched and how agents watch more with brewix watch. | draft |

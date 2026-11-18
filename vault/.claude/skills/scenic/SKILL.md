@@ -57,3 +57,5 @@ Use `17-Development-Templates/example-gallery-maps` for layout and its lighting-
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
 
 For world layout and mood, read the World lines in `16-Market-Research/visual-refs-*` for 2 or 3 similar games and open their pictures in `attachments/game-refs/<id>/` with Read. Borrow rules, never art.
+
+For map layout, terrain and lighting, read `10-Art-Environment/map-building-from-tutorials` and `10-Art-Environment/lighting-recipes-from-tutorials` (what popular Roblox builders do, checked against the docs). To learn a technique from a video, run `brewix watch <link>` and read the watch.md it saves.

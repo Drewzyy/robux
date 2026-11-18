@@ -12,7 +12,7 @@ tags: [art-environment, playbook]
 
 ## Do this
 - Put values in a Rojo module (`src/shared/Configs/Lighting.luau`) applied at start. Tune in Studio, copy values back.
-- Future lighting looks best but costs the most; keep local lights with shadows to a handful. Test on a phone.
+- Set Lighting.LightingStyle: Soft for stylised and phone-first games, Realistic for detailed scenes (Technology, with Future and ShadowMap, is deprecated). Keep shadowed local lights to a handful and test on a phone. Exact recipes: [[10-Art-Environment/lighting-recipes-from-tutorials]].
 - Bloom: keep Intensity low (about 0.3 to 0.6) and Threshold around 1.5 to 2.5, or bright parts wash out. Bloom Size also changes how Neon glows.
 - ColorCorrection: small values only (Contrast and Saturation 0.05 to 0.2). Big contrast makes dark scenes unreadable.
 - Hazards and the next goal must stay readable in every preset.

@@ -21,6 +21,7 @@ pub mod textures;
 pub mod refs;
 pub mod changes;
 pub mod autopilot;
+pub mod video;
 pub mod plan;
 pub mod graph;
 pub mod review;

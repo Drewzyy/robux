@@ -62,3 +62,5 @@ Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read 
 For the style-kit, ui and characters sections, pick 2 or 3 reference games from `16-Market-Research/visual-refs-*`, open their pictures in `attachments/game-refs/<id>/` with Read, and name in the plan exactly which rule each one lends (never their art, names or characters).
 
 You may call in other agents for parts of the plan (for example Frame for a mockup, Scenic for the map, Modeler for character shapes) by writing `requests.json` in your run folder, as your run context explains; they get your run folder to read. Never start the build (Builder) before Andrew approves the plan.
+
+For the world and map sections, use the layout rules in `10-Art-Environment/map-building-from-tutorials` (spawn and POI placement, paths, borders).
