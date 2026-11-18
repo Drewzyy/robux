@@ -94,6 +94,11 @@ pub struct Settings {
     /// US dollars per Earned Robux for the Money page (DevEx standard rate).
     #[serde(default = "default_rate")]
     pub devex_rate: f64,
+    /// Set when Claude's usage ran out and Andrew pressed Continue on Local
+    /// Model: the engine went to "ollama" and goes back to "claude" at this
+    /// time (RFC 3339, when the limit resets). None: no automatic switch.
+    #[serde(default)]
+    pub local_until: Option<String>,
 }
 fn default_rate() -> f64 {
     crate::earnings::STANDARD_RATE
@@ -133,6 +138,7 @@ impl Default for Settings {
             claude_path: String::new(),
             tools_dir: String::new(),
             app_dirs: Default::default(),
+            local_until: None,
             devex_rate: default_rate(),
         }
     }

@@ -222,6 +222,83 @@ pub fn pull(model: &str, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
     Ok(())
 }
 
+/// Where a failing local run went wrong, written to diagnostics.json in
+/// the run folder: Ollama's state, a direct test of its Anthropic endpoint
+/// with the same model, and which component produced the failure text
+/// (Claude Code's stderr, the endpoint's error reply, or the model's own
+/// words). Returns one plain sentence with what to do.
+pub fn diagnose(run_dir: &std::path::Path, model: &str, stderr: &str, result_text: &str, result: Option<&serde_json::Value>) -> String {
+    let st = status();
+    let installed = st.installed.iter().any(|i| i == model || *i == format!("{model}:latest"));
+    // The model's own replies, from the run's stream.
+    let mut said: Vec<String> = vec![];
+    if let Ok(t) = std::fs::read_to_string(run_dir.join("stream.jsonl")) {
+        for line in t.lines() {
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+            if v["type"] == "assistant" {
+                for c in v["message"]["content"].as_array().into_iter().flatten() {
+                    if let Some(x) = c["text"].as_str() {
+                        said.push(x.to_string());
+                    }
+                }
+            }
+        }
+    }
+    let api_error = result.map(|r| r["is_error"] == true).unwrap_or(false) && result_text.starts_with("API Error");
+    // A direct request to the endpoint, so a failure can be pinned on
+    // Ollama itself or cleared.
+    let probe = if st.running && installed {
+        match ureq::post(&format!("{}/v1/messages", base()))
+            .timeout(std::time::Duration::from_secs(180))
+            .send_json(serde_json::json!({ "model": model, "max_tokens": 16, "messages": [{ "role": "user", "content": "Reply with OK." }] }))
+        {
+            Ok(r) => serde_json::json!({ "ok": true, "status": r.status(), "body": r.into_string().unwrap_or_default().chars().take(400).collect::<String>() }),
+            Err(ureq::Error::Status(code, r)) => serde_json::json!({ "ok": false, "status": code, "body": r.into_string().unwrap_or_default().chars().take(400).collect::<String>() }),
+            Err(e) => serde_json::json!({ "ok": false, "error": e.to_string() }),
+        }
+    } else {
+        serde_json::Value::Null
+    };
+    let find = |t: &str| {
+        let l = t.to_lowercase();
+        ["jobid", "job_id", "job id"].iter().any(|k| l.contains(k))
+    };
+    let job_in = if find(stderr) { Some("Claude Code (its own error output)") } else if api_error && find(result_text) { Some("Ollama (the endpoint's error reply)") } else if said.iter().any(|s| find(s)) || find(result_text) { Some("the local model (its own reply)") } else { None };
+    let advice = if !st.running {
+        "Ollama is not running: open the Ollama app (or turn on Start Ollama automatically in Settings), then run again.".to_string()
+    } else if !st.version_ok {
+        format!("Ollama {} is too old for Claude Code: update to {}.{} or newer.", st.version.clone().unwrap_or_default(), MIN_VERSION.0, MIN_VERSION.1)
+    } else if !installed {
+        format!("The model {model} is not on this computer: download it in Settings, Free Local Engine.")
+    } else if probe["ok"] == false {
+        format!("Ollama refused a direct test request for {model}: {}", probe["body"].as_str().or(probe["error"].as_str()).unwrap_or("no reply").chars().take(200).collect::<String>())
+    } else if let Some(src) = job_in {
+        format!("The request for a job ID came from {src}. Small local models sometimes misread the Roblox Studio tool notes in their instructions; try a bigger model in Settings or run this agent on Claude. Details in diagnostics.json.")
+    } else if api_error {
+        format!("Ollama answered with an error: {}", result_text.chars().take(200).collect::<String>())
+    } else {
+        "Ollama and the model answered a direct test, so the failure came from the run itself; see stderr.log and diagnostics.json in the run folder.".to_string()
+    };
+    let _ = std::fs::write(
+        run_dir.join("diagnostics.json"),
+        serde_json::to_string_pretty(&serde_json::json!({
+            "engine": "ollama",
+            "base_url": base(),
+            "model": model,
+            "ollama": { "running": st.running, "version": st.version, "version_ok": st.version_ok, "model_installed": installed, "installed": st.installed },
+            "direct_test": probe,
+            "result_is_api_error": api_error,
+            "result_text": result_text.chars().take(1000).collect::<String>(),
+            "stderr_tail": stderr.lines().rev().take(30).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n"),
+            "model_said_last": said.last().map(|s| s.chars().take(1000).collect::<String>()),
+            "job_id_text_from": job_in,
+            "advice": advice,
+        }))
+        .unwrap_or_default(),
+    );
+    format!("Local engine: {advice}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

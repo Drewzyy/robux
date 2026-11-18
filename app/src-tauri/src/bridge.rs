@@ -34,6 +34,34 @@ pub struct RunOutcome {
 /// sent as `/<agent> <instruction>` so Claude Code loads that skill
 /// deterministically (skills are `disable-model-invocation`, so agents cannot
 /// pull in other agents' skills on their own).
+/// Why Claude Code ended a run early, from its result line.
+pub fn stop_reason_of(result: &serde_json::Value) -> Option<&'static str> {
+    let sub = result.get("subtype").and_then(|s| s.as_str()).unwrap_or("");
+    let errs = result.get("errors").map(|e| e.to_string().to_lowercase()).unwrap_or_default();
+    if sub == "error_max_turns" || errs.contains("maximum number of turns") {
+        Some("turn_limit")
+    } else if sub.contains("budget") || errs.contains("budget") {
+        Some("budget_cap")
+    } else {
+        None
+    }
+}
+
+/// What a run really used, from Claude Code's result line.
+pub fn usage_of(result: &serde_json::Value) -> serde_json::Value {
+    let u = &result["usage"];
+    serde_json::json!({
+        "turns": result["num_turns"],
+        "duration_ms": result["duration_ms"],
+        "input_tokens": u["input_tokens"],
+        "cache_read_tokens": u["cache_read_input_tokens"],
+        "cache_write_tokens": u["cache_creation_input_tokens"],
+        "output_tokens": u["output_tokens"],
+        "thinking_tokens": u["output_tokens_details"]["thinking_tokens"],
+        "api_equivalent_usd": result["total_cost_usd"],
+    })
+}
+
 /// Move the long parts off the command line: the prompt (after -p) is
 /// returned to send on stdin, the run context is written to a file and
 /// passed with --append-system-prompt-file.
@@ -243,6 +271,12 @@ pub fn run_approved_with<F: FnMut(&str)>(
         notes.push_str(" Figma is connected (mcp__Figma__ tools) through Andrew's own Figma login. Draw each screen as a frame in the Figma file Andrew names, with layers named as 08-UI-UX/figma-handoff says. Reads are limited on Figma's free plan: read a file at most once per run, and never read when you can write from the plan. If the tools are missing or refuse, fall back to the SVG handoff.");
     }
     let mut args = build_args(&req, &tools, &add_dirs, &dir, has_skill);
+    // A real bound on the run: Claude Code stops at this many turns and
+    // reports subtype error_max_turns (checked with Claude Code 2.1.326).
+    let max_turns = crate::cost::turn_limit(&profile);
+    args.push("--max-turns".into());
+    args.push(max_turns.to_string());
+    req.turn_limit = Some(max_turns);
     if !servers.is_empty() {
         let cfg = dir.join("mcp.json");
         fs::write(&cfg, serde_json::to_string_pretty(&serde_json::json!({ "mcpServers": servers })).unwrap()).map_err(|e| e.to_string())?;
@@ -281,6 +315,11 @@ pub fn run_approved_with<F: FnMut(&str)>(
     if req.engine.as_deref() == Some("ollama") {
         // Free local engine: Ollama 0.14+ speaks the Anthropic Messages API.
         cmd.env("ANTHROPIC_BASE_URL", crate::ollama::base()).env("ANTHROPIC_AUTH_TOKEN", "ollama");
+        // A system or corporate proxy must never sit between Claude Code and
+        // Ollama on this computer.
+        let np = std::env::var("NO_PROXY").unwrap_or_default();
+        let np = if np.is_empty() { "127.0.0.1,localhost".to_string() } else { format!("{np},127.0.0.1,localhost") };
+        cmd.env("NO_PROXY", &np).env("no_proxy", &np);
     }
     let mut child = cmd
         .args(&args)
@@ -364,20 +403,44 @@ pub fn run_approved_with<F: FnMut(&str)>(
     if let Some(v) = &final_result {
         let _ = fs::write(dir.join("result.json"), serde_json::to_string_pretty(v).unwrap());
     }
-    let ok = status.success() && !is_error && final_result.is_some();
+    let process_ok = status.success() && !is_error && final_result.is_some();
+    // Claude Code exiting cleanly is not the same as the work being done:
+    // an agent that stops without writing its output file (a local model
+    // that asks a question back, for one) did not finish.
+    let missing_output = profile.output.as_ref().filter(|o| process_ok && req.chat.is_none() && req.change.is_none() && !dir.join(o.as_str()).is_file()).cloned();
+    let ok = process_ok && missing_output.is_none();
+    req.usage = final_result.as_ref().map(usage_of);
+    req.stop_reason = final_result.as_ref().and_then(stop_reason_of).map(String::from);
 
     req.status = if ok { "done".into() } else { "failed".into() };
     req.finished_at = Some(crate::now_rfc3339());
     req.actual_cost_usd = cost.map(|c| c + req.prior_cost_usd).or(Some(req.prior_cost_usd).filter(|c| *c > 0.0));
     req.result_text = Some(result_text.clone());
     if !ok {
-        req.error = Some(if final_result.is_none() {
+        req.error = Some(if req.stop_reason.as_deref() == Some("turn_limit") {
+            let out = profile.output.clone().unwrap_or_else(|| "its output".into());
+            let missing: Vec<&str> = [out.as_str(), "gate.json"].into_iter().filter(|f| !dir.join(f).is_file()).collect();
+            format!(
+                "Stopped at the turn limit ({} turns) before it finished. Everything it wrote is kept in runs/{run_id}. {}",
+                turns.unwrap_or(max_turns as u64),
+                if missing.is_empty() { "Its files exist but it did not get to check them.".to_string() } else { format!("Not written yet: {}.", missing.join(", ")) }
+            )
+        } else if req.stop_reason.as_deref() == Some("budget_cap") {
+            format!("Stopped at the approved cap (${:.2}, API-equivalent) before it finished. Everything it wrote is kept in runs/{run_id}.", req.estimate.cap_usd)
+        } else if let Some(o) = &missing_output {
+            format!("The agent ended without writing {o}. What it said last: {}", result_text.chars().take(300).collect::<String>())
+        } else if final_result.is_none() {
             format!("no result line from claude (exit {:?}). stderr:\n{stderr_tail}", status.code())
         } else {
             // Keep Claude's own words: they tell a network or sign-in problem
             // apart from bad work (changes::env_problem).
             format!("claude reported an error (exit {:?}): {}", status.code(), result_text.chars().take(300).collect::<String>())
         });
+    }
+    // Local engine failed: find out which part failed and say what to do.
+    if !ok && req.engine.as_deref() == Some("ollama") {
+        let tail = crate::ollama::diagnose(&dir, &req.estimate.model, &stderr_all, &result_text, final_result.as_ref());
+        req.error = Some(format!("{} {tail}", req.error.clone().unwrap_or_default()).trim().to_string());
     }
     runs::save(root, &req)?;
     // Stopped by a usage limit: pause (keep the work) instead of failing.
@@ -452,6 +515,9 @@ mod tests {
             continued: 0,
             prior_cost_usd: 0.0,
             change: None,
+            stop_reason: None,
+            usage: None,
+            turn_limit: None,
         };
         let a = build_args(
             &req,

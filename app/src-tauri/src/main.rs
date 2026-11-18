@@ -545,6 +545,75 @@ async fn continue_now(app: AppHandle, id: String) -> Result<usize, String> {
     continue_paused(&app, Some(&id))
 }
 
+/// Claude's usage ran out: carry on with the free local model instead of
+/// waiting. Switches the engine to Ollama until the limit resets (then back
+/// to Claude for new steps), and restarts the paused work (`id`, or all of
+/// it) from where it stopped. Files already made are kept.
+#[tauri::command]
+async fn continue_local(app: AppHandle, id: Option<String>) -> Result<usize, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let r = root()?;
+        let mut st = settings::load();
+        if st.ollama_model.trim().is_empty() {
+            return Err("Pick a local model first: Settings, AI engine, Local (free).".into());
+        }
+        studio_core::ollama::ensure_running();
+        let o = studio_core::ollama::status();
+        if !o.running || !o.version_ok {
+            return Err(o.message);
+        }
+        if !o.installed.iter().any(|m| m == &st.ollama_model || m.split(':').next() == Some(st.ollama_model.as_str())) {
+            return Err(format!("The local model {} is not downloaded yet. Download it in Settings, AI engine.", st.ollama_model));
+        }
+        // Paused runs move to the local engine and start again right away.
+        let paused: Vec<runs::RunRequest> = runs::list(&r).unwrap_or_default().into_iter().filter(|x| x.status == "paused").filter(|x| match id.as_deref() {
+            Some(i) => x.run_id == i || x.pipeline_id.as_deref() == Some(i),
+            None => true,
+        }).collect();
+        let back_at = paused.iter().filter_map(|x| x.resume_at.clone()).max();
+        for mut x in paused {
+            x.engine = Some("ollama".into());
+            x.resume_at = None;
+            // The local model does the rest, for free.
+            x.estimate.model = st.ollama_model.clone();
+            x.estimate.cap_usd = 0.0;
+            x.estimate.subscription_note = "Free: finished on the local model after Claude's usage ran out.".into();
+            runs::save(&r, &x)?;
+        }
+        if st.engine != "ollama" {
+            st.engine = "ollama".into();
+            st.local_until = back_at.or_else(|| Some((chrono::Utc::now() + chrono::Duration::hours(5)).to_rfc3339()));
+            settings::save(&st)?;
+        }
+        let n = match id.as_deref() {
+            Some(i) => continue_paused(&app, Some(i))?,
+            None => continue_paused(&app, None)?,
+        };
+        let _ = app.emit("engine-changed", json!({ "engine": "ollama" }));
+        Ok(n)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Back to Claude once the limit has reset (only if the switch was made by
+/// Continue on Local Model). Work already running locally finishes there;
+/// new steps use Claude again.
+fn back_to_claude_if_due(app: &AppHandle) {
+    let mut st = settings::load();
+    let due = st.local_until.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t <= chrono::Utc::now()).unwrap_or(false);
+    if due && st.engine == "ollama" {
+        st.engine = "claude".into();
+        st.local_until = None;
+        if settings::save(&st).is_ok() {
+            let _ = app.emit("engine-changed", json!({ "engine": "claude", "auto": true }));
+        }
+    } else if st.local_until.is_some() && st.engine != "ollama" {
+        st.local_until = None;
+        let _ = settings::save(&st);
+    }
+}
+
 #[tauri::command]
 async fn paused_work() -> Result<Value, String> {
     let r = root()?;
@@ -1091,6 +1160,7 @@ fn main() {
             pipeline_cancel,
             pipeline_approve_and_start,
             continue_now,
+            continue_local,
             changes_list,
             autopilot_list,
             autopilot_estimate,
@@ -1186,6 +1256,7 @@ fn main() {
                         }
                         dispatch_changes(&h);
                     }
+                    back_to_claude_if_due(&h);
                     if let Err(e) = continue_paused(&h, None) {
                         eprintln!("continue paused work: {e}");
                     }

@@ -55,6 +55,18 @@ pub struct AgentProfile {
     /// The agent's role title on the team (e.g. "Executive Producer").
     #[serde(default)]
     pub role: String,
+    /// How many real runs `turns`, `context_tokens` and
+    /// `output_tokens_per_turn` were fitted to (docs/evidence). 0 = a guess.
+    #[serde(default)]
+    pub observed_runs: u32,
+}
+
+/// Headroom over the expected turns before a run is stopped (--max-turns).
+/// Real runs went up to 1.5x their observed average (Builder: 49 and 82
+/// turns, average 66); 1.6x plus 4 leaves room without letting a stuck
+/// agent loop for hundreds of turns.
+pub fn turn_limit(profile: &AgentProfile) -> u32 {
+    ((profile.turns.max(1) as f64) * 1.6).ceil() as u32 + 4
 }
 fn default_base() -> u64 {
     8000
@@ -148,13 +160,17 @@ pub fn estimate(
         cache_read_tokens: read,
         output_tokens: out,
         assumptions: vec![
-            format!("{turns} model turns, about {out_turn} output tokens each (thinking included)"),
+            format!(
+                "{turns} model turns, about {out_turn} output tokens each (thinking included){}",
+                if profile.observed_runs > 0 { format!("; fitted to {} real run{}", profile.observed_runs, if profile.observed_runs == 1 { "" } else { "s" }) } else { "; a guess, no real runs yet".into() }
+            ),
+            format!("Stops at {} turns (--max-turns); files written so far are kept.", turn_limit(profile)),
             format!("about {ctx} tokens of files and prompt read, {base} tokens of system prompt and tools"),
             format!(
                 "{} at ${}/M input, ${}/M output, ${}/M cache read, cache write {}x input",
                 profile.model, price.input, price.output, price.cache_read, price.cache_write_multiplier
             ),
-            "Range is 0.5x to 2.5x of expected. The run is stopped if it reaches the cap.".into(),
+            "Dollars are API-equivalent size, not a bill. Claude Code stops the run at the cap (--max-budget-usd), measured at API prices; your Claude plan's own usage limits are separate and can stop it sooner.".into(),
         ],
         pricing_checked: pricing.checked.clone(),
         subscription_note: pricing.subscription_note.clone(),
@@ -219,6 +235,7 @@ mod tests {
         let profile = AgentProfile {
             model: "claude-haiku-5-5".into(),
             turns: 2,
+            observed_runs: 0,
             context_tokens: 300,
             output_tokens_per_turn: 200,
             base_tokens: 7000,

@@ -1276,6 +1276,10 @@ async function viewAutopilot(slug) {
   showIf(nav, page(
     head(v.title, el("span", {}, `${({ running: "Being made", paused: "Paused", budget: "Waiting for more budget", done: "Done" })[v.status] || v.status}${nowM ? " · " + nowM.title : ""}`)),
     v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", {}, "Paused. Nothing new starts until you resume."), el("div", { style: "margin-top:8px" }, ctl("resume", "Resume", null, "btn primary"))) : null,
+    v.status === "running" && active.some((j) => j.status === "paused") ? el("div", { class: "card paused-card" },
+      el("div", { class: "row-title" }, "Claude's usage ran out"),
+      el("p", { class: "note" }, "The team picks up by itself when the limit resets. Or keep going now for free on this computer: slower and weaker, and Claude takes over new steps again after the reset."),
+      el("button", { class: "btn primary", onclick: (e) => continueLocal(null, e.currentTarget) }, "Continue on Local Model")) : null,
     v.status === "budget" ? el("div", { class: "card warn-card" }, el("div", {}, v.why || "This game's budget is used up."), el("div", { style: "margin-top:8px" }, ctl("budget", "Raise Budget", raise, "btn primary"))) : null,
     el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", id: "ap-send", onclick: sendNote }, "Send"), el("span", { class: "note" }, "Problems are handled by the team: failed work is retried and fixed on its own."))),
     ...reviews,
@@ -1733,7 +1737,10 @@ async function viewRunDetail(id) {
     d.status === "paused" ? el("div", { class: "card paused-card", id: "paused-card" },
       el("div", { class: "row-title" }, "Paused, not lost"),
       el("p", { class: "note" }, "Claude stopped partway (usage limit reached, or the app closed). Everything it made so far is kept. It continues by itself from where it stopped" + (d.resume_at ? ` at about ${new Date(d.resume_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "") + ", and finished steps are not run again."),
-      el("button", { class: "btn primary", id: "continue-now", onclick: (e) => continueNow(id, e.currentTarget) }, "Continue Now")) : null,
+      el("div", { class: "inline", style: "gap:8px;flex-wrap:wrap" },
+        el("button", { class: "btn primary", id: "continue-now", onclick: (e) => continueNow(id, e.currentTarget) }, "Continue Now"),
+        el("button", { class: "btn secondary", id: "continue-local", onclick: (e) => continueLocal(id, e.currentTarget) }, "Continue on Local Model")),
+      el("p", { class: "note", style: "margin-top:6px" }, "Continue on Local Model keeps going for free on this computer through Ollama, just slower and weaker. Claude takes over new steps again once its limit resets.")) : null,
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Steps"),
       el("div", { class: "list steps" }, d.steps.map((s, i) =>
         el("div", { class: "step" },
@@ -1761,6 +1768,21 @@ async function continueNow(id, btn) {
     if (btn) btn.disabled = false;
   }
 }
+// Usage ran out: keep going on the free local model (Ollama) instead of waiting.
+async function continueLocal(id, btn) {
+  if (btn) btn.disabled = true;
+  try {
+    const n = await invoke("continue_local", { id: id || null });
+    toast(n ? "Carrying on with the local model. Slower, but free." : "Nothing was paused.");
+  } catch (e) {
+    toast(String(e), true);
+    if (btn) btn.disabled = false;
+  }
+}
+T.event.listen("engine-changed", (ev) => {
+  if (ev.payload && ev.payload.auto) toast("Claude's limit reset. New steps use Claude again.");
+  refreshStatus();
+});
 // Paused work started again (by the timer or Continue Now).
 T.event.listen("work-resumed", (ev) => {
   refreshStatus();

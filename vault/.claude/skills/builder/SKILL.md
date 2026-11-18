@@ -47,6 +47,9 @@ When the task touches these topics, read the note's Do this block first (stop th
 - Code goes in `projects/<game>/` (Rojo layout from `project-structure`). If the task is a snippet or plan only, write it to `<run folder>/build.md`.
 - `<run folder>/build.md`: first line exactly `Project: projects/<game>` (or `Project: none` for a snippet). Then what you built, file list, how each design point maps to code, and Loaded (every vault note you read and why).
 
+## First slice bar
+A first slice must meet `17-Development-Templates/first-slice-acceptance`. In build.md say which criteria you could check and state "build checks passed; not yet played in Studio" unless it really was played. Never call an unplayed build AAA, finished or ready to publish.
+
 ## Quality bar (game psychology, from 03-Game-Psychology/player-psychology)
 - Time to first fun under 10 seconds; teach by doing, never a wall of text.
 - Fixed reward schedules for progression, variable only for surprise. Never only random.

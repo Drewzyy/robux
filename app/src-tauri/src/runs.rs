@@ -50,6 +50,16 @@ pub struct RunRequest {
     /// Set when this run carries out a change request (changes.rs).
     #[serde(default)]
     pub change: Option<String>,
+    /// Why the run ended early: "turn_limit", "budget_cap" or "usage_limit".
+    #[serde(default)]
+    pub stop_reason: Option<String>,
+    /// What the run really used (from Claude Code's result): turns,
+    /// duration_ms, input/cache_read/cache_write/output tokens.
+    #[serde(default)]
+    pub usage: Option<serde_json::Value>,
+    /// The --max-turns this run was started with.
+    #[serde(default)]
+    pub turn_limit: Option<u32>,
 }
 
 /// True when Claude stopped because a usage limit was reached.
@@ -205,6 +215,9 @@ pub fn prepare_with_id(
         continued: 0,
         prior_cost_usd: 0.0,
         change: None,
+        stop_reason: None,
+        usage: None,
+        turn_limit: None,
     };
     save(root, &req)?;
     Ok(req)

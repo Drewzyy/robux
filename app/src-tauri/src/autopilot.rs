@@ -58,8 +58,8 @@ pub fn template() -> Vec<(&'static str, &'static str, &'static str, Vec<Vec<(&'s
             ],
             vec![("playtest", "Playtest projects/<game> (code walk and headless checks; say what you could not test) and list every problem with a severity.")],
         ]),
-        ("quality", "Up to the top games' standard", "How the game measures against the best Roblox games in its niche, area by area, after the team closed the gaps.", vec![vec![]]),
-        ("polish", "Polished and ready to publish", "Fixed problems, phone performance, simulated players, thumbnails and the release checklist. You publish it yourself.", vec![
+        ("quality", "Aiming for the top games' standard", "How the game scores against the best Roblox games in its niche, area by area, after the team closed the gaps. A score, not a played-in-Studio check.", vec![vec![]]),
+        ("polish", "Polish and release prep", "Fixed problems, phone performance, simulated players, thumbnails and the release checklist. You publish it yourself.", vec![
             vec![
                 ("builder", "Fix every blocker and major problem in the latest playtest report for projects/<game>."),
                 ("tuner", "Make projects/<game> fast on phones within the studio's performance budgets."),
@@ -569,8 +569,8 @@ fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
             post(a, "director", Some("andrew"), &format!("{line} The game reaches the bar ({QUALITY_OVERALL}+ overall, every area {QUALITY_MIN_AREA}+)."));
             a.milestones[i].status = "review".into();
             a.milestones[i].ready_at = Some(crate::now_rfc3339());
-            post(a, "autopilot", Some("andrew"), "Ready for your review: Up to the top games' standard.");
-            crate::notify::send_quiet(crate::notify::Kind::NeedsApproval, &format!("{}: it measures up to the top games", a.title), &[line]);
+            post(a, "autopilot", Some("andrew"), "Ready for your review: the benchmark score reached the target (build checks passed; not yet played in Studio).");
+            crate::notify::send_quiet(crate::notify::Kind::NeedsApproval, &format!("{}: benchmark score reached the target", a.title), &[line]);
             return;
         }
         post(a, "director", None, &format!("{line} Not there yet; fixing the biggest gaps."));
