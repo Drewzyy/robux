@@ -1200,6 +1200,7 @@ async function viewAutopilot(slug) {
   const reviews = v.milestones.filter((m) => m.status === "review").map((m) => {
     const notes = el("textarea", { class: "ap-review-notes", rows: 2, placeholder: "Notes for a revision (one per line). Leave empty to approve as it is." });
     const drafts = m.jobs.filter((j) => j.status === "done");
+    const qs = [...new Map(drafts.flatMap((j) => (j.questions || []).map((q) => [q.toLowerCase(), { q, who: j.agent }]))).values()].slice(0, 10);
     return el("div", { class: "card ap-review", "data-milestone": m.id },
       el("div", { class: "inline", style: "justify-content:space-between" }, el("h2", { style: "margin:0" }, `Ready for your review: ${m.title}`), MS_PILL(m.status)),
       el("p", { class: "note" }, m.review),
@@ -1209,6 +1210,8 @@ async function viewAutopilot(slug) {
         el("div", { class: "row-title" }, cap(j.agent)), el("div", { class: "note" }, j.summary || ""),
         j.mockups.length ? el("div", { class: "ap-mocks" }, j.mockups.slice(0, 6).map((mk) => el("button", { class: "ap-mock", onclick: async () => sheet(mk.split("/").pop(), lazyImg(mk, { class: "plan-mock" })) }, lazyImg(mk)))) : null,
         j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Read it") : null))),
+      qs.length ? el("div", { class: "ap-questions" }, el("div", { class: "row-title" }, "Questions for you"), el("div", { class: "note" }, "The agents picked a safe default for each. Answer any you care about in the notes; the rest stay as they are."),
+        el("ul", {}, qs.map((x) => el("li", {}, x.q, el("span", { class: "note" }, ` (${cap(x.who)})`))))) : null,
       notes,
       el("div", { class: "inline", style: "margin-top:8px" },
         el("button", { class: "btn primary ap-approve", onclick: async (e) => { e.currentTarget.disabled = true; try { await invoke("autopilot_review", { slug: v.slug, milestone: m.id, approve: true, notes: notes.value }); toast(`Approved: ${m.title}.`); } catch (er) { toast(String(er), true); } viewAutopilot(v.slug); } }, "Approve"),

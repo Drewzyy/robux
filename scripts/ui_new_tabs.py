@@ -301,7 +301,10 @@ try:
     else:
         check("request changes", True, "item already decided; skipped")
     d.execute_script("location.hash='#vault'"); time.sleep(2)
-    d.find_element(By.ID, "vault-q").send_keys("datastore retry"); time.sleep(1.5)
+    d.find_element(By.ID, "vault-q").send_keys("datastore retry")
+    t0 = time.time()  # the first search builds the index; wait for it
+    while time.time() - t0 < 15 and not d.find_elements(By.CSS_SELECTOR, "#vault-results .row"): time.sleep(0.3)
+    time.sleep(0.5)
     rows = d.find_elements(By.CSS_SELECTOR, "#vault-results .row")
     check("vault search finds notes with highlights", len(rows) >= 2 and "DataStore" in rows[0].text and d.find_elements(By.CSS_SELECTOR, "#vault-results mark"), rows[0].text.replace("\n", " ")[:90] if rows else "none")
     d.save_screenshot(str(SHOTS / "ui-vault-search.png"))

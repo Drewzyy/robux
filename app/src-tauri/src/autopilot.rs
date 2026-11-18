@@ -246,7 +246,7 @@ fn prompt(root: &Path, a: &Autopilot, milestone: &str, job: &str, feedback: Opti
     let notes = if a.notes.is_empty() { String::new() } else { format!("\nAndrew's notes so far (follow them):\n{}\n", a.notes.iter().rev().take(12).map(|n| format!("- {n}")).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")) };
     let fb = feedback.map(|f| format!("\nYOUR LAST ATTEMPT DID NOT PASS. Fix exactly this, keep what was fine:\n{f}\n")).unwrap_or_default();
     format!(
-        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
+        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above; when a choice is his to make, decide the safest default and put the choice in a section headed \"Questions for Andrew\" in your output (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
         a.title, a.slug, a.idea
     )
 }
@@ -617,6 +617,33 @@ pub fn control(root: &Path, slug: &str, action: &str, budget_usd: Option<f64>) -
     load(root, slug)
 }
 
+/// Lines under a "Questions for Andrew" or "Open questions" heading in an
+/// agent's output: the choices left for Andrew, shown on the review card.
+pub fn questions_in(path: &Path) -> Vec<String> {
+    let Ok(t) = fs::read_to_string(path) else { return vec![] };
+    let mut out = vec![];
+    let mut on = false;
+    for l in t.lines() {
+        let h = l.trim_start();
+        if h.starts_with('#') {
+            let low = h.to_lowercase();
+            on = low.contains("questions for andrew") || low.contains("open question") || low.contains("decisions for andrew");
+            continue;
+        }
+        if on {
+            let item = h.trim_start_matches(['-', '*', ' ']).trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c == ')').trim();
+            let low = item.to_lowercase();
+            if item.len() > 8 && !["none", "none.", "no open questions", "nothing"].iter().any(|n| low == *n || low.starts_with("none ")) {
+                out.push(item.chars().take(300).collect());
+            }
+        }
+        if out.len() >= 5 {
+            break;
+        }
+    }
+    out
+}
+
 /// Everything the Autopilot page shows for one game.
 pub fn view(root: &Path, slug: &str) -> Result<Value, String> {
     let a = load(root, slug)?;
@@ -629,7 +656,8 @@ pub fn view(root: &Path, slug: &str) -> Result<Value, String> {
             let out = if c.kind == "task" { agents.as_ref().and_then(|ag| ag.agents.get(&c.agent).and_then(|p| p.output.clone())) } else { None }.unwrap_or_else(|| "change.md".into());
             let d = root.join("runs").join(&c.run_id);
             let mocks: Vec<String> = fs::read_dir(d.join("mockups")).into_iter().flatten().flatten().map(|e| format!("runs/{}/mockups/{}", c.run_id, e.file_name().to_string_lossy())).filter(|p| p.ends_with(".svg")).collect();
-            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": stuck(&c), "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
+            let questions = questions_in(&d.join(&out)).into_iter().chain(questions_in(&d.join("change.md"))).collect::<Vec<_>>();
+            json!({ "id": c.id, "agent": c.agent, "text": c.text, "status": c.status, "stuck": stuck(&c), "questions": questions, "attempt": c.attempt, "summary": c.summary, "cost_usd": c.cost_usd, "run_id": c.run_id, "source": c.source,
                     "output": d.join(&out).is_file().then(|| format!("runs/{}/{out}", c.run_id)), "mockups": mocks })
         }).collect();
         json!({ "id": m.id, "title": m.title, "status": m.status, "review": tpl.get(i).map(|t| t.2).unwrap_or(""), "jobs": jobs })
@@ -754,6 +782,16 @@ mod tests {
         assert_eq!(a.status, "running");
         assert_eq!(queued(&root, &a.slug).len(), 1);
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn finds_the_questions_left_for_andrew() {
+        let p = std::env::temp_dir().join(format!("q-{}.md", std::process::id()));
+        fs::write(&p, "# Design\nstuff\n## Questions for Andrew\n- Keep the Cloud Decor bundle or cut it from v1?\n2. Rainbow Wand at 99 or 149 R$?\n## Loaded\n- 00-Start-Here\n").unwrap();
+        assert_eq!(questions_in(&p), vec!["Keep the Cloud Decor bundle or cut it from v1?", "Rainbow Wand at 99 or 149 R$?"]);
+        fs::write(&p, "## Open questions\n- None.\n").unwrap();
+        assert!(questions_in(&p).is_empty());
+        let _ = fs::remove_file(&p);
     }
 
     #[test]

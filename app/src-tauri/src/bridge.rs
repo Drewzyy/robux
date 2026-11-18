@@ -65,7 +65,8 @@ pub fn build_args(
     let context = format!(
         "Run context. Run id: {}. Your run folder is {} (absolute path). Write every output file there, \
          including gate.json. The studio's game projects folder is {}. You are running unattended: \
-         nobody can answer questions mid-run, so put questions in your output under Open questions.{}",
+         nobody can answer questions mid-run, so put questions in your output under Open questions. \
+         Never write that Andrew decided, asked or approved something he did not.{}",
         req.run_id,
         run_dir.display(),
         add_dirs.first().map(|p| p.display().to_string()).unwrap_or_default(),

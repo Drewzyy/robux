@@ -423,3 +423,6 @@ img.lazy.in { opacity: 1; }
 .ap-board .srow { align-items: flex-start; }
 .ap-ms summary { display: flex; align-items: center; gap: 10px; }
 .ap-ms summary .row-title { flex: 1; text-align: left; }
+.ap-questions { background: #2C2C2E; border-radius: 12px; padding: 12px 14px; margin: 10px 0; }
+.ap-questions ul { margin: 8px 0 0 18px; padding: 0; }
+.ap-questions li { margin: 4px 0; }
