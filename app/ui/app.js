@@ -286,10 +286,14 @@ async function viewDashboard() {
   if (!inf.root) { location.hash = "#files"; return; }
   const nav = navSeq;
   await freshStatus();
-  const [p, money, plans, rev, queue] = await Promise.all([
+  const [p, money, plans, rev, queue, games] = await Promise.all([
     invoke("pitches_latest").catch(() => null), invoke("money_summary").catch(() => null), invoke("plans_list").catch(() => []),
-    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []),
+    invoke("reviews_list").catch(() => null), invoke("queue_list").catch(() => []), invoke("autopilot_list").catch(() => []),
   ]);
+  // Autopilot games: a finished milestone waiting for Andrew comes first.
+  const toReview = games.map((g) => [g, g.milestones.find((m) => m.status === "review")]).find(([, m]) => m);
+  const making = games.filter((g) => g.status !== "done");
+  const nowOf = (g) => (g.milestones.find((m) => m.status === "working" || m.status === "revising") || g.milestones.find((m) => m.status === "review") || {}).title || (g.status === "done" ? "Done" : "Starting");
   const heatSlot = el("div", { id: "heat-slot" });
   invoke("usage_heatmap").then((u) => { if (u) heatSlot.replaceChildren(heatmapCard(u)); }).catch(() => {});
   invoke("scores_list").then((l) => { const n = $("score-widget"); if (!n) return; const s = l.map((g) => g.saved).filter(Boolean); n.textContent = s.length ? s.map((x) => `${x.project}: ${x.score}`).join(" · ") : "Not scored yet"; }).catch(() => {});
@@ -302,7 +306,9 @@ async function viewDashboard() {
   const sp = state.spend;
   // One clear next step, picked from where the game is right now.
   const left = plan ? plan.total - plan.done : 0;
-  const next = waiting ? ["Review what the team made", `${waiting} item${waiting === 1 ? "" : "s"} waiting for your yes or no`, "Open Review Queue", "#queue"]
+  const next = toReview ? [`Review ${toReview[0].title}: ${toReview[1].title}`, "The agents finished this milestone. Approve it or send notes; they keep working meanwhile.", "Open Autopilot", `#autopilot/${toReview[0].slug}`]
+    : making.length ? [`${making[0].title} is being made`, `${nowOf(making[0])} · ${({ running: "agents working", paused: "paused by you", budget: "stopped at its budget" })[making[0].status] || making[0].status}. Watch and chime in any time.`, "Watch It", `#autopilot/${making[0].slug}`]
+    : waiting ? ["Review what the team made", `${waiting} item${waiting === 1 ? "" : "s"} waiting for your yes or no`, "Open Review Queue", "#queue"]
     : !(p && p.pitches) ? ["Get game ideas", "Pulse studies the top Roblox games and trends, then pitches 5 ideas", "Go to Game Ideas", "#ideas"]
     : !plan ? ["Pick an idea and plan it", "Planner mocks up the whole game before anything is built", "Choose an Idea", "#ideas"]
     : left ? [`Finish checking ${plan.title}`, `${left} of ${plan.total} plan items left to check`, "Open Game Plan", `#plans/${plan.run_id}`]
@@ -320,7 +326,9 @@ async function viewDashboard() {
       w("Game plan", plan ? `#plans/${plan.run_id}` : "#plans", el("div", { class: "v small" }, plan ? plan.title : "No plan yet"),
         plan ? el("div", { class: "plan-bar", style: "margin:8px 0" }, el("div", { class: "plan-fill", style: `width:${plan.total ? Math.round((100 * plan.done) / plan.total) : 0}%` })) : null,
         el("div", { class: "note" }, plan ? `${plan.done} of ${plan.total} checked` : "Plan an idea first")),
-      w("Building now", "#runs", el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "Nothing running"), el("div", { class: "note" }, "Open to see runs and start one")),
+      w("Autopilot", making.length ? `#autopilot/${making[0].slug}` : "#autopilot", making.length
+        ? el("ul", { class: "widget-list", id: "ap-widget" }, making.slice(0, 3).map((g) => el("li", {}, `${g.title}: ${nowOf(g)}${g.milestones.some((m) => m.status === "review") ? " · needs your review" : ""}`)))
+        : el("div", { class: "v small" }, sp && sp.running.length ? `${sp.running.length} run going` : "No game being made"), el("div", { class: "note" }, making.length ? "Open to watch the agents" : "Press Make This Game on an idea")),
       w("Waiting for you", "#queue", el("div", { class: "v" }, String(waiting)), el("div", { class: "note" }, waiting ? "Items to approve or send back" : "Nothing to review")),
       w("Game score", "#score", el("div", { class: "v small", id: "score-widget" }, "..."), el("div", { class: "note" }, "75 is the standard to publish")),
       w("Double-check", "#review", el("div", { class: "v small" }, verdict || "Not checked yet"), el("div", { class: "note" }, last ? last.title : "Have another AI check the code")),

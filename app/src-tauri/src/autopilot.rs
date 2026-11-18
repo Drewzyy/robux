@@ -403,7 +403,22 @@ pub fn advance(root: &Path, slug: &str) {
             let all_waves_done = a.milestones[i].wave + 1 >= waves.len() && wave_done;
             if !open && !failed_stuck && (all_waves_done || st == "revising") && lat.iter().all(|c| c.status == "done") {
                 if mid == &"plan" {
-                    if let Some(p) = lat.iter().find(|c| c.agent == "planner") {
+                    // Other agents revised parts of the plan in their own
+                    // folders: Planner folds those into one plan before
+                    // Andrew sees it (at most twice, so it cannot loop).
+                    // Queue order (timestamps can tie within a second).
+                    let pos = |c: &Change| all.iter().position(|x| x.id == c.id).unwrap_or(0);
+                    let last_planner = lat.iter().filter(|c| c.agent == "planner").max_by_key(|c| pos(c)).cloned();
+                    let newer = lat.iter().any(|c| c.agent != "planner" && last_planner.as_ref().map(|p| pos(c) > pos(p)).unwrap_or(false));
+                    let folds = lat.iter().filter(|c| c.key.as_deref().map(|k| k.starts_with("plan/fold/")).unwrap_or(false)).count();
+                    if newer && folds < 2 {
+                        let job = "Fold the team's agreed revisions into one plan. Read every earlier job of this milestone (folders listed above: prices, sounds, sections, mockups other agents changed) and write the complete updated plan in your run folder: plan.json, plan.md and mockups/ (copy mockups that did not change). Where two revisions disagree, take the later one and say so under Open questions. Do not start other agents.";
+                        if queue(root, &mut a, mid, "planner", job, &format!("plan/fold/{}", folds + 1), 0, "autopilot", None, "task").is_ok() {
+                            post(&mut a, "autopilot", Some("planner"), "Other agents revised the plan; Planner is folding their changes in before it goes to Andrew.");
+                        }
+                        continue;
+                    }
+                    if let Some(p) = last_planner {
                         a.plan_run = Some(p.run_id.clone());
                     }
                 }
@@ -678,7 +693,20 @@ mod tests {
         assert_eq!(q.len(), 1);
         assert_eq!(q[0].agent, "planner");
         // Plan done: waits for Andrew; nothing after the plan starts early.
+        // (First: the planner asked Merchant for a price check, which revises the plan.)
+        let pdir = root.join("runs").join(&q[0].run_id);
+        fs::create_dir_all(&pdir).unwrap();
+        fs::write(pdir.join("requests.json"), r#"[{"to": "merchant", "task": "Check the prices", "why": "fair to kids"}]"#).unwrap();
         finish_as(&root, &q[0], "done", "");
+        let m = queued(&root, &a.slug);
+        assert_eq!(m.iter().map(|c| c.agent.as_str()).collect::<Vec<_>>(), vec!["merchant"]);
+        finish_as(&root, &m[0], "done", "");
+        let fold = queued(&root, &a.slug);
+        assert_eq!(fold.len(), 1, "Planner folds Merchant's revision into the plan first");
+        assert!(fold[0].key.as_deref().unwrap().starts_with("plan/fold/") && fold[0].agent == "planner");
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].status, "working");
+        finish_as(&root, &fold[0], "done", "");
+        let q = vec![fold[0].clone()];
         let a = load(&root, &a.slug).unwrap();
         assert_eq!(a.milestones[0].status, "review");
         assert_eq!(a.plan_run.as_deref(), Some(q[0].run_id.as_str()));

@@ -43,6 +43,7 @@ view = lambda: d.find_element(By.ID, "view").text
 try:
     time.sleep(1)
     check("app opens on the Dashboard with widgets", len(d.find_elements(By.CSS_SELECTOR, ".widget")) == 7 and "Tune-up" in view() and len(d.find_elements(By.CSS_SELECTOR, "#nav a")) == 7, view()[:60])
+    check("Dashboard has the Autopilot card", "Autopilot" in view() and len(d.find_elements(By.CSS_SELECTOR, "a.widget[href^='#autopilot']")) == 1, view()[:60])
     check("Dashboard shows one next step", len(d.find_elements(By.ID, "next-step")) == 1 and "Next step" in view() or "NEXT STEP" in view())
     d.find_element(By.ID, "search-hint").click(); time.sleep(0.5)
     d.find_element(By.ID, "palette-input").send_keys("thumb"); time.sleep(0.5)
