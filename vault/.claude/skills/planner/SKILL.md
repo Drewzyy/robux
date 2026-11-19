@@ -41,6 +41,7 @@ Required section ids, in this order, each with at least 2 items: `core-loop` (lo
 
 ## Gate
 Write `<run folder>/gate.json` exactly as `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. Check plan.json and the mockups by reading them back with Read (you have no JSON tool; the app re-checks the structure itself). A check you verified by reading passes, with detail "checked by reading". A check you could not do at all is a failed check with detail "NOT RUN: reason".
+Optional connections that are off (Figma, Blender, Roblox Studio) are not checks: never add a check for them. Say what you skipped in your output instead; failing for them only makes the app retry work that cannot change.
 Checks:
 - plan.json parses and has every required section with at least 2 items
 - every mock path in plan.json exists, and map.svg, ui-hud.svg, ui-shop.svg, character-effects.svg are present

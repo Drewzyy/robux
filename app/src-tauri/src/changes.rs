@@ -591,6 +591,9 @@ pub fn env_problem(c: &Change) -> Option<&'static str> {
         Some("signin")
     } else if any(&["could not start", "os error", "claude code was not found", "no such file or directory"]) {
         Some("launch")
+    } else if any(&["no user query found"]) {
+        // Ollama cut the request off (window too small); not the network.
+        Some("localmodel")
     } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
         Some("network")
     } else {

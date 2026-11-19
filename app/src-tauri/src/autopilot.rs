@@ -668,6 +668,25 @@ pub fn on_finish(root: &Path, c: &Change) {
                 let wait = changes::backoff_minutes(tries);
                 let detail = c.checks.iter().find(|k| !k.passed).map(|k| k.detail.clone()).unwrap_or_default();
                 let kind = changes::env_problem(c).unwrap_or("launch");
+                if kind == "localmodel" {
+                    // Ollama's window was too small. The next local run restarts
+                    // Ollama with a big window, so try once more at once; if it
+                    // still fails, stop and say what to do instead of looping.
+                    if tries >= 2 {
+                        a.status = "paused".into();
+                        a.why = Some(format!("The local model keeps losing your request (Ollama's \"no user query found\"). Quit Ollama from its tray icon, then press Resume: BrewixGames starts it with a big enough memory window. Or switch to Claude in Settings. Details in runs/{}/diagnostics.json.", c.run_id));
+                        let w = a.why.clone().unwrap_or_default();
+                        post(&mut a, "autopilot", Some("andrew"), &w);
+                        crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: paused, local model problem", a.title), &[a.why.clone().unwrap_or_default()]);
+                    } else {
+                        post(&mut a, "autopilot", Some(&c.agent), &format!("The local model lost the request for {} (memory window too small). Restarting Ollama with a bigger window and trying again.", c.agent));
+                    }
+                    let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, c.attempt, &c.source, None, &c.kind);
+                    let _ = save(root, &a);
+                    drop(_g);
+                    advance(root, &slug);
+                    return;
+                }
                 let what = match kind { "signin" => "Claude is signed out", "network" => "No connection to Claude (the network or Claude's servers)", _ => "Could not start Claude" };
                 post(&mut a, "autopilot", Some(&c.agent), &format!("{what} for {}. Trying again by itself in {wait} min. ({})", c.agent, detail.chars().take(140).collect::<String>()));
                 let signouts = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && changes::env_problem(x) == Some("signin")).count();
@@ -702,7 +721,21 @@ pub fn on_finish(root: &Path, c: &Change) {
                     );
                     // It never gives up: after the first rescues it keeps trying a new
                     // approach every 30 minutes (only the game's budget stops it).
-                    let wait = if rescues < MAX_RESCUES { 0 } else { 30 };
+                    if rescues >= MAX_RESCUES {
+                        // Two rescues did not fix it: more tries would only burn
+                        // usage on the same failure. Stop and ask Andrew.
+                        a.status = "paused".into();
+                        a.why = Some(format!("{} failed this job {} times, and Lead's {MAX_RESCUES} fixes did not help. Last problem:\n{why}\nRead it, send a note with what to change (or say skip it), then press Resume.", c.agent, MAX_ATTEMPTS * (MAX_RESCUES as u32 + 1)));
+                        let w = a.why.clone().unwrap_or_default();
+                        post(&mut a, "autopilot", Some("andrew"), &w);
+                        crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is stuck, paused", a.title, c.agent), &[c.text.chars().take(200).collect(), "Paused so it stops using your usage. Send a note and press Resume.".into()]);
+                        let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, 0, &c.source, Some(&why), &c.kind);
+                        let _ = save(root, &a);
+                        drop(_g);
+                        advance(root, &slug);
+                        return;
+                    }
+                    let wait = 0;
                     post(&mut a, "autopilot", Some("lead"), &format!("{} failed {MAX_ATTEMPTS} times; Lead is working out why and a new way to do it{}.", c.agent, if wait > 0 { format!(" (rescue {}, in {wait} min)", rescues + 1) } else { String::new() }));
                     if rescues == MAX_RESCUES {
                         crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is having a hard time", a.title, c.agent), &[c.text.chars().take(200).collect(), "The team keeps trying new approaches by itself. A note from you can steer it.".into()]);
@@ -1016,6 +1049,51 @@ mod tests {
         note(&root, &a.slug, "Make the rocket glow when it levels up", None, None).unwrap();
         let n = queued(&root, &a.slug).into_iter().find(|c| c.source == "andrew").unwrap();
         assert_eq!(n.agent, "motion");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_job_that_keeps_failing_pauses_the_game_instead_of_looping() {
+        let root = studio();
+        let a = start(&root, "Stuck Game", "Catch falling stars.", 1_000_000.0, None).unwrap();
+        let mut cur = queued(&root, &a.slug).remove(0);
+        // Every try and every rescue fails: after MAX_RESCUES rescues it stops.
+        for _ in 0..(MAX_ATTEMPTS as usize * (MAX_RESCUES + 1) + MAX_RESCUES) {
+            if load(&root, &a.slug).unwrap().status == "paused" { break; }
+            if let Ok(mut r) = crate::runs::load(&root, &cur.run_id) {
+                r.status = "failed".into();
+                r.actual_cost_usd = Some(0.0);
+                let _ = crate::runs::save(&root, &r);
+            }
+            if cur.agent == "lead" {
+                finish_as(&root, &cur, "done", "");
+            } else {
+                finish_as(&root, &cur, "failed", "has a Loaded section");
+            }
+            match queued(&root, &a.slug).last() { Some(n) => cur = n.clone(), None => break }
+        }
+        let g = load(&root, &a.slug).unwrap();
+        assert_eq!(g.status, "paused", "stops instead of rescuing forever: {:?} {}", g.why, g.budget_usd);
+        assert!(g.why.as_deref().unwrap_or("").contains("has a Loaded section"), "{:?}", g.why);
+        let rescues = changes::list(&root).iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false)).count();
+        assert_eq!(rescues, MAX_RESCUES);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_cut_off_local_request_is_retried_once_then_pauses() {
+        let root = studio();
+        let a = start(&root, "Local Game", "Catch falling stars.", 500.0, None).unwrap();
+        let mut cur = queued(&root, &a.slug).remove(0);
+        for _ in 0..2 {
+            changes::set_result(&root, &cur.id, "failed", vec![crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "API Error: 500 no user query found in messages. (127.0.0.1:11434)".into() }]);
+            let c = changes::list(&root).into_iter().find(|x| x.id == cur.id).unwrap();
+            assert_eq!(changes::env_problem(&c), Some("localmodel"), "not a network problem");
+            on_finish(&root, &c);
+            cur = queued(&root, &a.slug).last().unwrap().clone();
+            assert!(cur.not_before.is_none(), "no waiting loop");
+        }
+        assert_eq!(load(&root, &a.slug).unwrap().status, "paused");
         let _ = fs::remove_dir_all(&root);
     }
 

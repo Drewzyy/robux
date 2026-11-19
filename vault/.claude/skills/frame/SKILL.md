@@ -44,6 +44,7 @@ End every output with a Loaded section: each vault note you read, one line each,
 
 ## Gate
 Write `<run folder>/gate.json` exactly as `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. `passed` is true only if every check passed. A check you could not run is a failed check with detail "NOT RUN: reason".
+Optional connections that are off (Figma, Blender, Roblox Studio) are not checks: never add a check for them. Say what you skipped in your output instead; failing for them only makes the app retry work that cannot change.
 Checks:
 - sizes and positions use Scale; Offset only for thin borders
 - nothing interactive in the top 58 px or the bottom thumb-control zone

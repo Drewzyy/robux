@@ -139,6 +139,68 @@ pub fn binary() -> Option<std::path::PathBuf> {
     })
 }
 
+/// Context window to give the local model. Claude Code's own instructions
+/// are about 20k tokens; with Ollama's small default window the start of
+/// the conversation (the user's request) is cut off, and Qwen models then
+/// answer "500 no user query found in messages". Ollama recommends at
+/// least 64k for coding tools; smaller computers get what fits.
+pub fn context_tokens() -> u32 {
+    match memory_gb().unwrap_or(16.0) {
+        m if m >= 28.0 => 65536,
+        m if m >= 14.0 => 40960,
+        _ => 32768,
+    }
+}
+
+/// The context window of a loaded model, if Ollama says (newer versions
+/// report `context_length` in /api/ps).
+pub fn loaded_context() -> Option<u64> {
+    get("/api/ps").ok()?.get("models")?.as_array()?.iter().filter_map(|m| m.get("context_length").and_then(|c| c.as_u64())).max()
+}
+
+static BIG_CONTEXT: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
+
+/// Before local agent work: make sure Ollama runs with a big enough
+/// context window. An Ollama that was already open (the tray app) uses its
+/// own small default, so it is restarted once per app run with the right
+/// setting. Returns a note when it could not be made sure.
+pub fn ensure_big_context() -> Option<String> {
+    let mut done = BIG_CONTEXT.lock().unwrap_or_else(|e| e.into_inner());
+    if *done {
+        return None;
+    }
+    let want = context_tokens() as u64;
+    if get("/api/version").is_ok() {
+        if loaded_context().map(|c| c >= want).unwrap_or(false) {
+            *done = true;
+            return None;
+        }
+        stop();
+        for _ in 0..20 {
+            if get("/api/version").is_err() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+    }
+    *done = ensure_running();
+    if *done { None } else { Some(format!("Could not restart Ollama with a {want}-token memory window. Quit Ollama from its tray icon; BrewixGames starts it again with the right setting.")) }
+}
+
+/// Stop Ollama (its tray app too), so it can be started with our settings.
+fn stop() {
+    let quiet = |c: &mut std::process::Command| { let _ = c.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status(); };
+    if cfg!(windows) {
+        quiet(crate::paths::command("taskkill").args(["/F", "/IM", "ollama app.exe"]));
+        quiet(crate::paths::command("taskkill").args(["/F", "/IM", "ollama.exe"]));
+    } else if cfg!(target_os = "macos") {
+        quiet(crate::paths::command("pkill").args(["-x", "Ollama"]));
+        quiet(crate::paths::command("pkill").args(["-f", "ollama serve"]));
+    } else {
+        quiet(crate::paths::command("pkill").args(["-f", "ollama serve"]));
+    }
+}
+
 /// Auto-connect: if Ollama is installed but not running, start it quietly
 /// (no window). Returns true when Ollama answers.
 pub fn ensure_running() -> bool {
@@ -146,7 +208,7 @@ pub fn ensure_running() -> bool {
         return true;
     }
     let Some(bin) = binary() else { return false };
-    if crate::paths::command(&bin).arg("serve").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
+    if crate::paths::command(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string()).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
         return false;
     }
     for _ in 0..20 {
@@ -268,6 +330,8 @@ pub fn diagnose(run_dir: &std::path::Path, model: &str, stderr: &str, result_tex
         "Ollama is not running: open the Ollama app (or turn on Start Ollama automatically in Settings), then run again.".to_string()
     } else if !st.version_ok {
         format!("Ollama {} is too old for Claude Code: update to {}.{} or newer.", st.version.clone().unwrap_or_default(), MIN_VERSION.0, MIN_VERSION.1)
+    } else if format!("{stderr} {result_text}").to_lowercase().contains("no user query found") {
+        format!("The local model's memory window was too small, so your request was cut off before {model} saw it (Ollama's \"no user query found\"). BrewixGames now restarts Ollama with a {}-token window before local work; run again. If it keeps happening, quit Ollama from its tray icon so BrewixGames can start it itself.", context_tokens())
     } else if !installed {
         format!("The model {model} is not on this computer: download it in Settings, Free Local Engine.")
     } else if probe["ok"] == false {

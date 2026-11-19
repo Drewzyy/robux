@@ -1275,7 +1275,7 @@ async function viewAutopilot(slug) {
   const nowM = v.milestones.find((m) => m.status === "working" || m.status === "revising");
   showIf(nav, page(
     head(v.title, el("span", {}, `${({ running: "Being made", paused: "Paused", budget: "Waiting for more budget", done: "Done" })[v.status] || v.status}${nowM ? " · " + nowM.title : ""}`)),
-    v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", {}, "Paused. Nothing new starts until you resume."), el("div", { style: "margin-top:8px" }, ctl("resume", "Resume", null, "btn primary"))) : null,
+    v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", { style: "white-space:pre-wrap" }, v.why || "Paused. Nothing new starts until you resume."), el("div", { style: "margin-top:8px" }, ctl("resume", "Resume", null, "btn primary"))) : null,
     v.status === "running" && active.some((j) => j.status === "paused") ? el("div", { class: "card paused-card" },
       el("div", { class: "row-title" }, "Claude's usage ran out"),
       el("p", { class: "note" }, "The team picks up by itself when the limit resets. Or keep going now for free on this computer: slower and weaker, and Claude takes over new steps again after the reset."),

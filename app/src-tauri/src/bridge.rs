@@ -313,6 +313,11 @@ pub fn run_approved_with<F: FnMut(&str)>(
 
     let mut cmd = crate::paths::command(claude_bin);
     if req.engine.as_deref() == Some("ollama") {
+        if let Some(note) = crate::ollama::ensure_big_context() {
+            on_line(&serde_json::json!({"type": "system", "subtype": "note", "text": note}).to_string());
+        }
+    }
+    if req.engine.as_deref() == Some("ollama") {
         // Free local engine: Ollama 0.14+ speaks the Anthropic Messages API.
         cmd.env("ANTHROPIC_BASE_URL", crate::ollama::base()).env("ANTHROPIC_AUTH_TOKEN", "ollama");
         // A system or corporate proxy must never sit between Claude Code and
@@ -545,6 +550,16 @@ mod tests {
 /// PATH for agent runs: a folder holding `brewix` (a link back to this app,
 /// so agents and the vault's hook can run the built-in checks), the app's
 /// bundled Roblox tools, then the normal PATH.
+/// C:\\Users\\a\\x.exe as Git Bash writes it: /c/Users/a/x.exe.
+pub fn git_bash_path(p: &std::path::Path) -> String {
+    let s = p.display().to_string();
+    let s = s.strip_prefix(r"\\?\").unwrap_or(&s).replace('\\', "/");
+    match s.as_bytes() {
+        [d, b':', rest @ ..] => format!("/{}{}", (*d as char).to_ascii_lowercase(), String::from_utf8_lossy(rest)),
+        _ => s,
+    }
+}
+
 pub fn agent_path() -> std::ffi::OsString {
     let mut dirs: Vec<PathBuf> = vec![];
     let bin = crate::settings::config_dir().join("bin");
@@ -561,6 +576,9 @@ pub fn agent_path() -> std::ffi::OsString {
         #[cfg(windows)]
         {
             let _ = fs::write(bin.join("brewix.cmd"), format!("@\"{}\" %*\r\n", exe.display()));
+            // Claude Code runs agent commands in Git Bash, which cannot run
+            // brewix.cmd by the name "brewix": give Bash its own script.
+            let _ = fs::write(bin.join("brewix"), format!("#!/bin/sh\nexec \"{}\" \"$@\"\n", git_bash_path(&exe)));
         }
         dirs.push(bin);
         if let Some(d) = exe.parent() {
@@ -576,4 +594,14 @@ pub fn agent_path() -> std::ffi::OsString {
         dirs.extend(std::env::split_paths(&p));
     }
     std::env::join_paths(dirs).unwrap_or_default()
+}
+
+#[cfg(test)]
+mod git_bash_tests {
+    #[test]
+    fn windows_paths_become_git_bash_paths() {
+        assert_eq!(super::git_bash_path(std::path::Path::new(r"\\?\C:\Users\Andrew\AppData\Local\BrewixGames\brewixgames.exe")), "/c/Users/Andrew/AppData/Local/BrewixGames/brewixgames.exe");
+        assert_eq!(super::git_bash_path(std::path::Path::new(r"D:\a b\x.exe")), "/d/a b/x.exe");
+        assert_eq!(super::git_bash_path(std::path::Path::new("/usr/bin/x")), "/usr/bin/x");
+    }
 }
