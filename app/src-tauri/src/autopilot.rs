@@ -289,9 +289,17 @@ fn spent(root: &Path, slug: &str) -> (f64, f64) {
     (spent, reserved)
 }
 
+/// The next model up for a last try.
+pub fn step_up(model: &str) -> String {
+    if model.contains("haiku") { "claude-sonnet-5-5".into() } else { STRONG_MODEL.into() }
+}
+
 /// Queue one job, unless it would go over this game's budget.
 fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str, key: &str, attempt: u32, source: &str, feedback: Option<&str>, kind: &str) -> Result<Change, String> {
-    let model = if attempt >= 2 { Some(STRONG_MODEL.to_string()) } else { None };
+    // Only the last try moves up one model (Haiku to Sonnet, Sonnet to
+    // Opus): bigger models use up Claude's usage much faster.
+    let own = crate::cost::load_agents(root).ok().and_then(|x| x.agents.get(agent).map(|p| p.model.clone())).unwrap_or_default();
+    let model = if attempt + 1 >= MAX_ATTEMPTS { Some(step_up(&own)) } else { None };
     let p = prompt(root, a, milestone, job, feedback);
     let (spent_usd, reserved) = spent(root, &a.slug);
     let agents = crate::cost::load_agents(root)?;
@@ -483,13 +491,13 @@ pub fn advance(root: &Path, slug: &str) {
 
 /// The bar a game must reach against the best games in its niche.
 pub const QUALITY_OVERALL: f64 = 8.5;
-pub const QUALITY_MIN_AREA: f64 = 7.0;
+pub const QUALITY_MIN_AREA: f64 = 8.0;
 /// Game Score needed, as a share of the points reachable without a Second
 /// Opinion engine (which Andrew may not have set up).
 pub const QUALITY_SCORE: f64 = 0.88;
 const QUALITY_AGENTS: [&str; 10] = ["builder", "frame", "motion", "scenic", "modeler", "librarian", "merchant", "tuner", "crowd", "splash"];
 
-const BENCH_JOB: &str = "Benchmark projects/<game> against the 3 best Roblox games in its niche. Find them in 16-Market-Research (visual-refs-*, teardown-*, reviews-* notes; their pictures are in attachments/game-refs/<id>/). Read the game's code and UI, and the latest playtest and simulation in the earlier work. Score each area 0 to 10 against those games (10 = as good as the best of them): first-60-seconds, core-loop, progression, ui-polish, visuals, game-feel, retention, monetization-fairness, phone-performance, content. Be strict: a rough game is 3 to 5; 8.5 or more means it would hold its own next to them. Write benchmark.md, and benchmark.json exactly: {\"compared_to\": [\"<game>\", ...], \"areas\": {\"first-60-seconds\": n, ...}, \"overall\": n, \"gaps\": [{\"area\": \"...\", \"fix\": \"<one specific change>\", \"agent\": \"<builder|frame|motion|scenic|modeler|librarian|merchant|tuner|crowd|splash>\"}]} with the biggest gaps first (up to 6). Do not start other agents; the app assigns the fixes.";
+const BENCH_JOB: &str = "Benchmark projects/<game> against the 3 best Roblox games in its niche. Find them in 16-Market-Research (visual-refs-*, teardown-*, reviews-* notes; their pictures are in attachments/game-refs/<id>/). Read the game's code and UI, and the latest playtest and simulation in the earlier work. Score each area 0 to 10 against those games (10 = as good as the best of them): first-60-seconds, core-loop, progression, ui-polish, visuals, environment, audio, game-feel, retention, monetization-fairness, phone-performance, content. Be strict: a rough game is 3 to 5; 8.5 or more means it would hold its own next to them. Write benchmark.md, and benchmark.json exactly: {\"compared_to\": [\"<game>\", ...], \"areas\": {\"first-60-seconds\": n, ...}, \"overall\": n, \"gaps\": [{\"area\": \"...\", \"fix\": \"<one specific change>\", \"agent\": \"<builder|frame|motion|scenic|modeler|librarian|merchant|tuner|crowd|splash>\"}]} with the biggest gaps first (up to 6). Do not start other agents; the app assigns the fixes.";
 
 /// Read a benchmark: overall, the lowest area, and the gaps.
 pub fn read_benchmark(dir: &Path) -> Option<(f64, f64, Vec<(String, String, String)>, Vec<String>)> {
@@ -747,7 +755,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                     }
                 } else {
                     let next = c.attempt + 1;
-                    post(&mut a, "autopilot", Some(&c.agent), &format!("{} did not pass ({}); trying again{} (attempt {} of {MAX_ATTEMPTS}).", c.agent, why.lines().next().unwrap_or("").trim_start_matches("- "), if next >= 2 { " with a stronger model" } else { "" }, next + 1));
+                    post(&mut a, "autopilot", Some(&c.agent), &format!("{} did not pass ({}); trying again{} (attempt {} of {MAX_ATTEMPTS}).", c.agent, why.lines().next().unwrap_or("").trim_start_matches("- "), if next + 1 >= MAX_ATTEMPTS { " with a stronger model" } else { "" }, next + 1));
                     let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, next, &c.source, Some(&why), &c.kind);
                 }
             }
@@ -820,6 +828,9 @@ pub fn note(root: &Path, slug: &str, text: &str, agent: Option<&str>, milestone:
     Ok(a)
 }
 
+/// What "Not Good Enough" sends when Andrew writes nothing.
+pub const NOT_GOOD_ENOUGH: &str = "Not good enough yet. Compare this part with the best Roblox games in this niche and raise every aspect that falls short (visuals, environment, UI, sound, animation and game feel, the core loop, code quality), weakest first. Decide the changes and start the agents that should make them with requests.json";
+
 /// Andrew approves a finished milestone, or sends notes for a revision.
 pub fn review(root: &Path, slug: &str, milestone: &str, approve: bool, notes: &str) -> Result<Autopilot, String> {
     {
@@ -841,6 +852,10 @@ pub fn review(root: &Path, slug: &str, milestone: &str, approve: bool, notes: &s
         }
     }
     if !approve {
+        if notes.trim().is_empty() {
+            // "Not good enough" with no details: Lead decides what to raise.
+            note(root, slug, NOT_GOOD_ENOUGH, Some("lead"), Some(milestone))?;
+        }
         for line in notes.lines().map(str::trim).filter(|l| !l.is_empty()) {
             note(root, slug, line, None, Some(milestone))?;
         }
@@ -1048,10 +1063,12 @@ mod tests {
         assert_eq!((q2[0].agent.as_str(), q2[0].attempt), ("architect", 1));
         let prompt = crate::runs::load(&root, &q2[0].run_id).unwrap().prompt;
         assert!(prompt.contains("YOUR LAST ATTEMPT DID NOT PASS") && prompt.contains("core loop section"), "{prompt}");
-        // Third attempt uses the stronger model.
+        // Third attempt keeps the agent's own model; only the last moves up.
         finish_as(&root, &q2[0], "failed", "core loop section");
         let q3 = queued(&root, &a.slug);
-        assert_eq!(crate::runs::load(&root, &q3[0].run_id).unwrap().estimate.model, STRONG_MODEL);
+        assert_ne!(crate::runs::load(&root, &q3[0].run_id).unwrap().estimate.model, STRONG_MODEL);
+        assert_eq!(step_up("claude-haiku-5-5"), "claude-sonnet-5-5");
+        assert_eq!(step_up("claude-sonnet-5-5"), STRONG_MODEL);
         // The agent asks Frame for something while finishing.
         let dir = root.join("runs").join(&q3[0].run_id);
         fs::create_dir_all(&dir).unwrap();
@@ -1095,6 +1112,21 @@ mod tests {
         assert!(g.why.as_deref().unwrap_or("").contains("has a Loaded section"), "{:?}", g.why);
         let rescues = changes::list(&root).iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false)).count();
         assert_eq!(rescues, MAX_RESCUES);
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn not_good_enough_sends_it_back_to_keep_improving() {
+        let root = studio();
+        let a = start(&root, "Meh Game", "Catch falling stars.", 500.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "review".into();
+        let mid = g.milestones[0].id.clone();
+        save(&root, &g).unwrap();
+        review(&root, &a.slug, &mid, false, "").unwrap();
+        let g = load(&root, &a.slug).unwrap();
+        assert_eq!(g.milestones[0].status, "revising");
+        assert!(queued(&root, &a.slug).iter().any(|c| c.agent == "lead" && c.text.contains("Not good enough yet")), "Lead picks up the work");
         let _ = fs::remove_dir_all(&root);
     }
 
@@ -1163,9 +1195,9 @@ mod tests {
 
     #[test]
     fn quality_loop_benchmarks_fixes_and_never_stops_until_the_bar() {
-        assert!(quality_pass(8.6, 7.2, 0.9));
-        assert!(!quality_pass(9.5, 6.0, 1.0), "every area must reach the bar");
-        assert!(!quality_pass(8.6, 7.2, 0.5), "the Game Score must agree");
+        assert!(quality_pass(8.6, 8.2, 0.9));
+        assert!(!quality_pass(9.5, 7.5, 1.0), "every area must reach the bar");
+        assert!(!quality_pass(8.6, 8.2, 0.5), "the Game Score must agree");
         let root = studio();
         let a = start(&root, "Quality Game", "Catch pets.", 500.0, None).unwrap();
         // Jump to the quality milestone.

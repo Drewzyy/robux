@@ -13,7 +13,7 @@
     },
     "pulse": {
       "description": "Reads charts and market data, pitches ranked ideas with evidence.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 11,
       "context_tokens": 20000,
       "output_tokens_per_turn": 200,
@@ -190,7 +190,7 @@
     },
     "librarian": {
       "description": "Sources models and effects with licenses checked, and writes the sounds.json request sheet for ForgeGUI. No Toolbox.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 8,
       "context_tokens": 8000,
       "output_tokens_per_turn": 1000,
@@ -294,7 +294,7 @@
     },
     "splash": {
       "description": "Icon and 10-20 thumbnail comps (MrBeast logic, the game's own visuals), ranked.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 16,
       "context_tokens": 14000,
       "output_tokens_per_turn": 2500,
@@ -327,7 +327,7 @@
     },
     "merchant": {
       "description": "Launch shop: products and prices, do-not-sell list enforced.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 8,
       "context_tokens": 10000,
       "output_tokens_per_turn": 1000,
@@ -354,7 +354,7 @@
     },
     "liveops": {
       "description": "Reads analytics exports and proposes events in Roblox's priority order.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 8,
       "context_tokens": 10000,
       "output_tokens_per_turn": 1000,
@@ -380,7 +380,7 @@
     },
     "producer": {
       "description": "Plans the next update: one reason, one scope, staged for the team.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 6,
       "context_tokens": 8000,
       "output_tokens_per_turn": 1000,
@@ -615,7 +615,7 @@
     },
     "release": {
       "description": "Prepares a release checklist and notes for Andrew to publish; never publishes, uploads, or changes live settings.",
-      "model": "claude-sonnet-5-5",
+      "model": "claude-haiku-5-5",
       "turns": 10,
       "context_tokens": 14000,
       "output_tokens_per_turn": 1200,
