@@ -348,6 +348,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
             let _ = runs::save(root, &req);
             msg
         })?;
+    LIVE.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), child.id());
     // The prompt, on stdin (then closed so Claude starts).
     if let Some(mut si) = child.stdin.take() {
         std::thread::spawn(move || {
@@ -385,6 +386,8 @@ pub fn run_approved_with<F: FnMut(&str)>(
         }
     }
     let status = child.wait().map_err(|e| e.to_string())?;
+    LIVE.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
+    let asked = ASKED.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
     let stderr_all = err_thread.join().unwrap_or_default();
     let stderr_tail: String = stderr_all
         .lines()
@@ -441,6 +444,20 @@ pub fn run_approved_with<F: FnMut(&str)>(
             // apart from bad work (changes::env_problem).
             format!("claude reported an error (exit {:?}): {}", status.code(), result_text.chars().take(300).collect::<String>())
         });
+    }
+    // Andrew pressed Stop or Pause: say so, keep the files, no diagnosis.
+    if let Some(what) = asked.filter(|_| !ok) {
+        if what == "pause" {
+            req.status = "paused".into();
+            req.resume_at = Some("9999-12-31T00:00:00Z".into()); // only Andrew resumes it
+            req.prior_cost_usd = req.actual_cost_usd.unwrap_or(req.prior_cost_usd);
+            req.error = Some("Paused by you. Files it made are kept; Resume continues from where it stopped.".into());
+        } else {
+            req.status = "cancelled".into();
+            req.error = Some("Stopped by you. Files it made are kept.".into());
+        }
+        runs::save(root, &req)?;
+        return Ok(RunOutcome { run_id: run_id.to_string(), ok: false, result_text, actual_cost_usd: req.actual_cost_usd, num_turns: turns, exit_code: status.code(), stderr_tail });
     }
     // Local engine failed: find out which part failed and say what to do.
     if !ok && req.engine.as_deref() == Some("ollama") {
@@ -550,6 +567,31 @@ mod tests {
 /// PATH for agent runs: a folder holding `brewix` (a link back to this app,
 /// so agents and the vault's hook can run the built-in checks), the app's
 /// bundled Roblox tools, then the normal PATH.
+/// Agent processes running now (run id to process id), and runs Andrew
+/// asked to stop or pause ("stop" or "pause").
+static LIVE: std::sync::Mutex<std::collections::BTreeMap<String, u32>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+static ASKED: std::sync::Mutex<std::collections::BTreeMap<String, String>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
+
+/// Stop (or pause) a running agent now. Ends its Claude process and
+/// everything it started. Returns false when that run is not running.
+pub fn stop_run(run_id: &str, pause: bool) -> bool {
+    let Some(pid) = LIVE.lock().unwrap_or_else(|e| e.into_inner()).get(run_id).copied() else { return false };
+    ASKED.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), if pause { "pause" } else { "stop" }.into());
+    let quiet = |c: &mut std::process::Command| { let _ = c.stdout(Stdio::null()).stderr(Stdio::null()).status(); };
+    if cfg!(windows) {
+        quiet(crate::paths::command("taskkill").args(["/T", "/F", "/PID", &pid.to_string()]));
+    } else {
+        quiet(crate::paths::command("pkill").args(["-TERM", "-P", &pid.to_string()]));
+        quiet(crate::paths::command("kill").args(["-TERM", &pid.to_string()]));
+    }
+    true
+}
+
+/// Run ids of agents working right now.
+pub fn running() -> Vec<String> {
+    LIVE.lock().unwrap_or_else(|e| e.into_inner()).keys().cloned().collect()
+}
+
 /// C:\\Users\\a\\x.exe as Git Bash writes it: /c/Users/a/x.exe.
 pub fn git_bash_path(p: &std::path::Path) -> String {
     let s = p.display().to_string();
@@ -603,5 +645,49 @@ mod git_bash_tests {
         assert_eq!(super::git_bash_path(std::path::Path::new(r"\\?\C:\Users\Andrew\AppData\Local\BrewixGames\brewixgames.exe")), "/c/Users/Andrew/AppData/Local/BrewixGames/brewixgames.exe");
         assert_eq!(super::git_bash_path(std::path::Path::new(r"D:\a b\x.exe")), "/d/a b/x.exe");
         assert_eq!(super::git_bash_path(std::path::Path::new("/usr/bin/x")), "/usr/bin/x");
+    }
+}
+
+#[cfg(all(test, unix))]
+mod stop_tests {
+    use super::*;
+    #[test]
+    fn andrew_can_pause_or_stop_a_running_agent() {
+        let d = std::env::temp_dir().join(format!("stop-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("studio")).unwrap();
+        for f in ["agents.json", "pricing.json", "pipelines.json"] {
+            fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../studio").join(f), d.join("studio").join(f)).unwrap();
+        }
+        fs::create_dir_all(d.join("vault/.claude/agents")).unwrap();
+        fs::write(d.join("vault/.claude/agents/architect.md"), "---\nname: architect\n---\n").unwrap();
+        let fake = d.join("fake-claude");
+        fs::write(&fake, "#!/bin/sh\nsleep 60\n").unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        for pause in [true, false] {
+            let r = runs::prepare(&d, "architect", "a design").unwrap();
+            runs::approve(&d, &r.run_id, r.estimate.cap_usd).unwrap();
+            let (dd, f, id) = (d.clone(), fake.clone(), r.run_id.clone());
+            let t = std::time::Instant::now();
+            let h = std::thread::spawn(move || run_approved(&dd, &id, &f, |_| {}));
+            while !running().contains(&r.run_id) {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            assert!(stop_run(&r.run_id, pause));
+            let out = h.join().unwrap().unwrap();
+            assert!(!out.ok);
+            assert!(t.elapsed().as_secs() < 20, "ended at once, not after the agent's 60 s");
+            let after = runs::load(&d, &r.run_id).unwrap();
+            if pause {
+                assert_eq!(after.status, "paused");
+                assert!(runs::due(&d).is_empty(), "a run Andrew paused waits for him");
+                runs::ready_to_continue(&d, &r.run_id).unwrap();
+            } else {
+                assert_eq!(after.status, "cancelled");
+            }
+            assert!(!running().contains(&r.run_id));
+        }
+        let _ = fs::remove_dir_all(&d);
     }
 }

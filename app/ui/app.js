@@ -1218,8 +1218,17 @@ function jobRow(j) {
       j.attempt ? el("div", { class: "note" }, `Try ${j.attempt + 1} of 4${j.attempt >= 2 ? " (stronger model)" : ""}${j.rescuing ? "; Lead is working out a new approach" : ""}`) : null),
     el("span", { class: j.stuck ? "pill red-soft" : j.status === "working" ? "pill red" : j.status === "done" ? "pill white" : "pill" },
       j.rescuing ? "Lead is finding a fix" : j.launch_failed || (j.status === "queued" && j.retry_at) ? `Retrying ${j.retry_at ? "at " + new Date(j.retry_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "soon"}` : ({ queued: "Waiting", working: "Working", paused: "Paused", done: "Done", failed: "Retrying" })[j.status] || cap(j.status)),
+    ...agentControls(j.status, j.run_id),
     j.output ? el("button", { class: "link", onclick: () => openText(j.output) }, "Open") : null,
     el("button", { class: "link", onclick: () => (location.hash = "#run/" + j.run_id) }, "Details"));
+}
+// Pause / Stop for an agent that is working or waiting; Resume for a paused one.
+function agentControls(status, runId) {
+  const act = (label, fn) => el("button", { class: "link", onclick: async (e) => { e.stopPropagation(); e.currentTarget.disabled = true; try { await fn(); } catch (err) { toast(String(err), true); e.currentTarget.disabled = false; } } }, label);
+  const stop = (pause) => async () => { await invoke("agent_stop", { id: runId, pause }); toast(pause ? "Pausing. Its files are kept." : "Stopped. Its files are kept."); };
+  if (status === "working" || status === "queued" || status === "running" || status === "approved") return [act("Pause", stop(true)), act("Stop", stop(false))];
+  if (status === "paused") return [act("Resume", async () => { await invoke("continue_now", { id: runId }); toast("Continuing where it left off."); })];
+  return [];
 }
 async function viewAutopilot(slug) {
   const nav = navSeq;
@@ -1307,7 +1316,7 @@ T.event.listen("run-line", (ev) => {
 // Change requests: write what to change, press Send, and each request goes
 // to the agent that fits it. Up to three agents work at once.
 const CHANGE_AGENTS = ["auto", "builder", "frame", "scenic", "motion", "modeler", "librarian", "merchant", "tuner", "crowd", "splash", "architect", "planner", "liveops"];
-const changeLabel = (c) => ({ queued: `Waiting for ${cap(c.agent)}`, working: `${cap(c.agent)} is on it`, paused: "Paused (usage limit)", done: "Done", failed: "Didn't finish" })[c.status] || cap(c.status);
+const changeLabel = (c) => ({ queued: `Waiting for ${cap(c.agent)}`, working: `${cap(c.agent)} is on it`, paused: "Paused", cancelled: "Stopped", done: "Done", failed: "Didn't finish" })[c.status] || cap(c.status);
 const changePill = (c) => el("span", { class: c.status === "working" ? "pill red" : c.status === "failed" ? "pill red-soft" : c.status === "done" ? "pill white" : "pill" }, changeLabel(c));
 // Confirm sheet: who does each request and what it may cost. Send approves.
 async function sendChanges(target, reqs, after) {
@@ -1350,7 +1359,7 @@ function changeRow(c) {
       c.summary ? el("div", { class: "note", style: "margin-top:4px" }, c.summary) : null,
       c.status === "failed" && c.checks.length ? el("div", { class: "note" }, c.checks.filter((k) => !k.passed).map((k) => `${k.name}${k.detail ? ": " + k.detail.slice(0, 160) : ""}`).join(" · ")) : null),
     changePill(c),
-    c.status === "paused" ? el("button", { class: "btn secondary", onclick: (e) => continueNow(c.run_id, e.currentTarget) }, "Continue Now") : null,
+    ...agentControls(c.status, c.run_id),
     el("button", { class: "link", onclick: () => (location.hash = "#run/" + c.run_id) }, "Details"));
 }
 async function viewChanges() {
@@ -1393,7 +1402,13 @@ T.event.listen("handoff", (ev) => {
   refreshStatus();
   if ((location.hash || "") === "#changes") viewChanges();
 });
+// Many updates arrive together when several agents work: redraw once.
+let changeRedraw = null;
 T.event.listen("change-update", () => {
+  clearTimeout(changeRedraw);
+  changeRedraw = setTimeout(redrawAfterChange, 400);
+});
+function redrawAfterChange() {
   const h = location.hash || "";
   refreshStatus();
   // Never redraw under someone typing; the next visit shows the news.
@@ -1402,7 +1417,7 @@ T.event.listen("change-update", () => {
   if (h.startsWith("#autopilot")) viewAutopilot(h.split("/")[1]);
   else if (h === "#changes") viewChanges();
   else if (h.startsWith("#plans")) viewPlans(h.split("/")[1]);
-});
+}
 
 // Inspiration: pictures of popular games (UI, characters, worlds) with what
 // to copy from each. Pictures download to this computer only.
@@ -1758,6 +1773,7 @@ async function viewRunDetail(id) {
             s.gate ? el("div", {}, el("div", { class: "note", style: "margin-top:8px" }, s.gate.passed ? "Verified: all checks passed" : "Verification: some checks failed"), checksList(s.gate.checks)) : null
           )
         )))),
+    d.status === "running" ? el("div", { class: "inline", style: "gap:12px;margin:8px 0" }, ...agentControls("running", id)) : null,
     live || d.status === "running" ? el("div", { class: "section" }, el("div", { class: "section-label" }, "Live output"), el("pre", { class: "log", id: "live-log" }, state.logs[id] || "Starting…")) : null
   ));
 }
@@ -1832,7 +1848,8 @@ function appendLog(id, text) {
   const log = $("live-log");
   if (log && location.hash === "#run/" + id) {
     log.append(text + "\n");
-    if (log.textContent.length > LOG_MAX) log.textContent = t;
+    log._len = (log._len || 0) + text.length + 1;
+    if (log._len > LOG_MAX * 1.5) { log.textContent = t; log._len = t.length; }
     if (!log._scrollQueued) { log._scrollQueued = true; requestAnimationFrame(() => { log._scrollQueued = false; log.scrollTop = log.scrollHeight; }); }
   }
 }

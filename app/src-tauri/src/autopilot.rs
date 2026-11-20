@@ -751,6 +751,8 @@ pub fn on_finish(root: &Path, c: &Change) {
                     let _ = queue(root, &mut a, &mid, &c.agent, &c.text, &key, next, &c.source, Some(&why), &c.kind);
                 }
             }
+            "paused" if crate::runs::load(root, &c.run_id).ok().and_then(|r| r.resume_at).as_deref() == Some("9999-12-31T00:00:00Z") => post(&mut a, "andrew", Some(&c.agent), &format!("Paused {}. Its files are kept; Resume continues where it stopped.", c.agent)),
+            "cancelled" => post(&mut a, "andrew", Some(&c.agent), &format!("Stopped {}.", c.agent)),
             "paused" => post(&mut a, "autopilot", None, "Claude's usage limit is reached. Work continues by itself when it resets."),
             _ => {}
         }
@@ -855,12 +857,28 @@ pub fn control(root: &Path, slug: &str, action: &str, budget_usd: Option<f64>) -
         match action {
             "pause" => {
                 a.status = "paused".into();
-                post(&mut a, "andrew", None, "Paused the autopilot. Jobs already running finish; nothing new starts.");
+                // Agents working now pause too (their files are kept).
+                let mut n = 0;
+                for c in mine(root, slug).iter().filter(|c| c.status == "working") {
+                    if crate::bridge::stop_run(&c.run_id, true) {
+                        n += 1;
+                    }
+                }
+                post(&mut a, "andrew", None, &format!("Paused the game{}. Nothing new starts until you resume.", if n > 0 { format!(" and {n} working agent(s); they continue where they stopped on Resume") } else { String::new() }));
             }
             "resume" => {
                 a.status = "running".into();
                 a.why = None;
-                post(&mut a, "andrew", None, "Resumed the autopilot.");
+                // Agents Andrew paused continue (the app's minute check starts them).
+                for c in mine(root, slug).iter().filter(|c| c.status == "paused") {
+                    if let Ok(mut r) = crate::runs::load(root, &c.run_id) {
+                        if r.status == "paused" && r.resume_at.as_deref() == Some("9999-12-31T00:00:00Z") {
+                            r.resume_at = None;
+                            let _ = crate::runs::save(root, &r);
+                        }
+                    }
+                }
+                post(&mut a, "andrew", None, "Resumed the game.");
             }
             "budget" => {
                 let b = budget_usd.ok_or("no budget given")?;

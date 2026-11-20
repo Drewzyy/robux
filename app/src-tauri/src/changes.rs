@@ -451,6 +451,13 @@ pub fn finish(root: &Path, change_id: &str) -> Option<Change> {
     if req.status == "paused" {
         return update(root, change_id, |x| x.status = "paused".into());
     }
+    if req.status == "cancelled" {
+        return update(root, change_id, |x| {
+            x.status = "cancelled".into();
+            x.summary = Some("Stopped by you.".into());
+            x.finished_at = Some(crate::now_rfc3339());
+        });
+    }
     let dir = crate::runs::run_dir(root, &c.run_id).ok()?;
     let note = fs::read_to_string(dir.join("change.md")).unwrap_or_default();
     let mut checks = vec![
@@ -604,6 +611,39 @@ pub fn env_problem(c: &Change) -> Option<&'static str> {
 /// True when the job failed for a reason outside the agent's work.
 pub fn launch_failed(c: &Change) -> bool {
     env_problem(c).is_some()
+}
+
+/// Andrew stops or pauses one agent's job. A working job ends its Claude
+/// process now (files are kept); a waiting one never starts. Paused jobs
+/// continue from where they stopped with Resume (continue_now on the run).
+pub fn stop_or_pause(root: &Path, id: &str, pause: bool) -> Result<Change, String> {
+    let c = list(root).into_iter().find(|c| c.id == id || c.run_id == id).ok_or("no such job")?;
+    match c.status.as_str() {
+        "working" => {
+            if !crate::bridge::stop_run(&c.run_id, pause) {
+                return Err("That agent is just starting or finishing; try again in a moment.".into());
+            }
+            Ok(c)
+        }
+        "queued" => {
+            if pause {
+                let mut r = crate::runs::load(root, &c.run_id)?;
+                r.status = "paused".into();
+                r.resume_at = Some("9999-12-31T00:00:00Z".into());
+                r.error = Some("Paused by you before it started.".into());
+                crate::runs::save(root, &r)?;
+            }
+            update(root, &c.id, |x| {
+                x.status = if pause { "paused" } else { "cancelled" }.into();
+                if !pause {
+                    x.summary = Some("Stopped by you before it started.".into());
+                    x.finished_at = Some(crate::now_rfc3339());
+                }
+            })
+            .ok_or_else(|| "no such job".into())
+        }
+        s => Err(format!("That job is {s}; there is nothing to stop.")),
+    }
 }
 
 /// Hold a queued change until `minutes` from now.

@@ -239,19 +239,38 @@ pub fn load(root: &Path, run_id: &str) -> Result<RunRequest, String> {
     serde_json::from_str(&t).map_err(|e| format!("parse {}: {e}", p.display()))
 }
 
+/// Parsed request.json files, kept while the file is unchanged (same size
+/// and time). The app lists every run every few seconds; parsing hundreds
+/// of big prompts each time made it lag.
+static CACHE: std::sync::Mutex<Option<std::collections::HashMap<PathBuf, (std::time::SystemTime, u64, RunRequest)>>> = std::sync::Mutex::new(None);
+
 pub fn list(root: &Path) -> Result<Vec<RunRequest>, String> {
     let d = runs_dir(root);
     let mut out = vec![];
+    let mut guard = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let cache = guard.get_or_insert_with(Default::default);
+    let mut seen = std::collections::HashSet::new();
     if let Ok(entries) = fs::read_dir(&d) {
         for e in entries.flatten() {
             let p = e.path().join("request.json");
-            if let Ok(t) = fs::read_to_string(&p) {
-                if let Ok(r) = serde_json::from_str::<RunRequest>(&t) {
+            let Ok(m) = fs::metadata(&p) else { continue };
+            let (t, len) = (m.modified().unwrap_or(std::time::UNIX_EPOCH), m.len());
+            seen.insert(p.clone());
+            if let Some((ct, cl, r)) = cache.get(&p) {
+                if *ct == t && *cl == len {
+                    out.push(r.clone());
+                    continue;
+                }
+            }
+            if let Ok(text) = fs::read_to_string(&p) {
+                if let Ok(r) = serde_json::from_str::<RunRequest>(&text) {
+                    cache.insert(p, (t, len, r.clone()));
                     out.push(r);
                 }
             }
         }
     }
+    cache.retain(|k, _| seen.contains(k) || !k.starts_with(&d));
     out.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     Ok(out)
 }
@@ -389,5 +408,39 @@ mod stale_tests {
         assert_eq!(reset_time("limit reached|1795432800", now), chrono::Utc.timestamp_opt(1795432800 + 60, 0).unwrap());
         assert_eq!(reset_time("usage limit reached", now), now + chrono::Duration::minutes(30));
         assert_eq!(reset_time("resets 2pm (America/New_York)", now), now + chrono::Duration::minutes(30));
+    }
+}
+
+#[cfg(test)]
+mod list_speed_tests {
+    #[test]
+    fn listing_many_big_runs_is_fast_the_second_time() {
+        let root = std::env::temp_dir().join(format!("runs-speed-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let base: serde_json::Value = serde_json::json!({"run_id":"x","agent":"builder","prompt":"p".repeat(100_000),"estimate":{"agent":"builder","model":"m","low_usd":0.0,"expected_usd":0.0,"high_usd":0.0,"cap_usd":0.0,"cache_write_tokens":0,"cache_read_tokens":0,"output_tokens":0,"assumptions":[],"pricing_checked":"","subscription_note":""},"status":"done","created_at":"2026-11-01T00:00:00Z"});
+        for i in 0..400 {
+            let d = root.join("runs").join(format!("run-builder-{i}"));
+            std::fs::create_dir_all(&d).unwrap();
+            let mut v = base.clone();
+            v["run_id"] = format!("run-builder-{i}").into();
+            std::fs::write(d.join("request.json"), v.to_string()).unwrap();
+        }
+        let t = std::time::Instant::now();
+        let a = super::list(&root).unwrap();
+        let first = t.elapsed();
+        let t = std::time::Instant::now();
+        let b = super::list(&root).unwrap();
+        let second = t.elapsed();
+        eprintln!("first {first:?}, second {second:?}");
+        assert_eq!(a.len(), 400);
+        assert_eq!(b.len(), 400);
+        assert!(second < first / 2, "first {first:?}, second {second:?}");
+        // A changed run is read again.
+        let p = root.join("runs/run-builder-7/request.json");
+        let mut v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&p).unwrap()).unwrap();
+        v["status"] = "failed".into();
+        std::fs::write(&p, v.to_string()).unwrap();
+        assert_eq!(super::list(&root).unwrap().iter().find(|r| r.run_id == "run-builder-7").unwrap().status, "failed");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

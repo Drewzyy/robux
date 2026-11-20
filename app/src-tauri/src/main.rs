@@ -540,6 +540,23 @@ fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
     Ok(n)
 }
 
+/// Stop or pause one agent: a job (change) id, or a single run's id.
+#[tauri::command]
+async fn agent_stop(app: AppHandle, id: String, pause: bool) -> Result<(), String> {
+    let r = root()?;
+    if studio_core::changes::list(&r).iter().any(|c| c.id == id || c.run_id == id) {
+        studio_core::changes::stop_or_pause(&r, &id, pause)?;
+    } else if !bridge::stop_run(&id, pause) {
+        // A pipeline: stop the stage that is running.
+        let p = pipeline::load(&r, &id)?;
+        let live = bridge::running();
+        let stage = p.stages.iter().find(|s| live.contains(&s.run_id)).ok_or("Nothing is running there right now.")?;
+        bridge::stop_run(&stage.run_id, pause);
+    }
+    let _ = app.emit("change-update", json!({ "id": id }));
+    Ok(())
+}
+
 #[tauri::command]
 async fn continue_now(app: AppHandle, id: String) -> Result<usize, String> {
     continue_paused(&app, Some(&id))
@@ -1160,6 +1177,7 @@ fn main() {
             pipeline_cancel,
             pipeline_approve_and_start,
             continue_now,
+            agent_stop,
             continue_local,
             changes_list,
             autopilot_list,
