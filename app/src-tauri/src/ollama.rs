@@ -146,8 +146,8 @@ pub fn binary() -> Option<std::path::PathBuf> {
 /// least 64k for coding tools; smaller computers get what fits.
 pub fn context_tokens() -> u32 {
     match memory_gb().unwrap_or(16.0) {
-        m if m >= 28.0 => 65536,
-        m if m >= 14.0 => 40960,
+        m if m >= 48.0 => 65536,
+        m if m >= 24.0 => 49152,
         _ => 32768,
     }
 }
@@ -208,7 +208,15 @@ pub fn ensure_running() -> bool {
         return true;
     }
     let Some(bin) = binary() else { return false };
-    if crate::paths::command(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string()).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
+    if crate::paths::command(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string())
+        // Memory: one model and one conversation at a time, a compact
+        // memory window (q8 halves it), and the model unloads after 5 idle
+        // minutes so the computer gets its RAM back.
+        .env("OLLAMA_NUM_PARALLEL", "1")
+        .env("OLLAMA_MAX_LOADED_MODELS", "1")
+        .env("OLLAMA_FLASH_ATTENTION", "1")
+        .env("OLLAMA_KV_CACHE_TYPE", "q8_0")
+        .env("OLLAMA_KEEP_ALIVE", "5m").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
         return false;
     }
     for _ in 0..20 {

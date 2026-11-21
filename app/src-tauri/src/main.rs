@@ -465,7 +465,7 @@ async fn autopilot_control(app: AppHandle, slug: String, action: String, budget_
 #[tauri::command]
 async fn changes_list() -> Result<Value, String> {
     let r = root()?;
-    Ok(json!({ "changes": studio_core::changes::list(&r), "max_at_once": studio_core::changes::MAX_AT_ONCE }))
+    Ok(json!({ "changes": studio_core::changes::list(&r), "max_at_once": studio_core::changes::max_at_once() }))
 }
 
 #[tauri::command]
@@ -1138,7 +1138,8 @@ fn main() {
         runs::recover_stale(&r);
         studio_core::changes::recover(&r);
     }
-    if settings::load().ollama_autostart {
+    // Only when the local engine is in use: an idle Ollama still costs memory.
+    if settings::load().ollama_autostart && settings::load().engine == "ollama" {
         std::thread::spawn(ollama::ensure_running);
     }
     tauri::Builder::default()

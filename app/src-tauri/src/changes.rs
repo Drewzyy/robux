@@ -402,7 +402,7 @@ pub fn take_next(root: &Path) -> Vec<Change> {
     let mut out = vec![];
     let finished: std::collections::HashSet<String> = all.iter().filter(|c| ["done", "failed", "cancelled"].contains(&c.status.as_str())).map(|c| c.id.clone()).collect();
     for c in all.iter_mut().filter(|c| c.status == "queued") {
-        if busy.len() >= MAX_AT_ONCE {
+        if busy.len() >= max_at_once() {
             break;
         }
         if c.after.as_ref().map(|a| !finished.contains(a)).unwrap_or(false) {
@@ -646,6 +646,23 @@ pub fn stop_or_pause(root: &Path, id: &str, pause: bool) -> Result<Change, Strin
     }
 }
 
+/// Agents working at once. Each is its own Claude Code program (about
+/// 300 to 600 MB); on the local engine each also drives the model, and
+/// Ollama answers one at a time anyway. Smaller computers run fewer.
+pub fn max_at_once() -> usize {
+    if let Some(n) = std::env::var("ROBUX_MAX_AT_ONCE").ok().and_then(|v| v.parse().ok()) {
+        return n;
+    }
+    if crate::settings::load().engine == "ollama" {
+        return 1;
+    }
+    match crate::ollama::memory_gb() {
+        Some(m) if m < 12.0 => 1,
+        Some(m) if m < 24.0 => 2,
+        _ => MAX_AT_ONCE,
+    }
+}
+
 /// Hold a queued change until `minutes` from now.
 pub fn delay(root: &Path, id: &str, minutes: i64) {
     update(root, id, |x| x.not_before = Some((chrono::Utc::now() + chrono::Duration::minutes(minutes)).to_rfc3339()));
@@ -758,6 +775,7 @@ mod tests {
             change("5", "motion", "project:a", "queued"),
         ];
         save_all(&d, &all).unwrap();
+        std::env::set_var("ROBUX_MAX_AT_ONCE", "3"); // a big computer
         let first: Vec<String> = take_next(&d).into_iter().map(|c| c.id).collect();
         assert_eq!(first, vec!["1", "3", "4"], "two Frames on the same game never run together; at most 3");
         assert!(take_next(&d).is_empty(), "all three slots busy");
