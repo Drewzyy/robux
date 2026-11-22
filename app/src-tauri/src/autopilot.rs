@@ -497,7 +497,10 @@ pub const QUALITY_MIN_AREA: f64 = 8.0;
 pub const QUALITY_SCORE: f64 = 0.88;
 const QUALITY_AGENTS: [&str; 10] = ["builder", "frame", "motion", "scenic", "modeler", "librarian", "merchant", "tuner", "crowd", "splash"];
 
-const BENCH_JOB: &str = "Benchmark projects/<game> against the 3 best Roblox games in its niche. Find them in 16-Market-Research (visual-refs-*, teardown-*, reviews-* notes; their pictures are in attachments/game-refs/<id>/). Read the game's code and UI, and the latest playtest and simulation in the earlier work. Score each area 0 to 10 against those games (10 = as good as the best of them): first-60-seconds, core-loop, progression, ui-polish, visuals, environment, audio, game-feel, retention, monetization-fairness, phone-performance, content. Be strict: a rough game is 3 to 5; 8.5 or more means it would hold its own next to them. Write benchmark.md, and benchmark.json exactly: {\"compared_to\": [\"<game>\", ...], \"areas\": {\"first-60-seconds\": n, ...}, \"overall\": n, \"gaps\": [{\"area\": \"...\", \"fix\": \"<one specific change>\", \"agent\": \"<builder|frame|motion|scenic|modeler|librarian|merchant|tuner|crowd|splash>\"}]} with the biggest gaps first (up to 6). Do not start other agents; the app assigns the fixes.";
+const BENCH_JOB: &str = "Benchmark projects/<game> against the 3 best Roblox games in its niche. Find them in 16-Market-Research (visual-refs-*, teardown-*, reviews-* notes; their pictures are in attachments/game-refs/<id>/). Read the game's code and UI, and the latest playtest and simulation in the earlier work. Score each area 0 to 10 against those games (10 = as good as the best of them): first-60-seconds, core-loop, progression, ui-polish, visuals, environment, audio, game-feel, retention, monetization-fairness, phone-performance, content. Be strict: a rough game is 3 to 5; 8.5 or more means it would hold its own next to them. Write benchmark.md, and benchmark.json exactly: {\"compared_to\": [\"<game>\", ...], \"areas\": {\"first-60-seconds\": n, ...}, \"overall\": n, \"gaps\": [{\"area\": \"...\", \"fix\": \"<one specific change>\", \"agent\": \"<builder|frame|motion|scenic|modeler|librarian|merchant|tuner|crowd|splash>\"}]} with the biggest gaps first (up to 6). Read the last benchmark and the last test (change.md of the playtest in the earlier work): in benchmark.md say which of last round's fixes moved their area's score and which did not, and do not suggest again a fix that did not work; pick a different approach. Do not start other agents; the app assigns the fixes.";
+
+/// The researcher's job (every third round of the quality loop).
+const RESEARCH_JOB: &str = "Research what the 3 best Roblox games in this game's niche do best right now, area by area: first-60-seconds, core-loop, progression, ui-polish, visuals, environment, audio, game-feel, retention, monetization-fairness, phone-performance, content. Be concrete and observable (what the player sees, hears and does, with numbers where you can: timings, rewards, screen layouts). Use the 16-Market-Research notes and the game's references, and the web if you can reach it; mark anything you could not verify as UNVERIFIED. Write top-games.md in your run folder (one section per area) and a short change.md. Do not change the game.";
 
 /// Read a benchmark: overall, the lowest area, and the gaps.
 pub fn read_benchmark(dir: &Path) -> Option<(f64, f64, Vec<(String, String, String)>, Vec<String>)> {
@@ -551,9 +554,22 @@ fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
             return;
         }
     }
+    // Researcher: every third round (1, 4, 7...) find out again what the
+    // best games in the niche do best, so the bar follows them.
+    let research_round = r - (r - 1) % 3;
+    let research_key = format!("quality/{research_round}/research");
+    match get(&research_key) {
+        None if research_round == r => {
+            let _ = queue(root, a, "quality", "pulse", RESEARCH_JOB, &research_key, 0, "autopilot", None, "change");
+            return;
+        }
+        Some(t) if open(&t) => return,
+        _ => {}
+    }
+    let research = get(&research_key).filter(|t| t.status == "done").map(|t| format!(" The latest research on what the top games do best is runs/{}/top-games.md: score against it.", t.run_id)).unwrap_or_default();
     let bench_key = format!("quality/{r}/bench");
     let Some(bench) = get(&bench_key) else {
-        let _ = queue(root, a, "quality", "director", BENCH_JOB, &bench_key, 0, "autopilot", None, "change");
+        let _ = queue(root, a, "quality", "director", &format!("{BENCH_JOB}{research}"), &bench_key, 0, "autopilot", None, "change");
         return;
     };
     if bench.status != "done" {
@@ -606,6 +622,17 @@ fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
     // retried and rescued by on_finish).
     if !fix_keys.iter().all(|k| get(k).map(|c| c.status == "done").unwrap_or(false)) {
         return;
+    }
+    // Tester: check this round's fixes work together before scoring again.
+    let test_key = format!("quality/{r}/test");
+    match get(&test_key) {
+        None => {
+            let job = format!("Test this round's fixes (quality round {r}; what they were meant to fix: runs/{}/benchmark.md). Run the build checks and walk through the first 60 seconds and the core loop (in Roblox Studio if it is connected, otherwise in the code). In change.md list what works, what broke, and every error, and say which fixes actually improved the game. If a fix broke something, ask builder to repair it with requests.json.", bench.run_id);
+            let _ = queue(root, a, "quality", "playtest", &job, &test_key, 0, "autopilot", None, "change");
+            return;
+        }
+        Some(t) if t.status != "done" => return,
+        _ => {}
     }
     // Next round. If the score stopped climbing for two rounds, Lead
     // rethinks the approach first.
@@ -1017,6 +1044,13 @@ mod tests {
         d
     }
     fn finish_as(root: &Path, c: &Change, status: &str, fail: &str) -> Change {
+        // Its run ended too (nothing stays reserved against the budget).
+        if let Ok(mut r) = crate::runs::load(root, &c.run_id) {
+            r.status = if status == "done" { "done" } else { "failed" }.into();
+            r.actual_cost_usd = Some(0.01);
+            r.finished_at = Some(crate::now_rfc3339());
+            let _ = crate::runs::save(root, &r);
+        }
         changes::set_result(root, &c.id, status, if fail.is_empty() { vec![] } else { vec![crate::queue::GateCheck { name: fail.into(), passed: false, detail: "missing".into() }] });
         let c = changes::list(root).into_iter().find(|x| x.id == c.id).unwrap();
         on_finish(root, &c);
@@ -1210,8 +1244,13 @@ mod tests {
             save(&root, &g).unwrap();
         }
         advance(&root, &a.slug);
+        // Researcher first: what the top games do best.
+        let rs = queued(&root, &a.slug);
+        assert_eq!((rs.len(), rs[0].agent.as_str(), rs[0].key.as_deref()), (1, "pulse", Some("quality/1/research")));
+        finish_as(&root, &rs[0], "done", "");
         let b1 = queued(&root, &a.slug);
         assert_eq!((b1.len(), b1[0].agent.as_str(), b1[0].key.as_deref()), (1, "director", Some("quality/1/bench")));
+        assert!(crate::runs::load(&root, &b1[0].run_id).unwrap().prompt.contains("top-games.md"), "the reviewer scores against the research");
         assert!(crate::runs::load(&root, &b1[0].run_id).unwrap().prompt.contains("3 best Roblox games in its niche"));
         // Round 1: far from the bar: the gaps become fixes for the right agents.
         bench(&root, &b1[0], 5.0, 5.0);
@@ -1227,6 +1266,10 @@ mod tests {
             for f in queued(&root, &a.slug).into_iter().filter(|c| c.key.as_deref().map(|k| k.contains("/fix/")).unwrap_or(false)) {
                 finish_as(&root, &f, "done", "");
             }
+            // Tester checks the fixes before the next score.
+            let t = queued(&root, &a.slug).into_iter().find(|c| c.key.as_deref() == Some(&format!("quality/{r}/test"))).unwrap_or_else(|| panic!("tester after the fixes: {:?} {:?} {:?}", queued(&root, &a.slug).iter().map(|c| c.key.clone()).collect::<Vec<_>>(), load(&root, &a.slug).unwrap().status, load(&root, &a.slug).unwrap().board.last().map(|b| b.text.clone())));
+            assert_eq!(t.agent, "playtest");
+            finish_as(&root, &t, "done", "");
             let q = queued(&root, &a.slug);
             if r < 3 {
                 let b = q.iter().find(|c| c.key.as_deref() == Some(&format!("quality/{}/bench", r + 1))).cloned().expect("next round's benchmark");
