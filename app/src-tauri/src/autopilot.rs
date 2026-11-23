@@ -289,6 +289,32 @@ fn spent(root: &Path, slug: &str) -> (f64, f64) {
     (spent, reserved)
 }
 
+/// Jobs finished between two code audits.
+pub const AUDIT_EVERY: usize = 12;
+
+/// Self-improvement: once the game has code, every AUDIT_EVERY finished
+/// jobs Builder audits it for waste and bugs (slow loops, leaks, network
+/// spam, unsafe saves, duplicated code) and fixes them without changing
+/// how the game plays. Runs on its own; nothing for Andrew to do.
+fn code_audit(root: &Path, a: &mut Autopilot, all: &[Change]) {
+    if !root.join("projects").join(&a.slug).join("default.project.json").is_file() {
+        return;
+    }
+    let audits: Vec<&Change> = all.iter().filter(|c| c.key.as_deref().map(|k| k.starts_with("audit/")).unwrap_or(false)).collect();
+    if audits.iter().any(|c| ["queued", "working", "paused"].contains(&c.status.as_str())) {
+        return;
+    }
+    let n = audits.iter().filter_map(|c| c.key.as_deref()?.strip_prefix("audit/")?.split('/').next()?.parse::<usize>().ok()).max().unwrap_or(0);
+    let done = all.iter().filter(|c| c.status == "done" && !c.key.as_deref().unwrap_or("").starts_with("audit/")).count();
+    if done < AUDIT_EVERY * (n + 1) {
+        return;
+    }
+    let mid = a.milestones.iter().find(|m| m.status == "working" || m.status == "revising").or_else(|| a.milestones.iter().rev().find(|m| m.status != "waiting")).map(|m| m.id.clone()).unwrap_or_else(|| "build".into());
+    let job = "Code audit (self-improvement): read projects/<game>'s code and make it better without changing how the game plays. Find and fix: work done every frame that need not be, tables or connections that grow and are never cleaned up, remote events fired too often, DataStore calls without pcall and retries, duplicated code that should be one module, slow searches through the whole workspace, and anything the build checks warn about. Smallest safe changes only; the game must still build. In change.md list each change, why, and what you measured or checked.";
+    post(a, "autopilot", Some("builder"), "Code audit: Builder checks the game's code for waste and bugs and fixes them.");
+    let _ = queue(root, a, &mid, "builder", job, &format!("audit/{}", n + 1), 0, "autopilot", None, "change");
+}
+
 /// The next model up for a last try.
 pub fn step_up(model: &str) -> String {
     if model.contains("haiku") { "claude-sonnet-5-5".into() } else { STRONG_MODEL.into() }
@@ -372,6 +398,7 @@ pub fn advance(root: &Path, slug: &str) {
     }
     let tpl = template();
     let all = mine(root, slug);
+    code_audit(root, &mut a, &all);
     let n = a.milestones.len();
     for i in 0..n {
         let (mid, title, review, waves) = (&tpl[i].0, tpl[i].1, tpl[i].2, &tpl[i].3);
@@ -1148,6 +1175,26 @@ mod tests {
         assert_eq!(rescues, MAX_RESCUES, "no endless rescues");
         assert!(changes::list(&root).iter().any(|c| c.key == first_key && c.status == "done" && c.summary.as_deref().unwrap_or("").starts_with("Skipped")), "skipped, counted as finished");
         assert!(g.board.iter().any(|b| b.text.contains("Skipped")));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn builder_audits_the_code_every_dozen_finished_jobs() {
+        let root = studio();
+        let a = start(&root, "Audit Game", "Catch falling stars.", 1_000_000.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        let few: Vec<Change> = (0..AUDIT_EVERY - 1).map(|i| ch(&format!("x/{i}"), 0, "done", "2026-01-01")).collect();
+        code_audit(&root, &mut g, &few);
+        assert!(!queued(&root, &a.slug).iter().any(|c| c.key.as_deref().unwrap_or("").starts_with("audit/")), "not before the game has code");
+        fs::create_dir_all(root.join("projects").join(&a.slug)).unwrap();
+        fs::write(root.join("projects").join(&a.slug).join("default.project.json"), "{}").unwrap();
+        code_audit(&root, &mut g, &few);
+        assert!(!queued(&root, &a.slug).iter().any(|c| c.key.as_deref().unwrap_or("").starts_with("audit/")), "not before a dozen jobs");
+        let enough: Vec<Change> = (0..AUDIT_EVERY).map(|i| ch(&format!("x/{i}"), 0, "done", "2026-01-01")).collect();
+        code_audit(&root, &mut g, &enough);
+        let q = queued(&root, &a.slug);
+        let audit = q.iter().find(|c| c.key.as_deref() == Some("audit/1")).expect("audit queued");
+        assert_eq!(audit.agent, "builder");
         let _ = fs::remove_dir_all(&root);
     }
 
