@@ -18,7 +18,7 @@
       "context_tokens": 20000,
       "output_tokens_per_turn": 200,
       "base_tokens": 9000,
-      "allowed_tools": [
+      "allowed_tools": ["Bash(brewix watch:*)", "Bash(brewix study:*)", 
         "Read",
         "Glob",
         "Skill",
@@ -29,7 +29,7 @@
         "Bash(brewix map:*)",
         "Bash(brewix node:*)"
       ],
-      "allowed_sections": [
+      "allowed_sections": ["18-Source-Library", 
         "00-Start-Here",
         "16-Market-Research",
         "02-Game-Design",
@@ -85,7 +85,7 @@
         "Bash(brewix node:*)",
         "Bash(brewix watch:*)"
       ],
-      "allowed_sections": [
+      "allowed_sections": ["18-Source-Library", 
         "00-Start-Here",
         "02-Game-Design",
         "07-Monetization",
@@ -140,7 +140,7 @@
         "Bash(graphify god-nodes:*)",
         "Bash(brewix watch:*)"
       ],
-      "allowed_sections": [
+      "allowed_sections": ["18-Source-Library", 
         "00-Start-Here",
         "13-Luau-Engineering",
         "07-Monetization",
@@ -237,7 +237,7 @@
         "Bash(brewix node:*)",
         "Bash(brewix watch:*)"
       ],
-      "allowed_sections": [
+      "allowed_sections": ["18-Source-Library", 
         "00-Start-Here",
         "08-UI-UX",
         "07-Monetization",
@@ -412,7 +412,7 @@
       "context_tokens": 12000,
       "output_tokens_per_turn": 900,
       "base_tokens": 9000,
-      "allowed_tools": [
+      "allowed_tools": ["Bash(brewix study:*)", 
         "Read",
         "Glob",
         "Grep",

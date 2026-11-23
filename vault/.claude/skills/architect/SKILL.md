@@ -73,3 +73,4 @@ Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read 
 When the design names a look or a reference game, check `16-Market-Research/visual-refs-*` for that game's Steal this line and use it.
 
 Learned from real open-source Roblox games: `brewix node 18-Source-Library/open-source-game-lessons 18-Source-Library/uncopylocked-games-studied` (pure logic apart from effects, server-owned economy, client-side visuals on tagged objects, Trove cleanup, loading screen, teaching through the world). Follow its Do this block when you set up or change game code.
+Research Andrew asked for lives in `19-Project-Memory/research/` (newest first): read the Do this section of any note that fits your task.

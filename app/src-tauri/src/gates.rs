@@ -607,6 +607,28 @@ pub fn hook_log(stdin: &str) {
 pub fn cli(args: &[String]) -> Option<i32> {
     let a: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     match a.as_slice() {
+        // Agents learn from videos and other games (they call these through
+        // the brewix command, which is this app).
+        ["watch", url] => Some(match crate::paths::studio_root().and_then(|r| crate::video::watch(&r, url, &mut |l| eprintln!("{l}"))) {
+            Ok(v) => {
+                println!("Watched \"{}\": {} frames, {} words of transcript. Read {} first, then the frames it lists.", v["title"].as_str().unwrap_or(""), v["frames"], v["transcript_words"], v["watch"].as_str().unwrap_or(""));
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
+        ["study", src] => Some(match crate::paths::studio_root().and_then(|r| crate::study::study(&r, src)) {
+            Ok(v) => {
+                println!("{}", serde_json::to_string_pretty(&v).unwrap_or_default());
+                0
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                1
+            }
+        }),
         ["hook-log"] => {
             let mut s = String::new();
             let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut s);

@@ -1,6 +1,6 @@
 --!nonstrict
 -- Study a Roblox place file without running anything in it.
---   lune run scripts/rbxl_study.luau <place.rbxl> <out folder>
+--   lune run studio/tools/rbxl_study.luau <place.rbxl> <out folder>
 -- Writes: every script's source under <out>/scripts/<path>.luau, and
 -- <out>/summary.md (what the game is made of, biggest scripts, UI, and a
 -- scan for backdoors: require(<asset id>), loadstring, getfenv, outside
@@ -11,7 +11,7 @@ local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
 local file, out = process.args[1], process.args[2]
-assert(file and out, "usage: lune run scripts/rbxl_study.luau <place.rbxl> <out folder>")
+assert(file and out, "usage: lune run studio/tools/rbxl_study.luau <place.rbxl> <out folder>")
 
 local game = roblox.deserializePlace(fs.readFile(file))
 fs.writeDir(out .. "/scripts")

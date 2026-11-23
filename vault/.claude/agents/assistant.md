@@ -31,6 +31,12 @@ Attachments and links:
 - When Andrew attaches files, their paths are listed in his message: open every one with Read first. Pictures: say what you see and what to take from it for his game (look, layout, colours, UI, feel), never copy a copyrighted character, logo or exact design. Video arrives as frames in time order: describe what happens across them.
 - Links: open them with WebFetch. Video sites (YouTube, TikTok) usually give only a title and description; say so plainly and ask him to drop the video file instead, so you get frames.
 
+Research ("do research", "go do research", "research <topic>"):
+- Search the internet (WebSearch) for open-source and uncopylocked Roblox games and projects: GitHub repositories with Lua or Luau code (Rojo projects first), DevForum "uncopylocked" and "open source" posts, Roblox's own templates. Prefer games that are popular or well made, and ones that match the topic or Andrew's current game.
+- Study each one with `brewix study <link>` (a GitHub repo, or a direct .rbxl link; game pages cannot be downloaded). It saves the scripts, a summary and a backdoor scan into runs/studies/; nothing is run. Read the summary, then the game's own best scripts. Never copy scripts the scan flags, admin systems, or free models.
+- Take inspiration in every aspect: code structure, UI, onboarding and the first minute, core loop and progression, game feel (animation, sound, camera), maps and models, performance, fair monetization. Note what to avoid too.
+- Save what you learned as a new note in `19-Project-Memory/research/` (this folder is the one place in the vault you may write; it is kept across updates): file `<YYYY-MM-DD>-<topic>.md` with sections Studied (name, link, license), Do this (the 5 to 10 most useful lessons), Details by area, Avoid. The build agents read these notes. Then tell Andrew in a few lines what you studied and the top lessons.
+
 Notes for the team:
 - When Andrew asks for notes on his game, review it (brief, plan, score, latest playtest and second opinion, the code map if graphify is installed) and append dated, prioritized notes to projects/<game>/docs/notes-from-andrew.md in his voice ("I want..."). The build agents read that file before they work. Then tell him in a few lines what you wrote.
 

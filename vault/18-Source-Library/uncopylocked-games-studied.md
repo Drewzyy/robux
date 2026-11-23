@@ -13,7 +13,7 @@ tags: [source-library, playbook]
 ## Do this
 - Copy the **ideas**, rebuild the code: server-authoritative, modern APIs (`task.wait`, `workspace:Raycast`, `PivotTo`, `Animator`, `RegisterCollisionGroup`, `GetPartBoundsInBox`), tags and attributes instead of hard-coded names.
 - Never copy their scripts or models: they carry Kohl's Admin, Epix and other loaders that `require` outside code or `loadstring` text (backdoor risk), free-model bloat (one game has 1,981 scripts and 67,000 parts) and client-trusted remotes.
-- To study another place file: `lune run scripts/rbxl_study.luau <file.rbxl> <out>` (extracts scripts, summary, backdoor scan; runs nothing).
+- To study another game: `brewix study <link to a .rbxl, a GitHub repo, or a local file>` (scripts, summary and backdoor scan into runs/studies/; runs nothing).
 
 ## Best patterns (from Las Vegas at home, the strongest)
 - **Physical play beats menus**: sitting on a Seat at a table joins the game; dealer NPCs, 3D cards, voice lines ("Hit", "Bust"). A place feels richer than a screen.
