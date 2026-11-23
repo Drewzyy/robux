@@ -15,5 +15,6 @@ Load only the note your task needs. Do not read every note in this section.
 | Note | What it holds | Status |
 |---|---|---|
 - [[18-Source-Library/sources]]: every source, with the date checked.
+| [[18-Source-Library/uncopylocked-games-studied]] | 12 uncopylocked games read as code (casino, robbery tycoon, shooters, chess): systems to rebuild, patterns never to copy. | draft |
 | [[18-Source-Library/open-source-game-lessons]] | Techniques read from the code of open-source Roblox games: code layout, UI, onboarding, game feel, world, fair passes. | draft |
 | [[18-Source-Library/video-tutorials-watched]] | The 25 tutorials watched and how agents watch more with brewix watch. | draft |

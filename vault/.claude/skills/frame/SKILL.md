@@ -69,4 +69,4 @@ Look at real UI before laying out screens: pick 2 or 3 games from `16-Market-Res
 
 To learn a UI technique from a video, run `brewix watch <link>` and read the watch.md it saves (transcript plus frames).
 
-Learned from real open-source Roblox games: `brewix node 18-Source-Library/open-source-game-lessons` (pure logic apart from effects, server-owned economy, client-side visuals on tagged objects, Trove cleanup, loading screen, teaching through the world). Follow its Do this block when you set up or change game code.
+Learned from real open-source Roblox games: `brewix node 18-Source-Library/open-source-game-lessons 18-Source-Library/uncopylocked-games-studied` (pure logic apart from effects, server-owned economy, client-side visuals on tagged objects, Trove cleanup, loading screen, teaching through the world). Follow its Do this block when you set up or change game code.
