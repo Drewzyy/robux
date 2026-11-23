@@ -128,9 +128,7 @@ async function refreshStatus() {
   }
   const sp = state.spend;
   if (sp) {
-    const used = sp.spent_usd + sp.reserved_usd;
-    $("spend-line").textContent = sp.budget_usd > 0 ? `Plan usage ${usd(sp.spent_usd)} of ${usd(sp.budget_usd)}` : `Plan usage ${usd(sp.spent_usd)}`;
-    $("spend-bar").style.width = sp.budget_usd > 0 ? Math.min(100, (100 * used) / sp.budget_usd) + "%" : "0%";
+    $("spend-line").textContent = `Plan usage this month ${usd(sp.spent_usd)}`;
     $("running-line").textContent = state.live
       ? `Running · est. ${usd(state.live.estimate, 4)} (cap ${usd(state.live.cap)})`
       : sp.running.length
@@ -172,7 +170,7 @@ function runningSubtitle() {
   return el("span", {},
     "BrewixGames · ",
     run ? el("span", {}, "Current run ", el("b", {}, run), ` · est. ${usd(state.live ? state.live.estimate : sp.running_expected_usd, 4)}`) : "No run in progress",
-    sp ? ` · ${usd(sp.spent_usd)} plan usage this month` + (sp.budget_usd > 0 ? ` of ${usd(sp.budget_usd)}` : "") : ""
+    sp ? ` · ${usd(sp.spent_usd)} plan usage this month` : ""
   );
 }
 
@@ -1202,12 +1200,11 @@ async function startAutopilot(title, idea, slug) {
   let est;
   try { est = await invoke("autopilot_estimate", { idea }); } catch (e) { toast(String(e), true); return; }
   const name = el("input", { type: "text", id: "ap-title", value: title || "" });
-  const budget = el("input", { type: "number", id: "ap-budget", min: "0", step: "0.5", value: est.budget_usd.toFixed(2) });
   const go = el("button", { class: "btn primary", id: "ap-go" }, "Approve and Start");
   go.addEventListener("click", async () => {
     go.disabled = true;
     try {
-      const r = await invoke("autopilot_start", { title: name.value.trim() || "My game", idea, budgetUsd: parseFloat(budget.value) || 0, slug: slug || null });
+      const r = await invoke("autopilot_start", { title: name.value.trim() || "My game", idea, budgetUsd: 0, slug: slug || null });
       closeSheet(); toast("Approved. The agents are starting on the plan."); setGame(r.slug, false); location.hash = "#autopilot/" + r.slug;
     } catch (e) { toast(String(e), true); go.disabled = false; }
   });
@@ -1215,8 +1212,6 @@ async function startAutopilot(title, idea, slug) {
     el("p", { class: "prose" }, "The agents make the whole game from here, milestone by milestone, and keep going on their own: failed checks are retried, and agents call in other agents when they need them. You only approve finished milestones, and you can send notes any time. Nothing is ever published."),
     el("div", { class: "field" }, el("label", { for: "ap-title" }, "Game name"), name),
     el("div", { class: "list" }, est.milestones.map((m) => el("div", { class: "srow" }, el("div", { class: "grow label" }, m.title), el("span", { class: "note" }, `about ${usd(m.cap_usd)}`)))),
-    el("div", { class: "field", style: "margin-top:12px" }, el("label", { for: "ap-budget" }, "Budget for the whole game ($ of plan usage)"), budget,
-      el("div", { class: "note" }, `The jobs add up to ${usd(est.jobs_usd)}; the default doubles that for retries (some on a stronger model) and your notes. The agents stop and ask before going over it. Your monthly budget still applies.`)),
     el("div", { class: "inline", style: "margin-top:12px" }, go, el("span", { class: "note" }, "Approving starts the agents.")));
 }
 const AP_STATUS = { running: "Running", paused: "Paused by you", budget: "Stopped at the budget", done: "Done", stopped: "Stopped" };
@@ -1259,9 +1254,7 @@ async function viewAutopilot(slug) {
   }
   let v;
   try { v = await invoke("autopilot_view", { slug: cur.slug }); } catch (e) { return showIf(nav, page(head("Autopilot"), el("div", { class: "card" }, String(e)))); }
-  const used = v.spent_usd + v.reserved_usd;
   const ctl = (action, label, extra, cls = "btn secondary") => el("button", { class: cls, id: "ap-" + action, onclick: async () => { try { await invoke("autopilot_control", { slug: v.slug, action, budgetUsd: extra ? extra() : null }); viewAutopilot(v.slug); } catch (e) { toast(String(e), true); } } }, label);
-  const raise = () => { const n = parseFloat(prompt("New budget for this game ($)", (v.budget_usd * 1.5).toFixed(2))); return isNaN(n) ? v.budget_usd : n; };
   // Chime in: the main thing on this page.
   const chime = el("textarea", { id: "ap-note", rows: 3, placeholder: "Chime in: anything you want changed, added or fixed. Enter sends. The team works out the rest." });
   chime.value = state.apNote || "";
@@ -1301,15 +1294,13 @@ async function viewAutopilot(slug) {
       el("div", { class: "row-title" }, "Claude's usage ran out"),
       el("p", { class: "note" }, "The team picks up by itself when the limit resets. Or keep going now for free on this computer: slower and weaker, and Claude takes over new steps again after the reset."),
       el("button", { class: "btn primary", onclick: (e) => continueLocal(null, e.currentTarget) }, "Continue on Local Model")) : null,
-    v.status === "budget" ? el("div", { class: "card warn-card" }, el("div", {}, v.why || "This game's budget is used up."), el("div", { style: "margin-top:8px" }, ctl("budget", "Raise Budget", raise, "btn primary"))) : null,
     el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", id: "ap-send", onclick: sendNote }, "Send"), el("span", { class: "note" }, "Problems are handled by the team: failed work is retried and fixed on its own."))),
     ...reviews,
     steps,
     el("div", { class: "section" }, el("div", { class: "section-label" }, active.length ? `Working now (${active.filter((j) => j.status === "working").length} agents)` : "Working now"),
       active.length ? el("div", { class: "list" }, active.map(jobRow)) : el("div", { class: "note" }, v.status === "done" ? "Every part is approved." : "Waiting for your review above, or starting the next part.")),
     el("details", { class: "ap-more" }, el("summary", { class: "link" }, "Everything the team did"),
-      el("div", { class: "inline", style: "margin:10px 0" }, el("span", { class: "note" }, `Budget: ${usd(v.spent_usd, 2)} of ${usd(v.budget_usd, 2)} used`), v.status === "running" ? ctl("pause", "Pause") : v.status === "paused" ? ctl("resume", "Resume") : null, ctl("budget", "Raise Budget", raise)),
-      el("div", { class: "bar", style: "margin-bottom:12px" }, el("div", { style: `width:${Math.min(100, (100 * used) / Math.max(0.01, v.budget_usd))}%` })),
+      el("div", { class: "inline", style: "margin:10px 0" }, el("span", { class: "note" }, `Plan usage so far: ${usd(v.spent_usd, 2)}`), v.status === "running" ? ctl("pause", "Pause") : v.status === "paused" ? ctl("resume", "Resume") : null),
       ...v.milestones.map((m) => el("details", { class: "card ap-ms", "data-ms": m.id },
         el("summary", {}, el("span", { class: "row-title" }, m.title), MS_PILL(m.status)),
         m.jobs.length ? el("div", { class: "list" }, m.jobs.map(jobRow)) : el("div", { class: "note" }, "Not started yet."))),
@@ -1711,7 +1702,7 @@ async function estimate(box) {
       el("div", {}, el("div", { class: "k" }, "Expected"), el("div", { class: "v" }, usd(p.expected, 4))),
       el("div", {}, el("div", { class: "k" }, p.low !== null ? "Range" : "Up to"), el("div", { class: "v small" }, p.low !== null ? `${usd(p.low, 4)} to ${usd(p.high, 4)}` : usd(p.high, 4))),
       el("div", {}, el("div", { class: "k" }, "Hard cap"), el("div", { class: "v" }, usd(p.cap))),
-      sp && sp.budget_usd > 0 ? el("div", {}, el("div", { class: "k" }, "Usage left this month"), el("div", { class: "v small" }, usd(Math.max(0, sp.budget_usd - sp.spent_usd - sp.reserved_usd)))) : null),
+      null),
     el("ul", { class: "assumptions" }, p.assumptions.map((a) => el("li", {}, a))),
     el("div", { class: "note" }, p.note),
     el("div", { class: "inline", style: "margin-top:14px" }, approve,
@@ -1972,7 +1963,6 @@ async function viewSettings() {
       toast(String(e), true);
     }
   };
-  const budget = el("input", { type: "number", min: "0", step: "1", id: "budget", value: String(s.monthly_budget_usd) });
   const hook = el("input", { type: "password", id: "webhook", placeholder: "https://discord.com/api/webhooks/…", value: s.discord_webhook_url });
   const root = el("input", { type: "text", id: "studio-root", placeholder: "New folder, e.g. ~/Documents/BrewixGames", value: s.studio_root });
   const importPath = el("input", { type: "text", id: "import-path", placeholder: "~/workspace/roblox-games/sky-tower-obby" });
@@ -2046,20 +2036,13 @@ async function viewSettings() {
           bm.uvx ? null : el("button", { class: "btn primary", id: "uv-install", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Installing uv..."; try { toast(await invoke("uv_install")); } catch (e) { toast(String(e), true); } viewSettings(); } }, "Install uv"),
           el("button", { class: "btn secondary", id: "blender-addon", disabled: !bm.uvx, onclick: async (ev) => { ev.target.disabled = true; try { const p = await invoke("blender_addon_get"); toast(`Add-on saved to ${p}`); } catch (e) { toast(String(e), true); } ev.target.disabled = false; } }, "Get the Blender Add-on")))),
 
-    el("div", { class: "section" }, el("div", { class: "section-label" }, "Budget"),
-      el("div", { class: "list" },
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Monthly usage limit"), el("div", { class: "hint" }, "Counted in API-equivalent dollars, not money you pay. Runs stop and ask once this month's usage would pass it. 0 means no limit.")),
-          el("div", { class: "inline", style: "width:220px" }, budget, el("button", { class: "btn secondary", id: "save-budget", onclick: () => save({ monthly_budget_usd: Number(budget.value) }, "Budget saved.") }, "Save"))),
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "This month"), el("div", { class: "bar", style: "margin-top:8px" }, el("div", { style: `width:${sp && sp.budget_usd > 0 ? Math.min(100, (100 * (sp.spent_usd + sp.reserved_usd)) / sp.budget_usd) : 0}%` }))),
-          el("span", { class: "note" }, sp ? `${usd(sp.spent_usd)} spent · ${usd(sp.reserved_usd)} reserved` : "–")))),
-
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Notifications"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Discord webhook"), el("div", { class: "hint" }, "Stored on this computer only, never in the repo.")),
           el("div", { class: "inline", style: "width:430px" }, hook,
             el("button", { class: "btn secondary", id: "save-webhook", onclick: () => save({ discord_webhook_url: hook.value.trim() }, hook.value.trim() ? "Webhook saved." : "Webhook removed.") }, "Save"),
             el("button", { class: "btn secondary", id: "send-test", onclick: async () => { try { toast(await invoke("notify_test")); } catch (e) { toast(String(e), true); } } }, "Send Test"))),
-        [["needs_approval", "Something needs my approval"], ["finished", "A build or run finished"], ["failed", "A run failed or stopped"], ["budget", "The budget stopped a run"], ["updates", "An app update was installed"]].map(([k, label]) =>
+        [["needs_approval", "Something needs my approval"], ["finished", "A build or run finished"], ["failed", "A run failed or stopped"], ["updates", "An app update was installed"]].map(([k, label]) =>
           el("div", { class: "srow" }, el("div", { class: "grow label" }, label), sw(s.notify[k], (v) => save({ notify: { [k]: v } }), "n-" + k))))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Studio"),

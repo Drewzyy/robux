@@ -3,8 +3,8 @@
 
   ROBUX_CONFIG_DIR=/tmp/x ROBUX_ALLOW_LOCAL_WEBHOOK=1 xvfb-run -a python3 scripts/ui_flows.py
 
-Flows: settings save (budget, webhook) and Send Test to a local mock
-webhook; a run blocked by a tiny budget shows the reason; a real
+Flows: settings save (webhook) and Send Test to a local mock
+webhook; a real
 bridge-test run (about $0.001) from estimate to approve to live output to
 done; a queue item opened in its sheet. Starts its own mock webhook on 8765.
 """
@@ -48,24 +48,8 @@ def main():
         check("webhook saves", "saved" in toast().lower(), toast())
         d.find_element(By.ID, "send-test").click(); time.sleep(2)
         check("Send Test reaches the webhook", "sent" in toast().lower(), toast())
-        b = d.find_element(By.ID, "budget"); b.clear(); b.send_keys("0.01")
-        d.find_element(By.ID, "save-budget").click(); time.sleep(1)
-        check("budget saves", "budget saved" in toast().lower(), toast())
-        # Budget blocks a run
-        d.execute_script("location.hash='#runs'"); time.sleep(1.2)
-        d.find_element(By.CSS_SELECTOR, "[data-seg=new]").click(); time.sleep(1.2)
-        Select(d.find_element(By.ID, "agent-select")).select_by_value("bridge-test"); time.sleep(1)
-        d.find_element(By.ID, "prompt").send_keys("hello from the new UI")
-        d.find_element(By.ID, "estimate-btn").click()
-        w.until(EC.element_to_be_clickable((By.ID, "approve-run")))
-        d.save_screenshot(str(SHOTS / "ui-estimate.png"))
-        d.find_element(By.ID, "approve-run").click(); time.sleep(1.5)
-        check("budget stops the run with a reason", "Monthly budget reached" in toast(), toast()[:120])
-        d.find_element(By.ID, "cancel-run").click(); time.sleep(0.5)
-        # Raise budget, run for real
-        d.execute_script("location.hash='#settings'"); time.sleep(1.5)
-        b = d.find_element(By.ID, "budget"); b.clear(); b.send_keys("25")
-        d.find_element(By.ID, "save-budget").click(); time.sleep(1)
+        check("no budget limit in Settings", not d.find_elements(By.ID, "budget"))
+        # A run for real (budgets were removed: nothing blocks it)
         d.execute_script("location.hash='#runs'"); time.sleep(1.2)
         d.find_element(By.CSS_SELECTOR, "[data-seg=new]").click(); time.sleep(1.2)
         Select(d.find_element(By.ID, "agent-select")).select_by_value("bridge-test"); time.sleep(1)

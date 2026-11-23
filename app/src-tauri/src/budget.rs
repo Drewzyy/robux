@@ -60,22 +60,9 @@ pub fn spend(root: &Path, budget_usd: f64) -> Spend {
 }
 
 /// Refuse when spent + reserved + this cap would pass the budget.
-pub fn check(root: &Path, new_cap_usd: f64) -> Result<(), String> {
-    let s = crate::settings::load();
-    if s.monthly_budget_usd <= 0.0 {
-        return Ok(());
-    }
-    let sp = spend(root, s.monthly_budget_usd);
-    let after = sp.spent_usd + sp.reserved_usd + new_cap_usd;
-    if after > s.monthly_budget_usd + 1e-9 {
-        let msg = format!(
-            "Monthly budget reached: ${:.2} spent and ${:.2} reserved this month, this run's cap is ${:.2}, budget is ${:.2}. Raise the budget in Settings to run it.",
-            sp.spent_usd, sp.reserved_usd, new_cap_usd, s.monthly_budget_usd
-        );
-        let m = msg.clone();
-        std::thread::spawn(move || crate::notify::send_quiet(crate::notify::Kind::Budget, "Budget stopped a run", std::slice::from_ref(&m)));
-        return Err(msg);
-    }
+/// Budgets were removed (Andrew's choice): runs are never refused for
+/// spending. Each run is still bounded by its turn limit and its own cap.
+pub fn check(_root: &Path, _new_cap_usd: f64) -> Result<(), String> {
     Ok(())
 }
 

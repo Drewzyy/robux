@@ -137,6 +137,11 @@ pub fn load(root: &Path, slug: &str) -> Result<Autopilot, String> {
     let mut a: Autopilot = crate::paths::read_json(&file(root, slug)).ok_or_else(|| format!("no autopilot for {slug}"))?;
     // Games started on an older version get milestones added since, in order.
     let tpl = template();
+    // Budgets were removed: a game that stopped at its budget carries on.
+    if a.status == "budget" {
+        a.status = "running".into();
+        a.why = None;
+    }
     if a.milestones.len() != tpl.len() || a.milestones.iter().zip(tpl.iter()).any(|(m, t)| m.id != t.0) {
         let old = std::mem::take(&mut a.milestones);
         a.milestones = tpl.iter().map(|(id, t, _, _)| old.iter().find(|m| m.id == *id).cloned().unwrap_or(Milestone { id: id.to_string(), title: t.to_string(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![] })).collect();
@@ -350,20 +355,10 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
     let own = crate::cost::load_agents(root).ok().and_then(|x| x.agents.get(agent).map(|p| p.model.clone())).unwrap_or_default();
     let model = if attempt + 1 >= MAX_ATTEMPTS { Some(step_up(&own)) } else { None };
     let p = prompt(root, a, milestone, job, feedback);
-    let (spent_usd, reserved) = spent(root, &a.slug);
     let agents = crate::cost::load_agents(root)?;
-    let pricing = crate::cost::load_pricing(root)?;
     let mut prof = agents.agents.get(agent).cloned().ok_or_else(|| format!("unknown agent {agent}"))?;
     if let Some(m) = &model {
         prof.model = m.clone();
-    }
-    let cap = if crate::settings::load().engine_for(agent) == "ollama" { 0.0 } else { crate::cost::estimate(agent, &prof, &p, &pricing)?.cap_usd };
-    if spent_usd + reserved + cap > a.budget_usd + 1e-9 {
-        a.status = "budget".into();
-        a.why = Some(format!("This game's budget (${:.2}) is used up: ${:.2} spent, ${:.2} running. Raise it to keep going.", a.budget_usd, spent_usd, reserved));
-        post(a, "autopilot", None, a.why.clone().unwrap_or_default().as_str());
-        crate::notify::send_quiet(crate::notify::Kind::Budget, &format!("{}: budget reached", a.title), &[a.why.clone().unwrap_or_default()]);
-        return Err("budget".into());
     }
     let target = format!("game:{}", a.slug);
     let c = changes::enqueue(root, Spec {
@@ -1446,15 +1441,16 @@ mod tests {
     }
 
     #[test]
-    fn stops_at_the_games_budget() {
+    fn never_stops_for_a_budget() {
         let root = studio();
-        let a = start(&root, "Tiny Budget", "An obby.", 0.01, None).unwrap();
-        assert_eq!(a.status, "budget");
-        assert!(a.why.unwrap().contains("budget"));
-        assert!(queued(&root, &a.slug).is_empty());
-        let a = control(&root, &a.slug, "budget", Some(500.0)).unwrap();
-        assert_eq!(a.status, "running");
-        assert_eq!(queued(&root, &a.slug).len(), 1);
+        let a = start(&root, "Tiny Budget", "An obby.", 0.0, None).unwrap();
+        assert_eq!(a.status, "running", "budgets were removed");
+        assert_eq!(queued(&root, &a.slug).len(), 1, "work starts");
+        // A game saved as stopped at its budget (older version) carries on.
+        let mut g = load(&root, &a.slug).unwrap();
+        g.status = "budget".into();
+        save(&root, &g).unwrap();
+        assert_eq!(load(&root, &a.slug).unwrap().status, "running");
         let _ = fs::remove_dir_all(&root);
     }
 
