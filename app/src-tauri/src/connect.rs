@@ -129,11 +129,26 @@ pub fn ready_for(agent: &str) {
     }
 }
 
+/// Claude's sign-in, checked at most every 3 minutes (it starts two small
+/// programs). A red light is checked again on the next refresh.
+fn claude_cached() -> crate::claude::Connection {
+    static CACHE: std::sync::Mutex<Option<(std::time::Instant, crate::claude::Connection)>> = std::sync::Mutex::new(None);
+    let mut c = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((at, v)) = c.as_ref() {
+        if at.elapsed() < std::time::Duration::from_secs(180) && v.installed && v.logged_in {
+            return v.clone();
+        }
+    }
+    let v = crate::claude::status();
+    *c = Some((std::time::Instant::now(), v.clone()));
+    v
+}
+
 /// One light per connection.
 pub fn lights() -> Vec<Light> {
     let st = crate::settings::load();
     let mut v = vec![];
-    let c = crate::claude::status();
+    let c = claude_cached();
     v.push(if c.installed && c.logged_in {
         light("claude", "Claude", if st.engine == "ollama" { "off" } else { "green" }, match st.engine.as_str() { "claude" => "Signed in", "hybrid" => "Signed in; used only for testing in Studio and models in Blender", _ => "Signed in; the local model is in use" })
     } else if !c.installed {

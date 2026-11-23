@@ -86,10 +86,18 @@ pub fn send(s: &Settings, kind: Kind, title: &str, lines: &[String]) -> Result<b
 /// Fire-and-forget for background events: failures are written to stderr
 /// and never stop a run.
 pub fn send_quiet(kind: Kind, title: &str, lines: &[String]) {
-    let s = crate::settings::load();
-    if let Err(e) = send(&s, kind, title, lines) {
-        eprintln!("discord notification failed: {e}");
-    }
+    // In the background, so a slow or offline Discord never holds up the
+    // agents; one retry after 30 seconds.
+    let (title, lines) = (title.to_string(), lines.to_vec());
+    std::thread::spawn(move || {
+        let s = crate::settings::load();
+        if send(&s, kind, &title, &lines).is_err() {
+            std::thread::sleep(std::time::Duration::from_secs(30));
+            if let Err(e) = send(&s, kind, &title, &lines) {
+                eprintln!("discord notification failed: {e}");
+            }
+        }
+    });
 }
 
 #[cfg(test)]

@@ -26,13 +26,12 @@ pub struct Status {
 }
 
 fn git(root: &Path, args: &[&str]) -> Result<String, String> {
-    let o = crate::paths::command("git")
-        .arg("-C")
+    let mut o = crate::paths::command("git");
+    o.arg("-C")
         .arg(root)
-        .args(args)
-        .stdin(Stdio::null())
-        .output()
-        .map_err(|e| format!("git not available: {e}"))?;
+        .args(args);
+    // A fetch or pull over a bad connection must not hang the app.
+    let o = crate::paths::output_timeout(&mut o, 120).map_err(|e| format!("git {}: {e}", args.join(" ")))?;
     if !o.status.success() {
         return Err(format!("git {}: {}", args.join(" "), String::from_utf8_lossy(&o.stderr).trim()));
     }

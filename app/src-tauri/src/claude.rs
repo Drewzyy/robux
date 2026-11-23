@@ -72,18 +72,11 @@ pub fn status() -> Connection {
             }
         }
     };
-    let version = crate::paths::command(&bin)
-        .arg("--version")
-        .stdin(Stdio::null())
-        .output()
+    let version = crate::paths::output_timeout(crate::paths::command(&bin).arg("--version"), 20)
         .ok()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
         .unwrap_or_default();
-    let out = crate::paths::command(&bin)
-        .args(["auth", "status", "--json"])
-        .env_remove("ANTHROPIC_API_KEY")
-        .stdin(Stdio::null())
-        .output();
+    let out = crate::paths::output_timeout(crate::paths::command(&bin).args(["auth", "status", "--json"]).env_remove("ANTHROPIC_API_KEY"), 20);
     let v: serde_json::Value = out
         .ok()
         .and_then(|o| serde_json::from_slice(&o.stdout).ok())

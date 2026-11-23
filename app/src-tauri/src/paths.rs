@@ -176,6 +176,31 @@ pub fn command<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
     c
 }
 
+/// Run a program and collect its output, but never wait longer than
+/// `secs`: a program that hangs (a stuck git, a CLI waiting on the network)
+/// is killed and reported as timed out instead of freezing the app.
+pub fn output_timeout(cmd: &mut std::process::Command, secs: u64) -> std::io::Result<std::process::Output> {
+    use std::io::Read;
+    let mut child = cmd.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped()).spawn()?;
+    let mut out = child.stdout.take();
+    let mut err = child.stderr.take();
+    let ro = std::thread::spawn(move || { let mut b = Vec::new(); if let Some(o) = out.as_mut() { let _ = o.read_to_end(&mut b); } b });
+    let re = std::thread::spawn(move || { let mut b = Vec::new(); if let Some(e) = err.as_mut() { let _ = e.read_to_end(&mut b); } b });
+    let start = std::time::Instant::now();
+    let status = loop {
+        if let Some(st) = child.try_wait()? {
+            break st;
+        }
+        if start.elapsed() > std::time::Duration::from_secs(secs) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(std::io::Error::new(std::io::ErrorKind::TimedOut, format!("no answer after {secs} s")));
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    };
+    Ok(std::process::Output { status, stdout: ro.join().unwrap_or_default(), stderr: re.join().unwrap_or_default() })
+}
+
 /// Open a web link in the default browser.
 /// Write a file safely: keep the old one as <name>.bak, write a temp file,
 /// then swap it in. A crash never leaves a half-written file behind.
