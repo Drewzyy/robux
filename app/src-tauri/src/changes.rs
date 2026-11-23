@@ -601,7 +601,7 @@ pub fn env_problem(c: &Change) -> Option<&'static str> {
     } else if any(&["no user query found"]) {
         // Ollama cut the request off (window too small); not the network.
         Some("localmodel")
-    } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
+    } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "no response for", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
         Some("network")
     } else {
         None
@@ -661,6 +661,14 @@ pub fn max_at_once() -> usize {
         Some(m) if m < 24.0 => 2,
         _ => MAX_AT_ONCE,
     }
+}
+
+/// Mark a failed job as skipped: it counts as finished so work moves on.
+pub fn mark_skipped(root: &Path, id: &str, why: &str) {
+    update(root, id, |x| {
+        x.status = "done".into();
+        x.summary = Some(why.to_string());
+    });
 }
 
 /// Hold a queued change until `minutes` from now.

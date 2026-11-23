@@ -349,6 +349,24 @@ pub fn run_approved_with<F: FnMut(&str)>(
             msg
         })?;
     LIVE.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), child.id());
+    // Watchdog: an agent that prints nothing for this long is stuck (a hung
+    // Claude Code, or a local model that does not fit in memory). End it so
+    // it can be retried instead of showing "Working" forever.
+    let quiet_limit = std::time::Duration::from_secs(std::env::var("ROBUX_QUIET_SECS").ok().and_then(|v| v.parse().ok()).unwrap_or(if req.engine.as_deref() == Some("ollama") { 20 * 60 } else { 10 * 60 }));
+    let last_line = std::sync::Arc::new(std::sync::Mutex::new(std::time::Instant::now()));
+    {
+        let (last, id) = (last_line.clone(), run_id.to_string());
+        std::thread::spawn(move || loop {
+            std::thread::sleep(quiet_limit.min(std::time::Duration::from_secs(15)));
+            if !LIVE.lock().unwrap_or_else(|e| e.into_inner()).contains_key(&id) {
+                return;
+            }
+            if last.lock().unwrap_or_else(|e| e.into_inner()).elapsed() > quiet_limit {
+                end_run(&id, "stall");
+                return;
+            }
+        });
+    }
     // The prompt, on stdin (then closed so Claude starts).
     if let Some(mut si) = child.stdin.take() {
         std::thread::spawn(move || {
@@ -379,6 +397,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     for line in BufReader::new(stdout).lines().map_while(Result::ok) {
         let _ = writeln!(stream_log, "{line}");
         on_line(&line);
+        *last_line.lock().unwrap_or_else(|e| e.into_inner()) = std::time::Instant::now();
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
             if v.get("type").and_then(|t| t.as_str()) == Some("result") {
                 final_result = Some(v);
@@ -446,6 +465,15 @@ pub fn run_approved_with<F: FnMut(&str)>(
         });
     }
     // Andrew pressed Stop or Pause: say so, keep the files, no diagnosis.
+    if asked.as_deref() == Some("stall") && !ok {
+        req.status = "failed".into();
+        req.error = Some(format!("No response for {} minutes: the agent was stuck, so it was ended. It is tried again by itself.", quiet_limit.as_secs() / 60));
+        if req.engine.as_deref() == Some("ollama") {
+            req.error = Some(format!("{} Local engine: the model may not fit in memory; a smaller model in Settings helps.", req.error.clone().unwrap_or_default()));
+        }
+        runs::save(root, &req)?;
+        return Ok(RunOutcome { run_id: run_id.to_string(), ok: false, result_text, actual_cost_usd: req.actual_cost_usd, num_turns: turns, exit_code: status.code(), stderr_tail });
+    }
     if let Some(what) = asked.filter(|_| !ok) {
         if what == "pause" {
             req.status = "paused".into();
@@ -575,8 +603,13 @@ static ASKED: std::sync::Mutex<std::collections::BTreeMap<String, String>> = std
 /// Stop (or pause) a running agent now. Ends its Claude process and
 /// everything it started. Returns false when that run is not running.
 pub fn stop_run(run_id: &str, pause: bool) -> bool {
+    end_run(run_id, if pause { "pause" } else { "stop" })
+}
+
+/// End a running agent for a reason: "pause", "stop" or "stall".
+fn end_run(run_id: &str, why: &str) -> bool {
     let Some(pid) = LIVE.lock().unwrap_or_else(|e| e.into_inner()).get(run_id).copied() else { return false };
-    ASKED.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), if pause { "pause" } else { "stop" }.into());
+    ASKED.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), why.into());
     let quiet = |c: &mut std::process::Command| { let _ = c.stdout(Stdio::null()).stderr(Stdio::null()).status(); };
     if cfg!(windows) {
         quiet(crate::paths::command("taskkill").args(["/T", "/F", "/PID", &pid.to_string()]));
@@ -688,6 +721,18 @@ mod stop_tests {
             }
             assert!(!running().contains(&r.run_id));
         }
+        // A silent, stuck agent is ended by the watchdog and retried as a
+        // connection problem (not the agent's fault).
+        std::env::set_var("ROBUX_QUIET_SECS", "2");
+        let r = runs::prepare(&d, "architect", "a design").unwrap();
+        runs::approve(&d, &r.run_id, r.estimate.cap_usd).unwrap();
+        let t = std::time::Instant::now();
+        let out = run_approved(&d, &r.run_id, &fake, |_| {}).unwrap();
+        std::env::remove_var("ROBUX_QUIET_SECS");
+        assert!(!out.ok && t.elapsed().as_secs() < 30);
+        let after = runs::load(&d, &r.run_id).unwrap();
+        assert_eq!(after.status, "failed");
+        assert!(after.error.as_deref().unwrap_or("").contains("No response for"), "{:?}", after.error);
         let _ = fs::remove_dir_all(&d);
     }
 }

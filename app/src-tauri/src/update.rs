@@ -174,13 +174,28 @@ pub fn apply(root: &Path, on_line: &mut dyn FnMut(&str)) -> Result<PathBuf, Stri
     if !st.can_update {
         return Err(st.message);
     }
-    let busy: Vec<String> = crate::runs::list(root)?
-        .into_iter()
-        .filter(|r| r.status == "running" || r.status == "approved")
-        .map(|r| r.run_id)
-        .collect();
+    // Agents really working now (not queued work, not leftovers from a
+    // crash) pause, keep their files, and carry on after the restart.
+    let busy = crate::bridge::running();
     if !busy.is_empty() {
-        return Err(format!("An agent run is in progress ({}). Update after it finishes.", busy.join(", ")));
+        on_line(&format!("Pausing {} working agent(s); they continue after the update.", busy.len()));
+        for id in &busy {
+            crate::bridge::stop_run(id, true);
+        }
+        for _ in 0..60 {
+            if crate::bridge::running().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+        for id in &busy {
+            if let Ok(mut r) = crate::runs::load(root, id) {
+                if r.status == "paused" {
+                    r.resume_at = None; // due at once: the app picks it up after restarting
+                    let _ = crate::runs::save(root, &r);
+                }
+            }
+        }
     }
     if !is_git_checkout(root) {
         return apply_release(root, on_line);

@@ -568,7 +568,42 @@ async fn continue_now(app: AppHandle, id: String) -> Result<usize, String> {
 /// it) from where it stopped. Files already made are kept.
 #[tauri::command]
 async fn continue_local(app: AppHandle, id: Option<String>) -> Result<usize, String> {
-    tauri::async_runtime::spawn_blocking(move || {
+    tauri::async_runtime::spawn_blocking(move || go_local(&app, id)).await.map_err(|e| e.to_string())?
+}
+
+/// Usage limit reached and a local model is set up: carry on locally by
+/// itself (checked every minute; a failed try waits 30 minutes).
+fn auto_local(app: &AppHandle) {
+    static LAST_TRY: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
+    let st = settings::load();
+    if st.engine != "claude" || st.ollama_model.trim().is_empty() || ollama::binary().is_none() {
+        return;
+    }
+    let Ok(r) = root() else { return };
+    let now = chrono::Utc::now();
+    let limited = runs::list(&r).unwrap_or_default().into_iter().any(|x| {
+        x.status == "paused" && x.resume_at.as_deref().filter(|t| !t.starts_with("9999")).and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t > now).unwrap_or(false)
+    });
+    if !limited {
+        return;
+    }
+    let mut last = LAST_TRY.lock().unwrap_or_else(|e| e.into_inner());
+    if last.map(|t| t.elapsed() < std::time::Duration::from_secs(30 * 60)).unwrap_or(false) {
+        return;
+    }
+    *last = Some(std::time::Instant::now());
+    match go_local(app, None) {
+        Ok(n) if n > 0 => {
+            let _ = app.emit("engine-changed", json!({ "engine": "ollama", "auto": false, "limit": true }));
+            notify::send_quiet(notify::Kind::Failed, "Claude's usage ran out: carrying on with the local model", &[format!("{n} paused job(s) continue on {} for free; Claude takes over again when the limit resets.", st.ollama_model)]);
+        }
+        Ok(_) => {}
+        Err(e) => eprintln!("could not switch to the local model: {e}"),
+    }
+}
+
+fn go_local(app: &AppHandle, id: Option<String>) -> Result<usize, String> {
+    {
         let r = root()?;
         let mut st = settings::load();
         if st.ollama_model.trim().is_empty() {
@@ -585,9 +620,9 @@ async fn continue_local(app: AppHandle, id: Option<String>) -> Result<usize, Str
         // Paused runs move to the local engine and start again right away.
         let paused: Vec<runs::RunRequest> = runs::list(&r).unwrap_or_default().into_iter().filter(|x| x.status == "paused").filter(|x| match id.as_deref() {
             Some(i) => x.run_id == i || x.pipeline_id.as_deref() == Some(i),
-            None => true,
+            None => !x.resume_at.as_deref().unwrap_or("").starts_with("9999"), // not ones Andrew paused
         }).collect();
-        let back_at = paused.iter().filter_map(|x| x.resume_at.clone()).max();
+        let back_at = paused.iter().filter_map(|x| x.resume_at.clone()).filter(|t| !t.starts_with("9999")).max();
         for mut x in paused {
             x.engine = Some("ollama".into());
             x.resume_at = None;
@@ -608,9 +643,7 @@ async fn continue_local(app: AppHandle, id: Option<String>) -> Result<usize, Str
         };
         let _ = app.emit("engine-changed", json!({ "engine": "ollama" }));
         Ok(n)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    }
 }
 
 /// Back to Claude once the limit has reset (only if the switch was made by
@@ -1276,6 +1309,7 @@ fn main() {
                         dispatch_changes(&h);
                     }
                     back_to_claude_if_due(&h);
+                    auto_local(&h);
                     if let Err(e) = continue_paused(&h, None) {
                         eprintln!("continue paused work: {e}");
                     }
