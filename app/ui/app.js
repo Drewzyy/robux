@@ -1416,7 +1416,9 @@ T.event.listen("handoff", (ev) => {
 });
 // Many updates arrive together when several agents work: redraw once.
 let changeRedraw = null;
-T.event.listen("change-update", () => {
+T.event.listen("change-update", (ev) => {
+  const rid = ev.payload && ev.payload.run_id;
+  if (rid && ev.payload.status && ev.payload.status !== "working") { delete state.logs[rid]; if (state.apLive) delete state.apLive[rid]; }
   clearTimeout(changeRedraw);
   changeRedraw = setTimeout(redrawAfterChange, 400);
 });
@@ -1854,8 +1856,10 @@ function renderLine(line) {
 }
 const LOG_MAX = 200000; // keep the last ~200 KB of a run's live output
 function appendLog(id, text) {
+  // Runs nobody is watching keep only a short tail (memory).
+  const max = location.hash === "#run/" + id ? LOG_MAX : 4000;
   let t = (state.logs[id] || "") + text + "\n";
-  if (t.length > LOG_MAX) t = t.slice(-LOG_MAX);
+  if (t.length > max * 1.25) t = t.slice(-max);
   state.logs[id] = t;
   const log = $("live-log");
   if (log && location.hash === "#run/" + id) {
@@ -1876,6 +1880,7 @@ T.event.listen("pipe-stage", (ev) => {
   if (location.hash === "#run/" + d.pipeline_id) setTimeout(() => viewRunDetail(d.pipeline_id), 50);
 });
 function finishLive(id, ok, queued) {
+  setTimeout(() => { delete state.logs[id]; if (state.apLive) delete state.apLive[id]; }, 60000);
   if (state.live && state.live.id === id) state.live = null;
   refreshStatus();
   toast(ok ? (queued ? "Run finished. It's waiting in the review queue." : "Run finished.") : "Run stopped. Open it to see why.", !ok);

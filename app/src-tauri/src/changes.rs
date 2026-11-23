@@ -181,6 +181,11 @@ pub fn list(root: &Path) -> Vec<Change> {
 }
 
 fn save_all(root: &Path, all: &[Change]) -> Result<(), String> {
+    // A list read as empty while the file holds jobs means the read failed
+    // (a file lock, say): never write that over the real list.
+    if all.is_empty() && fs::metadata(path(root)).map(|m| m.len() > 16).unwrap_or(false) {
+        return Err("the job list could not be read just now; nothing was changed".into());
+    }
     let _ = fs::create_dir_all(root.join("runs"));
     crate::paths::write_atomic(&path(root), serde_json::to_string_pretty(all).map_err(|e| e.to_string())?.as_bytes())
 }
@@ -401,7 +406,15 @@ pub fn take_next(root: &Path) -> Vec<Change> {
     let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
     let mut out = vec![];
     let finished: std::collections::HashSet<String> = all.iter().filter(|c| ["done", "failed", "cancelled"].contains(&c.status.as_str())).map(|c| c.id.clone()).collect();
+    // Games that are paused, out of budget or stopped start nothing new.
+    let mut held: std::collections::HashMap<String, bool> = std::collections::HashMap::new();
     for c in all.iter_mut().filter(|c| c.status == "queued") {
+        if let Some(slug) = &c.autopilot {
+            let h = *held.entry(slug.clone()).or_insert_with(|| crate::autopilot::load(root, slug).map(|a| a.status != "running").unwrap_or(false));
+            if h {
+                continue;
+            }
+        }
         if busy.len() >= max_at_once() {
             break;
         }
@@ -592,19 +605,42 @@ pub fn env_problem(c: &Change) -> Option<&'static str> {
     if c.status != "failed" {
         return None;
     }
-    let text = c.checks.iter().filter(|k| !k.passed).map(|k| k.detail.to_lowercase()).chain(c.summary.iter().map(|s| s.to_lowercase())).collect::<Vec<_>>().join(" ");
+    // Only the app's own launch result (the "the agent finished" check holds
+    // the run's error), never build checks or the agent's text: words like
+    // "timed out" or "No such file" there are the agent's problem.
+    let text = c.checks.iter().filter(|k| !k.passed && k.name == "the agent finished").map(|k| k.detail.to_lowercase()).collect::<Vec<_>>().join(" ");
     let any = |ws: &[&str]| ws.iter().any(|w| text.contains(w));
     if any(&["not logged in", "please run /login", "invalid api key", "authentication_error", "oauth token has expired", "token expired", "401 "]) {
         Some("signin")
     } else if any(&["could not start", "os error", "claude code was not found", "no such file or directory"]) {
         Some("launch")
+    } else if any(&["no response for"]) {
+        // The watchdog ended a silent agent.
+        Some("stall")
     } else if any(&["no user query found"]) {
         // Ollama cut the request off (window too small); not the network.
         Some("localmodel")
-    } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "no response for", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
+    } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {
         Some("network")
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+pub fn update_for_test<F: FnOnce(&mut Change)>(root: &Path, id: &str, f: F) {
+    update(root, id, f);
+}
+
+/// How many times in a row each kind of outside problem is retried before
+/// it counts as a normal failure (tries, then Lead, then skip). Signed out
+/// waits for Andrew's sign-in, so it has no limit.
+pub fn env_retry_limit(kind: &str) -> usize {
+    match kind {
+        "stall" => 3,
+        "launch" | "localmodel" => 6,
+        "network" => 12,
+        _ => usize::MAX,
     }
 }
 
@@ -624,6 +660,15 @@ pub fn stop_or_pause(root: &Path, id: &str, pause: bool) -> Result<Change, Strin
             Ok(c)
         }
         "queued" => {
+            if !pause {
+                // Its run no longer reserves budget.
+                if let Ok(mut r) = crate::runs::load(root, &c.run_id) {
+                    if r.status == "approved" {
+                        r.status = "cancelled".into();
+                        let _ = crate::runs::save(root, &r);
+                    }
+                }
+            }
             if pause {
                 let mut r = crate::runs::load(root, &c.run_id)?;
                 r.status = "paused".into();
@@ -682,6 +727,9 @@ pub fn retry_launch(root: &Path, c: &Change) -> Option<Change> {
         return None;
     }
     let tries = list(root).iter().filter(|x| x.text == c.text && x.target == c.target && x.agent == c.agent && launch_failed(x)).count();
+    if tries > env_retry_limit(env_problem(c).unwrap_or("launch")) {
+        return None; // stop retrying; it shows as failed
+    }
     let prompt = crate::runs::load(root, &c.run_id).ok()?.prompt;
     let n = enqueue(root, Spec {
         target: c.target.clone(),
@@ -719,12 +767,22 @@ pub fn set_result(root: &Path, id: &str, status: &str, checks: Vec<crate::queue:
 
 /// A change whose run was paused by the usage limit goes back to working.
 pub fn resumed(root: &Path, change_id: &str) {
-    update(root, change_id, |x| x.status = "working".into());
+    // Back in the queue: take_next starts it within the agents-at-once limit.
+    update(root, change_id, |x| x.status = "queued".into());
 }
 
 /// At startup: changes left working had their run cut off (the run itself
 /// is paused or failed by runs::recover_stale); follow the run's state.
 pub fn recover(root: &Path) {
+    let mut finished = vec![];
+    recover_locked(root, &mut finished);
+    // The agent did finish before the app closed: check its work normally.
+    for id in finished {
+        finish(root, &id);
+    }
+}
+
+fn recover_locked(root: &Path, finished: &mut Vec<String>) {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
     let mut changed = false;
@@ -734,6 +792,10 @@ pub fn recover(root: &Path) {
             "paused" => "paused",
             "approved" => "queued",
             "running" => continue,
+            "done" if c.status == "working" => {
+                finished.push(c.id.clone());
+                continue;
+            }
             _ if c.status == "queued" => continue,
             _ => "failed",
         };

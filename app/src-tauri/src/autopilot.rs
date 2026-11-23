@@ -262,8 +262,9 @@ fn prompt(root: &Path, a: &Autopilot, milestone: &str, job: &str, feedback: Opti
     let project = format!("projects/{}", a.slug);
     let job = job.replace("<game>", &a.slug);
     let mut drafts = vec![];
+    let agents = crate::cost::load_agents(root).ok();
     for c in mine(root, &a.slug).into_iter().filter(|c| c.status == "done") {
-        let out = crate::cost::load_agents(root).ok().and_then(|ag| ag.agents.get(&c.agent).and_then(|p| p.output.clone())).unwrap_or_else(|| "change.md".into());
+        let out = agents.as_ref().and_then(|ag| ag.agents.get(&c.agent).and_then(|p| p.output.clone())).unwrap_or_else(|| "change.md".into());
         drafts.push(format!("- {} ({}): runs/{}/{} {}", c.agent, c.milestone.as_deref().unwrap_or(""), c.run_id, if c.kind == "task" { out } else { "change.md".into() }, if c.kind == "task" { "" } else { "(a change)" }));
     }
     let drafts = if drafts.is_empty() { String::new() } else { format!("\nEarlier work by the team (read what your job needs):\n{}\n", drafts.into_iter().rev().take(25).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")) };
@@ -412,6 +413,50 @@ fn stuck(c: &Change) -> bool {
 /// Move a game forward: start milestones and waves whose turn has come,
 /// and mark milestones ready for review. Safe to call any time.
 pub fn advance(root: &Path, slug: &str) {
+    advance_inner(root, slug);
+    revive(root, slug);
+}
+
+thread_local! {
+    static REVIVING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Failed jobs nobody picked up (the app closed between finishing and
+/// retrying, or the budget ran out at that moment) get their retry, rescue
+/// or skip now, so no stage waits on a dead job forever.
+fn revive(root: &Path, slug: &str) {
+    if REVIVING.with(|r| r.get()) {
+        return;
+    }
+    let Ok(a) = load(root, slug) else { return };
+    if a.status != "running" {
+        return;
+    }
+    let all = mine(root, slug);
+    let open = |k: &str| all.iter().any(|x| ["queued", "working", "paused"].contains(&x.status.as_str()) && x.key.as_deref().map(|xk| xk == k || xk.ends_with(&format!("|{k}"))).unwrap_or(false));
+    let old = |c: &Change| c.finished_at.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| chrono::Utc::now().signed_duration_since(t) > chrono::Duration::minutes(2)).unwrap_or(true);
+    let mut seen = std::collections::HashSet::new();
+    let mut dead = vec![];
+    for c in all.iter().rev() {
+        let Some(k) = c.key.clone() else { continue };
+        if !seen.insert(k.clone()) {
+            continue; // only the newest job of each key
+        }
+        if c.status == "failed" && !open(&k) && old(c) {
+            dead.push(c.clone());
+        }
+    }
+    if dead.is_empty() {
+        return;
+    }
+    REVIVING.with(|r| r.set(true));
+    for c in dead.iter().take(3) {
+        on_finish(root, c);
+    }
+    REVIVING.with(|r| r.set(false));
+}
+
+fn advance_inner(root: &Path, slug: &str) {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let Ok(mut a) = load(root, slug) else { return };
     if a.status != "running" {
@@ -469,18 +514,6 @@ pub fn advance(root: &Path, slug: &str) {
                         let _ = save(root, &a);
                         return;
                     }
-                }
-            }
-        }
-        let all = mine(root, slug);
-        if st == "working" || st == "revising" {
-            // Jobs that failed only because Claude could not start (for
-            // example on an older version of the app) are queued again.
-            for c in latest(&all, mid).into_iter().filter(changes::launch_failed) {
-                let key = c.key.clone().unwrap_or(c.id.clone());
-                if let Ok(n) = queue(root, &mut a, mid, &c.agent, &c.text, &key, 0, &c.source, None, &c.kind) {
-                    changes::delay(root, &n.id, 1);
-                    post(&mut a, "autopilot", Some(&c.agent), &format!("{} could not start Claude before; trying again by itself.", c.agent));
                 }
             }
         }
@@ -744,7 +777,10 @@ pub fn on_finish(root: &Path, c: &Change) {
                     let _ = queue(root, &mut a, &mid, to, task, &format!("{k}/{to}"), 0, &format!("agent:{}", c.agent), None, "change");
                 }
             }
-            "failed" if changes::launch_failed(c) => {
+            "failed" if changes::launch_failed(c) && {
+                let kind = changes::env_problem(c).unwrap_or("launch");
+                mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && changes::env_problem(x) == Some(kind)).count() <= changes::env_retry_limit(kind)
+            } => {
                 // Claude never started: the app or the computer, not the
                 // agent. Try again by itself, waiting longer each time, and
                 // without using up the agent's tries.
@@ -1225,6 +1261,33 @@ mod tests {
         let q = queued(&root, &a.slug);
         let audit = q.iter().find(|c| c.key.as_deref() == Some("audit/1")).expect("audit queued");
         assert_eq!(audit.agent, "builder");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_paused_game_starts_nothing_and_dead_failures_are_picked_up() {
+        let root = studio();
+        let a = start(&root, "Held Game", "Catch falling stars.", 1_000_000.0, None).unwrap();
+        // Paused: its waiting jobs do not start.
+        control(&root, &a.slug, "pause", None).unwrap();
+        assert!(changes::take_next(&root).iter().all(|c| c.autopilot.as_deref() != Some(a.slug.as_str())), "a paused game starts nothing");
+        control(&root, &a.slug, "resume", None).unwrap();
+        // A job failed, but its retry was never queued (the app closed in
+        // between): the next advance picks it up.
+        let job = queued(&root, &a.slug).remove(0);
+        changes::set_result(&root, &job.id, "failed", vec![crate::queue::GateCheck { name: "has a Loaded section".into(), passed: false, detail: "missing".into() }]);
+        changes::update_for_test(&root, &job.id, |x| x.finished_at = Some("2020-01-01T00:00:00Z".into()));
+        assert!(!queued(&root, &a.slug).iter().any(|c| c.key == job.key), "nothing queued yet");
+        advance(&root, &a.slug);
+        let again = queued(&root, &a.slug);
+        assert!(again.iter().any(|c| c.key == job.key && c.attempt == 1), "retried: {:?}", again.iter().map(|c| (c.key.clone(), c.attempt)).collect::<Vec<_>>());
+        // Build-check text that says "timed out" is the agent's problem, not the network.
+        let mut c = job.clone();
+        c.status = "failed".into();
+        c.checks = vec![crate::queue::GateCheck { name: "rojo build".into(), passed: false, detail: "No such file or directory (os error 2); request timed out".into() }];
+        assert_eq!(changes::env_problem(&c), None);
+        c.checks.push(crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "No response for 10 minutes: the agent was stuck".into() });
+        assert_eq!(changes::env_problem(&c), Some("stall"));
         let _ = fs::remove_dir_all(&root);
     }
 

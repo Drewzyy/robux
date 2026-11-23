@@ -311,8 +311,8 @@ pub fn run_approved_with<F: FnMut(&str)>(
     .map_err(|e| e.to_string())?;
 
     // Paused or stopped while it was starting: honour that now.
-    let early = ASKED.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
-    if let Some(what) = early.filter(|w| w == "pause" || w == "stop") {
+    let early = PENDING.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id).filter(|(_, at)| at.elapsed() < std::time::Duration::from_secs(120)).map(|(w, _)| w);
+    if let Some(what) = early {
         if what == "pause" {
             req.status = "paused".into();
             req.resume_at = Some("9999-12-31T00:00:00Z".into());
@@ -397,7 +397,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     let err_thread = std::thread::spawn(move || {
         let mut buf = String::new();
         let mut f = fs::File::create(&err_path).ok();
-        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+        for line in lossy_lines(stderr) {
             if let Some(f) = f.as_mut() {
                 let _ = writeln!(f, "{line}");
             }
@@ -410,7 +410,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     let stdout = child.stdout.take().unwrap();
     let mut stream_log = fs::File::create(dir.join("stream.jsonl")).map_err(|e| e.to_string())?;
     let mut final_result: Option<serde_json::Value> = None;
-    for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+    for line in lossy_lines(stdout) {
         let _ = writeln!(stream_log, "{line}");
         on_line(&line);
         *last_line.lock().unwrap_or_else(|e| e.into_inner()) = std::time::Instant::now();
@@ -511,7 +511,8 @@ pub fn run_approved_with<F: FnMut(&str)>(
     runs::save(root, &req)?;
     // Stopped by a usage limit: pause (keep the work) instead of failing.
     let limit_text = format!("{result_text}\n{stderr_tail}");
-    if !ok && runs::is_limit(&limit_text) {
+    // Not after a turn or budget stop, and at most 6 continues in a row.
+    if !ok && req.stop_reason.is_none() && req.continued < 6 && runs::is_limit(&limit_text) {
         let _ = runs::pause(root, run_id, &limit_text);
     }
 
@@ -632,16 +633,68 @@ fn end_run(run_id: &str, why: &str) -> bool {
     } else {
         quiet(crate::paths::command("pkill").args(["-TERM", "-P", &pid.to_string()]));
         quiet(crate::paths::command("kill").args(["-TERM", &pid.to_string()]));
+        // Still there after 5 seconds: force it (and what it started).
+        let id = run_id.to_string();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_secs(5));
+            if LIVE.lock().unwrap_or_else(|e| e.into_inner()).get(&id) == Some(&pid) {
+                let quiet = |c: &mut std::process::Command| { let _ = c.stdout(Stdio::null()).stderr(Stdio::null()).status(); };
+                quiet(crate::paths::command("pkill").args(["-KILL", "-P", &pid.to_string()]));
+                quiet(crate::paths::command("kill").args(["-KILL", &pid.to_string()]));
+            }
+        });
     }
     true
 }
+
+/// Lines of a pipe, never stopping at text that is not valid UTF-8 (which
+/// would leave the agent looking stuck until the watchdog ends it).
+fn lossy_lines<R: std::io::Read>(r: R) -> impl Iterator<Item = String> {
+    let mut rd = BufReader::new(r);
+    std::iter::from_fn(move || {
+        let mut b = Vec::new();
+        match rd.read_until(b'\n', &mut b) {
+            Ok(0) | Err(_) => None,
+            Ok(_) => Some(String::from_utf8_lossy(&b).trim_end_matches(['\r', '\n']).to_string()),
+        }
+    })
+}
+
+/// Before the app closes or restarts: pause every working agent (files
+/// kept) and mark it to continue by itself when the app is back.
+pub fn pause_all_for_restart(root: &Path) -> usize {
+    let busy = running();
+    for id in &busy {
+        stop_run(id, true);
+    }
+    for _ in 0..20 {
+        if running().is_empty() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+    for id in &busy {
+        if let Ok(mut r) = runs::load(root, id) {
+            if r.status == "paused" {
+                r.resume_at = None;
+                r.error = Some("Paused while BrewixGames closed; continues by itself.".into());
+                let _ = runs::save(root, &r);
+            }
+        }
+    }
+    busy.len()
+}
+
+/// Pause/stop asked for a run that was still starting (expires after 2 min,
+/// so a late click never hits a later resume of the same run).
+static PENDING: std::sync::Mutex<std::collections::BTreeMap<String, (String, std::time::Instant)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
 /// Pause or stop a run whether or not its process is up yet: one that is
 /// still starting is paused (or stopped) the moment it would launch.
 /// Always succeeds.
 pub fn request_end(run_id: &str, pause: bool) {
     if !stop_run(run_id, pause) {
-        ASKED.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), if pause { "pause" } else { "stop" }.into());
+        PENDING.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), (if pause { "pause" } else { "stop" }.into(), std::time::Instant::now()));
     }
 }
 

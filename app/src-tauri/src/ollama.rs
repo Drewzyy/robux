@@ -170,6 +170,13 @@ pub fn ensure_big_context() -> Option<String> {
         return None;
     }
     let want = context_tokens() as u64;
+    // Started by us: it already has the right window. Either way, at most
+    // one restart per app run.
+    if STARTED_BY_US.load(std::sync::atomic::Ordering::Relaxed) {
+        *done = true;
+        return None;
+    }
+    *done = true;
     if get("/api/version").is_ok() {
         if loaded_context().map(|c| c >= want).unwrap_or(false) {
             *done = true;
@@ -183,8 +190,7 @@ pub fn ensure_big_context() -> Option<String> {
             std::thread::sleep(std::time::Duration::from_millis(250));
         }
     }
-    *done = ensure_running();
-    if *done { None } else { Some(format!("Could not restart Ollama with a {want}-token memory window. Quit Ollama from its tray icon; BrewixGames starts it again with the right setting.")) }
+    if ensure_running() { None } else { Some(format!("Could not restart Ollama with a {want}-token memory window. Quit Ollama from its tray icon; BrewixGames starts it again with the right setting.")) }
 }
 
 /// Stop Ollama (its tray app too), so it can be started with our settings.
@@ -219,6 +225,7 @@ pub fn ensure_running() -> bool {
         .env("OLLAMA_KEEP_ALIVE", "5m").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
         return false;
     }
+    STARTED_BY_US.store(true, std::sync::atomic::Ordering::Relaxed);
     for _ in 0..20 {
         std::thread::sleep(std::time::Duration::from_millis(500));
         if get("/api/version").is_ok() {
@@ -227,6 +234,9 @@ pub fn ensure_running() -> bool {
     }
     false
 }
+
+/// True once this app run started Ollama itself (with our settings).
+static STARTED_BY_US: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 pub fn status() -> Status {
     let memory_gb = memory_gb();

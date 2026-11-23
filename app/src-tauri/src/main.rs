@@ -281,6 +281,19 @@ async fn pipeline_approve_and_start(app: AppHandle, pipeline_id: String, confirm
     Ok(())
 }
 
+/// Output lines sent to the window: huge ones (big tool results the window
+/// never shows) are cut, so the window does not parse megabytes.
+fn clip(line: &str) -> &str {
+    if line.len() <= 8000 {
+        return line;
+    }
+    let mut end = 8000;
+    while !line.is_char_boundary(end) {
+        end -= 1;
+    }
+    &line[..end]
+}
+
 fn spawn_run(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, run_id: String) {
     std::thread::spawn(move || {
         let id = run_id.clone();
@@ -288,7 +301,7 @@ fn spawn_run(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, run
         // A crash inside the run must still end it in the UI.
         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             bridge::run_approved(&r, &run_id, &bin, |line| {
-                let _ = app2.emit("run-line", json!({ "run_id": id, "line": line }));
+                let _ = app2.emit("run-line", json!({ "run_id": id, "line": clip(line) }));
             })
         }))
         .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
@@ -318,7 +331,7 @@ fn spawn_pipeline(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf
                 let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "run_id": run_id, "state": "start"}));
             }
             pipeline::Event::Line { run_id, line } => {
-                let _ = app2.emit("run-line", json!({"run_id": run_id, "pipeline_id": pid, "line": line}));
+                let _ = app2.emit("run-line", json!({"run_id": run_id, "pipeline_id": pid, "line": clip(line)}));
             }
             pipeline::Event::StageDone { index, agent, gate } => {
                 let _ = app2.emit("pipe-stage", json!({"pipeline_id": pid, "index": index, "agent": agent, "state": "done", "gate": gate}));
@@ -383,13 +396,15 @@ fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, 
         let extra = studio_core::changes::extra_dirs(&r, &c);
         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             bridge::run_approved_with(&r, &run_id, &bin, &extra, |line| {
-                let _ = app2.emit("run-line", json!({ "run_id": run_id, "line": line }));
+                let _ = app2.emit("run-line", json!({ "run_id": run_id, "line": clip(line) }));
             })
         }))
         .unwrap_or_else(|_| Err("the run crashed inside the app".into()));
         if let Err(e) = &res {
             runs::fail_if_unfinished(&r, &run_id, e);
         }
+        // Never leave the job "working" if anything below goes wrong.
+        let done = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let done = studio_core::changes::finish(&r, &id);
         // Autopilot: retry with feedback, start agents it asked for, move on.
         if let Some(c) = &done {
@@ -403,6 +418,12 @@ fn spawn_change(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, 
                 handoff(&app, &r, &c.run_id, Some(c));
             }
         }
+            done
+        }))
+        .unwrap_or_else(|_| {
+            studio_core::changes::set_result(&r, &id, "failed", vec![studio_core::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "the app hit an internal error while checking this job".into() }]);
+            None
+        });
         let _ = app.emit("change-update", serde_json::to_value(&done).unwrap_or(Value::Null));
         dispatch_changes(&app);
     });
@@ -498,7 +519,9 @@ fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
         None => pipeline::due(&r),
     };
     for p in pipes {
-        pipeline::ready_to_continue(&r, &p.pipeline_id)?;
+        if pipeline::ready_to_continue(&r, &p.pipeline_id).is_err() {
+            continue;
+        }
         spawn_pipeline(app.clone(), r.clone(), bin.clone(), p.pipeline_id);
         n += 1;
     }
@@ -520,21 +543,25 @@ fn continue_paused(app: &AppHandle, id: Option<&str>) -> Result<usize, String> {
             if held && id.is_none() {
                 continue;
             }
-            runs::ready_to_continue(&r, &x.run_id)?;
-            studio_core::changes::resumed(&r, &cid);
-            if let Some(c) = studio_core::changes::list(&r).into_iter().find(|c| c.id == cid) {
-                spawn_change(app.clone(), r.clone(), bin.clone(), c);
+            if runs::ready_to_continue(&r, &x.run_id).is_err() {
+                continue; // already continued by another call
             }
+            studio_core::changes::resumed(&r, &cid);
         } else if x.chat.is_some() {
-            chat::ready_to_continue(&r, &x.run_id)?;
+            if chat::ready_to_continue(&r, &x.run_id).is_err() {
+                continue;
+            }
             spawn_chat(app.clone(), r.clone(), bin.clone(), x.run_id);
         } else {
-            runs::ready_to_continue(&r, &x.run_id)?;
+            if runs::ready_to_continue(&r, &x.run_id).is_err() {
+                continue;
+            }
             spawn_run(app.clone(), r.clone(), bin.clone(), x.run_id);
         }
         n += 1;
     }
     if n > 0 {
+        dispatch_changes(app);
         let _ = app.emit("work-resumed", json!({ "count": n, "manual": manual }));
     }
     Ok(n)
@@ -1318,6 +1345,8 @@ fn main() {
                 // Change requests sent before the app closed carry on.
                 dispatch_changes(&h);
                 loop {
+                    // One bad minute never stops the loop for the rest of the session.
+                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     // Keep every running game moving (also after a restart).
                     if let Ok(r) = paths::studio_root() {
                         for a in studio_core::autopilot::list(&r).into_iter().filter(|a| a.status == "running") {
@@ -1330,11 +1359,21 @@ fn main() {
                     if let Err(e) = continue_paused(&h, None) {
                         eprintln!("continue paused work: {e}");
                     }
+                    }));
                     std::thread::sleep(std::time::Duration::from_secs(60));
                 }
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running BrewixGames");
+        .build(tauri::generate_context!())
+        .expect("error while running BrewixGames")
+        .run(|_app, event| {
+            // Closing: agents pause (and continue next time) instead of
+            // running on with nobody watching them.
+            if let tauri::RunEvent::Exit = event {
+                if let Ok(r) = paths::studio_root() {
+                    bridge::pause_all_for_restart(&r);
+                }
+            }
+        });
 }

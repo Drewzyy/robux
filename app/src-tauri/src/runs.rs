@@ -65,7 +65,9 @@ pub struct RunRequest {
 /// True when Claude stopped because a usage limit was reached.
 pub fn is_limit(text: &str) -> bool {
     let t = text.to_lowercase();
-    t.contains("usage limit") || t.contains("rate_limit") || t.contains("rate limit") || (t.contains("hit your") && t.contains("limit")) || t.contains("limit reached")
+    // Claude's own wording only. Plain "rate limit" is common in Roblox
+    // work (RemoteEvent rate limits) and must not pause a failed run.
+    t.contains("usage limit reached") || t.contains("hit your limit") || t.contains("rate_limit_error") || t.contains("5-hour limit") || t.contains("weekly limit")
 }
 
 /// When the limit resets, from Claude's message ("resets 2pm (UTC)",
@@ -402,6 +404,7 @@ mod stale_tests {
         assert!(is_limit("Claude AI usage limit reached|1760000000"));
         assert!(is_limit("You've hit your limit · resets 2pm (UTC)"));
         assert!(!is_limit("Error: file not found"));
+        assert!(!is_limit("Added a rate limit to the RemoteEvent; the per-player limit reached 10/s"), "Roblox work is not Claude's limit");
         let now = chrono::Utc.with_ymd_and_hms(2026, 11, 17, 10, 0, 0).unwrap();
         assert_eq!(reset_time("You've hit your limit · resets 2pm (UTC)", now), chrono::Utc.with_ymd_and_hms(2026, 11, 17, 14, 1, 0).unwrap());
         assert_eq!(reset_time("resets 9:30am (UTC)", now), chrono::Utc.with_ymd_and_hms(2026, 11, 18, 9, 31, 0).unwrap());
