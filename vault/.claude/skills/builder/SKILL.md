@@ -85,3 +85,5 @@ Before reading many files of an existing game, map it: `graphify update projects
 Andrew's own notes: if `projects/<game>/docs/notes-from-andrew.md` exists, read it before anything else and follow it; it is his direction for this game.
 
 Building geometry in Studio: follow `10-Art-Environment/map-building-from-tutorials` (blockout first, anchor everything, no floating props). To learn from a tutorial video, run `brewix watch <link>`.
+
+Learned from real open-source Roblox games: `brewix node 18-Source-Library/open-source-game-lessons` (pure logic apart from effects, server-owned economy, client-side visuals on tagged objects, Trove cleanup, loading screen, teaching through the world). Follow its Do this block when you set up or change game code.
