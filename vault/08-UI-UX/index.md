@@ -15,6 +15,7 @@ Load only the note your task needs. Do not read every note in this section.
 
 | Note | What it holds | Status |
 |---|---|---|
+| [[08-UI-UX/ui-kit]] | START HERE: the UI kit in every game (Screen, Window, Button, Bar, Counter, Grid, Card, Toast). Build every screen from it. | draft |
 | [[08-UI-UX/design-system]] | One font, one palette, spacing grid, one button template, 4.5:1 contrast. | draft |
 | [[08-UI-UX/hud-template]] | What the HUD must show during the loop and where it goes on a phone. | draft |
 | [[08-UI-UX/shop-ui]] | One HUD, one overlay per feature, 3-tap rule, no pop-ups in the first 5 minutes or on death. | draft |

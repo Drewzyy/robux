@@ -26,7 +26,7 @@ Input: the design doc or the monetization spec, and the project in `projects/<ga
 
 ## Steps
 1. Write a short UI brief first: screens, what each shows, where on a phone.
-2. Build each screen as a Luau UI builder module in the project (Scale, not Offset; ScreenInsets CoreUISafeInsets; GuiButton.Activated).
+2. Build each screen as a Luau module in the project from the UI kit (`src/shared/UI`): no raw Frames; palette and font in UI/Theme.luau.
 3. List how each screen meets the mobile checklist.
 
 ## Output
@@ -42,11 +42,14 @@ End every output with a Loaded section: each vault note you read, one line each,
 - Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
 - Anti-slop: if your output could describe any game, it is generic. Name this game's specifics or do not ship it.
 
+## UI kit (required for every screen)
+The game has `src/shared/UI` (BrewixGames' UI kit). Build every screen and HUD element from it: `UI.Screen`, `UI.Window`, `UI.Panel`, `UI.Button`, `UI.IconButton`, `UI.Label`, `UI.Bar`, `UI.Counter`, `UI.Grid` + `UI.Card`, `UI.Toast`. Never create raw Frames, TextLabels or TextButtons with hand-set colours, sizes or fonts for UI. Set the game's palette and font once in `src/shared/UI/Theme.luau` from the game's references. Read `brewix node 08-UI-UX/ui-kit` first. If an old screen was built without the kit, rebuild it with the kit when you touch it.
+
 ## Gate
 Write `<run folder>/gate.json` exactly as `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. `passed` is true only if every check passed. A check you could not run is a failed check with detail "NOT RUN: reason".
 Optional connections that are off (Figma, Blender, Roblox Studio) are not checks: never add a check for them. Say what you skipped in your output instead; failing for them only makes the app retry work that cannot change.
 Checks:
-- sizes and positions use Scale; Offset only for thin borders
+- every screen is built from the UI kit (no raw Frame/TextLabel/TextButton UI); the palette is set in UI/Theme.luau
 - nothing interactive in the top 58 px or the bottom thumb-control zone
 - any core action reachable in 3 taps or fewer
 - no shop pop-up on join, on death, or in the first 5 minutes

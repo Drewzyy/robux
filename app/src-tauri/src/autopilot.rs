@@ -289,6 +289,27 @@ fn spent(root: &Path, slug: &str) -> (f64, f64) {
     (spent, reserved)
 }
 
+/// Put the BrewixGames UI kit (studio/kits/ui) into the game's shared code
+/// once the game has code, so Frame and Builder build screens from finished
+/// parts instead of raw frames. Missing files only: the game's own edits to
+/// the kit are kept.
+pub fn ensure_ui_kit(root: &Path, slug: &str) {
+    let proj = root.join("projects").join(slug);
+    if !proj.join("default.project.json").is_file() {
+        return;
+    }
+    let kit = root.join("studio/kits/ui/UI");
+    let dest = proj.join("src/shared/UI");
+    let Ok(files) = fs::read_dir(&kit) else { return };
+    for f in files.flatten() {
+        let to = dest.join(f.file_name());
+        if !to.exists() {
+            let _ = fs::create_dir_all(&dest);
+            let _ = fs::copy(f.path(), &to);
+        }
+    }
+}
+
 /// Jobs finished between two code audits.
 pub const AUDIT_EVERY: usize = 12;
 
@@ -399,6 +420,7 @@ pub fn advance(root: &Path, slug: &str) {
     let tpl = template();
     let all = mine(root, slug);
     code_audit(root, &mut a, &all);
+    ensure_ui_kit(root, &a.slug);
     let n = a.milestones.len();
     for i in 0..n {
         let (mid, title, review, waves) = (&tpl[i].0, tpl[i].1, tpl[i].2, &tpl[i].3);
@@ -1190,6 +1212,14 @@ mod tests {
         fs::write(root.join("projects").join(&a.slug).join("default.project.json"), "{}").unwrap();
         code_audit(&root, &mut g, &few);
         assert!(!queued(&root, &a.slug).iter().any(|c| c.key.as_deref().unwrap_or("").starts_with("audit/")), "not before a dozen jobs");
+        // The UI kit is copied in once the game has code, without overwriting edits.
+        fs::create_dir_all(root.join("studio/kits/ui/UI")).unwrap();
+        fs::write(root.join("studio/kits/ui/UI/init.luau"), "return {}").unwrap();
+        fs::create_dir_all(root.join("projects").join(&a.slug).join("src/shared/UI")).unwrap();
+        fs::write(root.join("projects").join(&a.slug).join("src/shared/UI/Theme.luau"), "-- edited").unwrap();
+        ensure_ui_kit(&root, &a.slug);
+        assert!(root.join("projects").join(&a.slug).join("src/shared/UI/init.luau").is_file());
+        assert_eq!(fs::read_to_string(root.join("projects").join(&a.slug).join("src/shared/UI/Theme.luau")).unwrap(), "-- edited");
         let enough: Vec<Change> = (0..AUDIT_EVERY).map(|i| ch(&format!("x/{i}"), 0, "done", "2026-01-01")).collect();
         code_audit(&root, &mut g, &enough);
         let q = queued(&root, &a.slug);

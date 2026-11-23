@@ -59,6 +59,9 @@ A first slice must meet `17-Development-Templates/first-slice-acceptance`. In bu
 - Roblox's order: D1 and session time first, then D7/D30, then payers, then acquisition.
 - Anti-slop: if your output could describe any game, it is generic. Name this game's specifics or do not ship it.
 
+## UI kit (required for every screen)
+The game has `src/shared/UI` (BrewixGames' UI kit). Build every screen and HUD element from it: `UI.Screen`, `UI.Window`, `UI.Panel`, `UI.Button`, `UI.IconButton`, `UI.Label`, `UI.Bar`, `UI.Counter`, `UI.Grid` + `UI.Card`, `UI.Toast`. Never create raw Frames, TextLabels or TextButtons with hand-set colours, sizes or fonts for UI. Set the game's palette and font once in `src/shared/UI/Theme.luau` from the game's references. Read `brewix node 08-UI-UX/ui-kit` first. If an old screen was built without the kit, rebuild it with the kit when you touch it.
+
 ## Gate (write to `<run folder>/gate.json`)
 Exact shape: `{"passed": bool, "checks": [{"name": str, "passed": bool, "detail": str}]}`. The studio reruns the build checks itself after you finish, so report what really happened.
 Run what is installed and record the real result, never a guess:
