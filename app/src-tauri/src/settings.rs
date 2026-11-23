@@ -99,6 +99,29 @@ pub struct Settings {
     /// time (RFC 3339, when the limit resets). None: no automatic switch.
     #[serde(default)]
     pub local_until: Option<String>,
+    /// The engine to go back to when local_until passes ("claude" or "hybrid").
+    #[serde(default)]
+    pub engine_before: Option<String>,
+}
+
+/// Agents that switch to Claude in "Mostly local" mode, and only while their
+/// tool is connected: Playtest plays the game in Roblox Studio, Modeler
+/// builds models in Blender. Everything else runs on the local model.
+pub const HYBRID_CLAUDE: &[(&str, &str)] = &[("playtest", "studio"), ("modeler", "blender")];
+
+impl Settings {
+    /// Which engine this agent's run uses: "claude" or "ollama".
+    pub fn engine_for(&self, agent: &str) -> &str {
+        if self.engine != "hybrid" {
+            return &self.engine;
+        }
+        let on = |tool: &str| if tool == "studio" { self.studio_mcp == "studio" } else { self.blender_mcp == "blender" };
+        if HYBRID_CLAUDE.iter().any(|(a, tool)| *a == agent && on(tool)) {
+            "claude"
+        } else {
+            "ollama"
+        }
+    }
 }
 fn default_rate() -> f64 {
     crate::earnings::STANDARD_RATE
@@ -139,6 +162,7 @@ impl Default for Settings {
             tools_dir: String::new(),
             app_dirs: Default::default(),
             local_until: None,
+            engine_before: None,
             devex_rate: default_rate(),
         }
     }
@@ -196,10 +220,10 @@ pub fn validate(s: &Settings) -> Result<(), String> {
     if !(s.monthly_budget_usd.is_finite() && s.monthly_budget_usd >= 0.0) {
         return Err("budget must be a number, 0 or more".into());
     }
-    if s.engine != "claude" && s.engine != "ollama" {
+    if s.engine != "claude" && s.engine != "ollama" && s.engine != "hybrid" {
         return Err("engine must be claude or ollama".into());
     }
-    if s.engine == "ollama" && s.ollama_model.trim().is_empty() {
+    if (s.engine == "ollama" || s.engine == "hybrid") && s.ollama_model.trim().is_empty() {
         return Err("Type the local model's name (for example qwen3-coder) before switching to Ollama.".into());
     }
     if !(s.devex_rate.is_finite() && s.devex_rate > 0.0 && s.devex_rate < 1.0) {
@@ -302,5 +326,27 @@ mod tests {
         assert_eq!(s.studio_root, "D:/Games/Studio");
         assert_eq!(s.tools_dir, "D:/Tools");
         assert_eq!(s.tuneup_days, 3);
+    }
+}
+
+#[cfg(test)]
+mod engine_tests {
+    use super::*;
+    #[test]
+    fn mostly_local_uses_claude_only_for_studio_tests_and_blender_models() {
+        let mut s = Settings { engine: "hybrid".into(), ollama_model: "qwen3:8b".into(), ..Default::default() };
+        assert_eq!(s.engine_for("builder"), "ollama");
+        assert_eq!(s.engine_for("playtest"), "ollama", "Studio off: nothing needs Claude");
+        s.studio_mcp = "studio".into();
+        assert_eq!(s.engine_for("playtest"), "claude");
+        assert_eq!(s.engine_for("frame"), "ollama");
+        assert_eq!(s.engine_for("modeler"), "ollama");
+        s.blender_mcp = "blender".into();
+        assert_eq!(s.engine_for("modeler"), "claude");
+        s.engine = "claude".into();
+        assert_eq!(s.engine_for("builder"), "claude");
+        s.engine = "ollama".into();
+        assert_eq!(s.engine_for("playtest"), "ollama");
+        assert!(validate(&Settings { engine: "hybrid".into(), ollama_model: "qwen3:8b".into(), ..Default::default() }).is_ok());
     }
 }

@@ -135,7 +135,7 @@ pub fn lights() -> Vec<Light> {
     let mut v = vec![];
     let c = crate::claude::status();
     v.push(if c.installed && c.logged_in {
-        light("claude", "Claude", if st.engine == "claude" { "green" } else { "off" }, if st.engine == "claude" { "Signed in" } else { "Signed in; the local model is in use" })
+        light("claude", "Claude", if st.engine == "ollama" { "off" } else { "green" }, match st.engine.as_str() { "claude" => "Signed in", "hybrid" => "Signed in; used only for testing in Studio and models in Blender", _ => "Signed in; the local model is in use" })
     } else if !c.installed {
         light("claude", "Claude", "red", "Claude Code is not installed: Settings, Claude Code")
     } else {
@@ -148,7 +148,7 @@ pub fn lights() -> Vec<Light> {
         let has = o.installed.iter().any(|m| m == &st.ollama_model || m.split(':').next() == Some(st.ollama_model.as_str()));
         v.push(if o.running && o.version_ok && has {
             light("local", "Local model", "green", format!("{} ready", st.ollama_model))
-        } else if st.engine != "ollama" && !o.running {
+        } else if st.engine == "claude" && !o.running {
             light("local", "Local model", "off", "Starts when needed")
         } else {
             light("local", "Local model", "red", if !o.running || !o.version_ok { o.message } else { format!("{} is not downloaded (Settings, AI engine)", st.ollama_model) })

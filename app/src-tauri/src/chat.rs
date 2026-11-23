@@ -61,7 +61,7 @@ pub fn cap(root: &Path) -> Result<f64, String> {
     let agents = cost::load_agents(root)?;
     let prof = agents.agents.get(AGENT).ok_or("assistant agent missing from studio/agents.json")?;
     let st = crate::settings::load();
-    if st.engine == "ollama" {
+    if st.engine_for("assistant") == "ollama" {
         return Ok(0.0);
     }
     Ok(cost::estimate(AGENT, prof, "", &cost::load_pricing(root)?)?.cap_usd)

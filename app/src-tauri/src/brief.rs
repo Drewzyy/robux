@@ -157,7 +157,7 @@ fn autofill_prompt(b: &Value, dump: &str) -> String {
 
 fn ask_model(prompt: &str) -> Result<String, String> {
     let st = crate::settings::load();
-    if st.engine == "ollama" {
+    if st.engine_for("assistant") == "ollama" {
         let v: Value = ureq::post(&format!("{}/api/chat", crate::ollama::base()))
             .timeout(std::time::Duration::from_secs(600))
             .send_json(json!({ "model": st.ollama_model, "stream": false, "format": "json", "messages": [{ "role": "user", "content": prompt }] }))

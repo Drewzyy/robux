@@ -608,7 +608,7 @@ async fn continue_local(app: AppHandle, id: Option<String>) -> Result<usize, Str
 fn auto_local(app: &AppHandle) {
     static LAST_TRY: std::sync::Mutex<Option<std::time::Instant>> = std::sync::Mutex::new(None);
     let st = settings::load();
-    if st.engine != "claude" || st.ollama_model.trim().is_empty() || ollama::binary().is_none() {
+    if st.engine == "ollama" || st.ollama_model.trim().is_empty() || ollama::binary().is_none() {
         return;
     }
     let Ok(r) = root() else { return };
@@ -665,6 +665,7 @@ fn go_local(app: &AppHandle, id: Option<String>) -> Result<usize, String> {
             runs::save(&r, &x)?;
         }
         if st.engine != "ollama" {
+            st.engine_before = Some(st.engine.clone());
             st.engine = "ollama".into();
             st.local_until = back_at.or_else(|| Some((chrono::Utc::now() + chrono::Duration::hours(5)).to_rfc3339()));
             settings::save(&st)?;
@@ -685,7 +686,7 @@ fn back_to_claude_if_due(app: &AppHandle) {
     let mut st = settings::load();
     let due = st.local_until.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t <= chrono::Utc::now()).unwrap_or(false);
     if due && st.engine == "ollama" {
-        st.engine = "claude".into();
+        st.engine = st.engine_before.take().unwrap_or_else(|| "claude".into());
         st.local_until = None;
         if settings::save(&st).is_ok() {
             let _ = app.emit("engine-changed", json!({ "engine": "claude", "auto": true }));
@@ -1210,7 +1211,7 @@ fn main() {
         studio_core::changes::recover(&r);
     }
     // Only when the local engine is in use: an idle Ollama still costs memory.
-    if settings::load().ollama_autostart && settings::load().engine == "ollama" {
+    if settings::load().ollama_autostart && settings::load().engine != "claude" {
         std::thread::spawn(ollama::ensure_running);
     }
     tauri::Builder::default()

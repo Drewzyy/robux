@@ -100,7 +100,7 @@ pub struct Spec {
 /// Queue one approved run for a spec. The caller has checked its budget.
 pub fn enqueue(root: &Path, spec: Spec) -> Result<Change, String> {
     let mut req = crate::runs::prepare(root, &spec.agent, &spec.prompt)?;
-    if let Some(m) = spec.model.filter(|m| *m != req.estimate.model && crate::settings::load().engine != "ollama") {
+    if let Some(m) = spec.model.filter(|m| *m != req.estimate.model && req.engine.as_deref() != Some("ollama")) {
         let agents = crate::cost::load_agents(root)?;
         let pricing = crate::cost::load_pricing(root)?;
         if let Some(mut prof) = agents.agents.get(&spec.agent).cloned() {
@@ -326,7 +326,7 @@ pub fn preview(root: &Path, target: &str, reqs: &[Request]) -> Result<Value, Str
     check_target(root, target)?;
     let agents = crate::cost::load_agents(root)?;
     let pricing = crate::cost::load_pricing(root)?;
-    let free = crate::settings::load().engine == "ollama";
+    let st = crate::settings::load();
     let mut rows = vec![];
     let mut total = 0.0;
     for r in reqs {
@@ -334,6 +334,7 @@ pub fn preview(root: &Path, target: &str, reqs: &[Request]) -> Result<Value, Str
         let prof = agents.agents.get(&agent).ok_or_else(|| format!("unknown agent {agent}"))?;
         let prompt = prompt_for(root, target, r.item.as_deref(), &r.text)?;
         let e = crate::cost::estimate(&agent, prof, &prompt, &pricing)?;
+        let free = st.engine_for(&agent) == "ollama";
         let cap = if free { 0.0 } else { e.cap_usd };
         total += cap;
         rows.push(json!({ "agent": agent, "cap_usd": cap, "expected_usd": if free { 0.0 } else { e.expected_usd } }));
@@ -696,8 +697,8 @@ pub fn max_at_once() -> usize {
     if let Some(n) = std::env::var("ROBUX_MAX_AT_ONCE").ok().and_then(|v| v.parse().ok()) {
         return n;
     }
-    if crate::settings::load().engine == "ollama" {
-        return 1;
+    if crate::settings::load().engine != "claude" {
+        return 1; // the local model answers one at a time
     }
     match crate::ollama::memory_gb() {
         Some(m) if m < 12.0 => 1,

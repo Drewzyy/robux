@@ -179,21 +179,22 @@ pub fn slugify(title: &str) -> String {
 pub fn estimate(root: &Path, idea: &str) -> Result<Value, String> {
     let agents = crate::cost::load_agents(root)?;
     let pricing = crate::cost::load_pricing(root)?;
-    let free = crate::settings::load().engine == "ollama";
+    let st = crate::settings::load();
     let mut per = vec![];
     let mut total = 0.0;
     for (id, title, _, waves) in template() {
         let mut m = 0.0;
         for (agent, job) in waves.into_iter().flatten() {
             let prof = agents.agents.get(agent).ok_or_else(|| format!("agent {agent} is missing"))?;
-            m += crate::cost::estimate(agent, prof, &format!("{job}\n{idea}"), &pricing)?.cap_usd;
+            if st.engine_for(agent) != "ollama" {
+                m += crate::cost::estimate(agent, prof, &format!("{job}\n{idea}"), &pricing)?.cap_usd;
+            }
         }
         if id == "quality" {
             // No fixed jobs: assume three rounds of a benchmark and four fixes.
-            let cap = |agent: &str, job: &str| -> f64 { agents.agents.get(agent).and_then(|p| crate::cost::estimate(agent, p, job, &pricing).ok()).map(|e| e.cap_usd).unwrap_or(0.0) };
+            let cap = |agent: &str, job: &str| -> f64 { if st.engine_for(agent) == "ollama" { return 0.0; } agents.agents.get(agent).and_then(|p| crate::cost::estimate(agent, p, job, &pricing).ok()).map(|e| e.cap_usd).unwrap_or(0.0) };
             m += 3.0 * (cap("director", BENCH_JOB) + 4.0 * cap("builder", "Close one gap to the top games in projects/<game>."));
         }
-        let m = if free { 0.0 } else { m };
         total += m;
         per.push(json!({ "id": id, "title": title, "cap_usd": m }));
     }
@@ -356,7 +357,7 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
     if let Some(m) = &model {
         prof.model = m.clone();
     }
-    let cap = if crate::settings::load().engine == "ollama" { 0.0 } else { crate::cost::estimate(agent, &prof, &p, &pricing)?.cap_usd };
+    let cap = if crate::settings::load().engine_for(agent) == "ollama" { 0.0 } else { crate::cost::estimate(agent, &prof, &p, &pricing)?.cap_usd };
     if spent_usd + reserved + cap > a.budget_usd + 1e-9 {
         a.status = "budget".into();
         a.why = Some(format!("This game's budget (${:.2}) is used up: ${:.2} spent, ${:.2} running. Raise it to keep going.", a.budget_usd, spent_usd, reserved));

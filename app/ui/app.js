@@ -2002,8 +2002,8 @@ async function viewSettings() {
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "AI engine"),
       el("div", { class: "list" },
-        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : "Claude, through your Claude subscription. Best quality.")),
-          segmented([["claude", "Claude"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: (($("ollama-model") || {}).value || s.ollama_model || "").trim() }, v === "ollama" ? "Using the local model." : "Using Claude."); viewSettings(); })),
+        el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Who does the thinking"), el("div", { class: "hint" }, s.engine === "ollama" ? "Local model through Ollama: free and private, but weaker than Claude. Expect more failed checks." : s.engine === "hybrid" ? "Mostly local: every agent runs free on your local model, except Playtest in Roblox Studio and Modeler in Blender (when those are connected), which use Claude. Saves most of your Claude usage." : "Claude, through your Claude subscription. Best quality.")),
+          segmented([["claude", "Claude"], ["hybrid", "Mostly local"], ["ollama", "Local (free)"]], s.engine, async (v) => { await save({ engine: v, ollama_model: (($("ollama-model") || {}).value || s.ollama_model || "").trim() }, v === "ollama" ? "Using the local model." : v === "hybrid" ? "Mostly local: Claude only tests in Studio and models in Blender." : "Using Claude."); viewSettings(); })),
         localModelRows(s, o, save))),
 
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Apps in your Downloads folder"),
@@ -2230,7 +2230,7 @@ async function viewChat() {
   await freshStatus();
   state.chatAtts = state.chatAtts || [];
   const [{ chat, cap_usd, engine }, models, st, ol, projects] = await Promise.all([invoke("chat_get"), invoke("models_list").catch(() => []), invoke("settings_get"), invoke("ollama_status").catch(() => null), invoke("projects_list").catch(() => [])]);
-  const cur = engine === "ollama" ? `ollama:${st.ollama_model}` : `claude:${st.chat_model}`;
+  const cur = engine !== "claude" ? `ollama:${st.ollama_model}` : `claude:${st.chat_model}`;
   const local = ol && ol.installed ? ol.installed : [];
   const modelPick = el("select", { id: "chat-model", class: "model-select", title: "Which model answers" },
     el("optgroup", { label: "Claude (your subscription)" }, el("option", { value: "claude:", selected: cur === "claude:" }, "Default"), models.map((m) => el("option", { value: `claude:${m.id}`, selected: cur === `claude:${m.id}` }, MODEL_NAMES[m.id] || m.id))),
@@ -2238,7 +2238,7 @@ async function viewChat() {
   modelPick.addEventListener("change", async () => { try { await invoke("chat_model_set", { choice: modelPick.value }); toast(modelPick.value.startsWith("ollama:") ? "Using your free local model." : "Using Claude."); } catch (e) { toast(String(e), true); } viewChat(); });
   // The game Ask Claude helps with is the one picked at the top of the sidebar.
   state.chatGame = state.game || "";
-  const who = engine === "ollama" ? "Local model" : "Claude";
+  const who = engine !== "claude" ? "Local model" : "Claude";
   const input = el("textarea", { id: "chat-input", placeholder: "Ask anything, paste a link, or drop images, videos or files here.", style: "min-height:64px" });
   const tray = el("div", { class: "att-tray", id: "chat-tray" });
   const fileIn = el("input", { type: "file", multiple: true, class: "hidden", accept: "image/*,video/*,.pdf,.txt,.md,.json,.lua,.luau,.csv,.log" });
