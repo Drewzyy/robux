@@ -267,6 +267,19 @@ fn merge(a: &mut serde_json::Value, b: &serde_json::Value) {
 /// page holding an old copy can never undo someone else's save.
 pub fn patch(p: &serde_json::Value) -> Result<Settings, String> {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    // The file is there but cannot be read right now (locked): never save
+    // older or default settings over it. Wait a moment and try again.
+    if path().is_file() {
+        let readable = (0..6).any(|i| {
+            if i > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(150));
+            }
+            fs::read_to_string(path()).is_ok()
+        });
+        if !readable {
+            return Err("Settings could not be read just now (another program has the file open). Nothing was changed; try again.".into());
+        }
+    }
     let mut cur = serde_json::to_value(load()).map_err(|e| e.to_string())?;
     merge(&mut cur, p);
     let next: Settings = serde_json::from_value(cur).map_err(|e| format!("bad setting: {e}"))?;

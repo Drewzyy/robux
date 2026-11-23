@@ -146,7 +146,7 @@ pub fn official_installer(unix: &str, windows: &str) -> Result<std::process::Out
         c.args(["-c", unix]);
         c
     };
-    c.stdin(Stdio::null()).output().map_err(|e| format!("could not start the installer: {e}"))
+    crate::paths::output_timeout(&mut c, 900).map_err(|e| format!("the installer did not finish: {e}"))
 }
 
 /// Install uv (free, from astral.sh) with its official installer, so the

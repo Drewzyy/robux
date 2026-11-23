@@ -278,28 +278,53 @@ pub fn pull(model: &str, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
     if !choices().iter().any(|c| c.model == model) {
         return Err(format!("{model} is not on the list of supported local models"));
     }
-    let resp = ureq::post(&format!("{}/api/pull", base()))
-        .timeout(std::time::Duration::from_secs(6 * 3600))
-        .send_json(serde_json::json!({ "model": model, "stream": true }))
-        .map_err(|e| format!("could not reach Ollama: {e}"))?;
-    let mut last = String::new();
-    for line in BufReader::new(resp.into_reader()).lines().map_while(Result::ok) {
-        let v: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
-        if let Some(e) = v.get("error").and_then(|x| x.as_str()) {
-            return Err(e.to_string());
+    // A dropped connection ends the stream early: that is not success.
+    // Ollama resumes a partial download, so try up to 3 times.
+    let mut last_err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            on_line(&format!("Connection dropped; resuming the download (try {} of 3)", attempt + 1));
+            std::thread::sleep(std::time::Duration::from_secs(5));
         }
-        let st = v.get("status").and_then(|x| x.as_str()).unwrap_or("");
-        let pct = match (v.get("completed").and_then(|x| x.as_f64()), v.get("total").and_then(|x| x.as_f64())) {
-            (Some(c), Some(t)) if t > 0.0 => format!(" {:.0}%", c / t * 100.0),
-            _ => String::new(),
+        // No data for 5 minutes means the download stalled.
+        let agent = ureq::AgentBuilder::new().timeout_connect(std::time::Duration::from_secs(10)).timeout_read(std::time::Duration::from_secs(300)).build();
+        let resp = match agent
+            .post(&format!("{}/api/pull", base()))
+            .send_json(serde_json::json!({ "model": model, "stream": true }))
+        {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = format!("could not reach Ollama: {e}");
+                continue;
+            }
         };
-        let msg = format!("{st}{pct}");
-        if msg != last {
-            on_line(&msg);
-            last = msg;
+        let mut last = String::new();
+        let mut ok = false;
+        for line in BufReader::new(resp.into_reader()).lines().map_while(Result::ok) {
+            let v: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
+            if let Some(e) = v.get("error").and_then(|x| x.as_str()) {
+                return Err(e.to_string());
+            }
+            let st = v.get("status").and_then(|x| x.as_str()).unwrap_or("");
+            if st == "success" {
+                ok = true;
+            }
+            let pct = match (v.get("completed").and_then(|x| x.as_f64()), v.get("total").and_then(|x| x.as_f64())) {
+                (Some(c), Some(t)) if t > 0.0 => format!(" {:.0}%", c / t * 100.0),
+                _ => String::new(),
+            };
+            let msg = format!("{st}{pct}");
+            if msg != last {
+                on_line(&msg);
+                last = msg;
+            }
         }
+        if ok {
+            return Ok(());
+        }
+        last_err = "the download stopped before it finished".into();
     }
-    Ok(())
+    Err(format!("Could not download {model}: {last_err}. Check the internet connection and press Download again; it continues where it stopped."))
 }
 
 /// Where a failing local run went wrong, written to diagnostics.json in

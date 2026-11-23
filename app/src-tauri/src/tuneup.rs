@@ -146,7 +146,7 @@ fn count(xml: &str, class: &str) -> usize {
 pub fn scan_map(root: &Path, proj: &Path) -> (Vec<Value>, Value) {
     let pj = proj.join("default.project.json");
     let out_file = std::env::temp_dir().join(format!("tuneup-{}.rbxlx", std::process::id()));
-    let ok = crate::paths::command(crate::gates::tool("rojo")).args(["build", &pj.to_string_lossy(), "-o", &out_file.to_string_lossy()]).current_dir(root).output().map(|o| o.status.success()).unwrap_or(false);
+    let ok = crate::paths::output_timeout(crate::paths::command(crate::gates::tool("rojo")).args(["build", &pj.to_string_lossy(), "-o", &out_file.to_string_lossy()]).current_dir(root), 180).map(|o| o.status.success()).unwrap_or(false);
     let xml = fs::read_to_string(&out_file).unwrap_or_default();
     let _ = fs::remove_file(&out_file);
     if !ok || xml.is_empty() {
@@ -306,7 +306,7 @@ pub fn fix(root: &Path, project: &str) -> Result<String, String> {
             changed += 1;
         }
     }
-    let _ = crate::paths::command(crate::gates::tool("stylua")).arg(proj.join("src")).current_dir(&proj).output();
+    let _ = crate::paths::output_timeout(crate::paths::command(crate::gates::tool("stylua")).arg(proj.join("src")).current_dir(&proj), 120);
     if passed(root) < before {
         for (p, t) in backup {
             let _ = fs::write(p, t);

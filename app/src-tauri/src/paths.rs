@@ -201,6 +201,29 @@ pub fn output_timeout(cmd: &mut std::process::Command, secs: u64) -> std::io::Re
     Ok(std::process::Output { status, stdout: ro.join().unwrap_or_default(), stderr: re.join().unwrap_or_default() })
 }
 
+/// End a started program (and what it started) if it is still running
+/// after `secs`. Set the returned flag once it has finished.
+pub fn kill_after(pid: u32, secs: u64) -> std::sync::Arc<std::sync::atomic::AtomicBool> {
+    let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let d = done.clone();
+    std::thread::spawn(move || {
+        for _ in 0..secs {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            if d.load(std::sync::atomic::Ordering::Relaxed) {
+                return;
+            }
+        }
+        let quiet = |c: &mut std::process::Command| { let _ = c.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status(); };
+        if cfg!(windows) {
+            quiet(command("taskkill").args(["/T", "/F", "/PID", &pid.to_string()]));
+        } else {
+            quiet(command("pkill").args(["-KILL", "-P", &pid.to_string()]));
+            quiet(command("kill").args(["-KILL", &pid.to_string()]));
+        }
+    });
+    done
+}
+
 /// Open a web link in the default browser.
 /// Write a file safely: keep the old one as <name>.bak, write a temp file,
 /// then swap it in. A crash never leaves a half-written file behind.
@@ -208,13 +231,32 @@ pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(d) = path.parent() {
         std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
     }
+    static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
-    let tmp = path.with_file_name(format!("{name}.tmp"));
-    std::fs::write(&tmp, bytes).map_err(|e| format!("could not save {}: {e}", path.display()))?;
-    if path.is_file() {
-        let _ = std::fs::copy(path, path.with_file_name(format!("{name}.bak")));
+    // A unique temp name: two threads saving at once never clash.
+    let tmp = path.with_file_name(format!("{name}.{}.{}.tmp", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
+    // Windows antivirus and search indexing lock files for a moment: try a
+    // few times before giving up.
+    let mut last = String::new();
+    for i in 0..6 {
+        if i > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(100 * i));
+        }
+        if let Err(e) = std::fs::write(&tmp, bytes) {
+            last = e.to_string();
+            continue;
+        }
+        if path.is_file() {
+            let _ = std::fs::copy(path, path.with_file_name(format!("{name}.bak")));
+        }
+        match std::fs::rename(&tmp, path) {
+            Ok(()) => return Ok(()),
+            Err(e) => last = e.to_string(),
+        }
     }
-    std::fs::rename(&tmp, path).map_err(|e| format!("could not save {}: {e}", path.display()))
+    let _ = std::fs::remove_file(&tmp);
+    eprintln!("could not save {}: {last}", path.display());
+    Err(format!("could not save {}: {last}", path.display()))
 }
 
 /// Read JSON saved by write_atomic, falling back to its .bak copy when the
@@ -292,6 +334,27 @@ mod atomic_tests {
         std::fs::write(&f, "[1,2").unwrap(); // cut off mid-write
         let v: Vec<u32> = super::read_json(&f).unwrap();
         assert_eq!(v, vec![1]);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(all(test, unix))]
+mod timeout_tests {
+    #[test]
+    fn a_program_that_hangs_is_ended_on_time() {
+        let t = std::time::Instant::now();
+        let r = super::output_timeout(super::command("sleep").arg("30"), 1);
+        assert!(r.is_err() && t.elapsed().as_secs() < 5, "ended after about 1 s");
+        let ok = super::output_timeout(super::command("echo").arg("hi"), 5).unwrap();
+        assert_eq!(String::from_utf8_lossy(&ok.stdout).trim(), "hi");
+        // Saving survives: written, backed up, and read back.
+        let d = std::env::temp_dir().join(format!("wa-{}", std::process::id()));
+        let f = d.join("x.json");
+        super::write_atomic(&f, b"[1]").unwrap();
+        super::write_atomic(&f, b"[2]").unwrap();
+        assert_eq!(super::read_json::<Vec<i32>>(&f), Some(vec![2]));
+        std::fs::write(&f, b"{broken").unwrap();
+        assert_eq!(super::read_json::<Vec<i32>>(&f), Some(vec![1]), "a damaged file falls back to the last good copy");
         let _ = std::fs::remove_dir_all(&d);
     }
 }

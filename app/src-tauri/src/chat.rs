@@ -39,16 +39,17 @@ fn file(root: &Path) -> PathBuf {
 }
 
 pub fn load(root: &Path) -> Chat {
-    fs::read_to_string(file(root)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+    crate::paths::read_json(&file(root)).unwrap_or_default()
 }
 
 /// Write to a temp file then swap, so a crash never leaves a half-written
 /// chat (which would read as empty and lose the history and session).
 fn save(root: &Path, c: &Chat) -> Result<(), String> {
-    fs::create_dir_all(root.join("runs")).map_err(|e| e.to_string())?;
-    let tmp = file(root).with_extension("json.tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(c).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
-    fs::rename(&tmp, file(root)).map_err(|e| e.to_string())
+    // Never save a near-empty chat over a longer one that just failed to read.
+    if c.messages.len() <= 1 && fs::metadata(file(root)).map(|m| m.len() > 400).unwrap_or(false) && crate::paths::read_json::<Chat>(&file(root)).is_none() {
+        return Err("the chat history could not be read just now; try again in a moment".into());
+    }
+    crate::paths::write_atomic(&file(root), serde_json::to_string_pretty(c).map_err(|e| e.to_string())?.as_bytes())
 }
 
 /// Start a fresh conversation (the old one stays in run history).

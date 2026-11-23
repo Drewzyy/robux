@@ -167,7 +167,7 @@ pub fn watch(root: &Path, url: &str, on_line: &mut dyn FnMut(&str)) -> Result<Va
     ensure_tools(on_line)?;
     let yt = ytdlp().ok_or("yt-dlp is missing")?;
     on_line("Reading the video's details");
-    let info = crate::paths::command(&yt).args(["--no-playlist", "--skip-download", "--dump-json", url]).output().map_err(|e| format!("yt-dlp: {e}"))?;
+    let info = crate::paths::output_timeout(crate::paths::command(&yt).args(["--socket-timeout", "20", "--no-playlist", "--skip-download", "--dump-json", url]), 120).map_err(|e| format!("yt-dlp: {e}"))?;
     let meta: Value = serde_json::from_slice(&info.stdout).map_err(|_| format!("Could not open that video: {}", String::from_utf8_lossy(&info.stderr).lines().last().unwrap_or("")))?;
     let id: String = meta["id"].as_str().unwrap_or("video").chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(40).collect();
     let d = dir(root).join(&id);
@@ -177,11 +177,10 @@ pub fn watch(root: &Path, url: &str, on_line: &mut dyn FnMut(&str)) -> Result<Va
     let duration = meta["duration"].as_f64().unwrap_or(0.0);
     // Hear it: captions (made by the creator or automatic).
     on_line("Getting the captions");
-    let _ = crate::paths::command(&yt)
-        .args(["--no-playlist", "--skip-download", "--write-subs", "--write-auto-subs", "--sub-langs", "en.*,en", "--sub-format", "vtt", "-o"])
+    let _ = crate::paths::output_timeout(crate::paths::command(&yt)
+        .args(["--socket-timeout", "20", "--no-playlist", "--skip-download", "--write-subs", "--write-auto-subs", "--sub-langs", "en.*,en", "--sub-format", "vtt", "-o"])
         .arg(d.join("captions").display().to_string())
-        .arg(url)
-        .output();
+        .arg(url), 180);
     let vtt = fs::read_dir(&d).into_iter().flatten().flatten().map(|e| e.path()).filter(|p| p.extension().map(|x| x == "vtt").unwrap_or(false)).min_by_key(|p| p.to_string_lossy().contains("orig") as u8);
     let transcript = vtt.and_then(|p| fs::read_to_string(p).ok()).map(|t| transcript_from_vtt(&t)).unwrap_or_default();
     // See it: a small copy of the video, frames spread across it.
@@ -189,11 +188,10 @@ pub fn watch(root: &Path, url: &str, on_line: &mut dyn FnMut(&str)) -> Result<Va
     let mut note = String::new();
     on_line("Taking frames");
     let video = d.join("video.mp4");
-    let got = crate::paths::command(&yt)
-        .args(["--no-playlist", "-f", "bv*[height<=480][ext=mp4]/b[height<=480]/worst", "-o"])
+    let got = crate::paths::output_timeout(crate::paths::command(&yt)
+        .args(["--socket-timeout", "20", "--no-playlist", "-f", "bv*[height<=480][ext=mp4]/b[height<=480]/worst", "-o"])
         .arg(video.display().to_string())
-        .arg(url)
-        .output()
+        .arg(url), 600)
         .map(|o| o.status.success())
         .unwrap_or(false);
     match (got && video.is_file(), ffmpeg()) {
@@ -220,12 +218,11 @@ pub fn watch(root: &Path, url: &str, on_line: &mut dyn FnMut(&str)) -> Result<Va
 fn take_frames(ff: &Path, video: &Path, frames_dir: &Path, duration: f64) -> Vec<(String, String)> {
     let n = frame_budget(duration);
     let fps = (n as f64 / duration.max(1.0)).min(2.0);
-    let _ = crate::paths::command(ff)
+    let _ = crate::paths::output_timeout(crate::paths::command(ff)
         .args(["-loglevel", "error", "-i"])
         .arg(video)
         .args(["-vf", &format!("fps={fps:.4},scale=768:-2"), "-q:v", "5"])
-        .arg(frames_dir.join("%03d.jpg"))
-        .status();
+        .arg(frames_dir.join("%03d.jpg")), 300);
     let mut files: Vec<PathBuf> = fs::read_dir(frames_dir).into_iter().flatten().flatten().map(|e| e.path()).collect();
     files.sort();
     files.iter().enumerate().map(|(i, f)| {
@@ -238,7 +235,7 @@ fn take_frames(ff: &Path, video: &Path, frames_dir: &Path, duration: f64) -> Vec
 fn watch_file(root: &Path, file: &Path, on_line: &mut dyn FnMut(&str)) -> Result<Value, String> {
     ensure_tools(on_line)?;
     let ff = ffmpeg().ok_or("ffmpeg is missing")?;
-    let probe = crate::paths::command(&ff).arg("-i").arg(file).output().map_err(|e| e.to_string())?;
+    let probe = crate::paths::output_timeout(crate::paths::command(&ff).arg("-i").arg(file), 60).map_err(|e| e.to_string())?;
     let err = String::from_utf8_lossy(&probe.stderr);
     let duration = regex::Regex::new(r"Duration: (\d+):(\d+):(\d+(?:\.\d+)?)").unwrap().captures(&err)
         .map(|c| c[1].parse::<f64>().unwrap_or(0.0) * 3600.0 + c[2].parse::<f64>().unwrap_or(0.0) * 60.0 + c[3].parse::<f64>().unwrap_or(0.0))

@@ -50,7 +50,7 @@ pub fn fetch_addon(root: &std::path::Path) -> Result<std::path::PathBuf, String>
     for (k, v) in uv_dirs() {
         cmd.env(k, v);
     }
-    let o = cmd.output().map_err(|e| format!("could not run uvx: {e}"))?;
+    let o = crate::paths::output_timeout(&mut cmd, 600).map_err(|e| format!("could not run uvx: {e}"))?;
     let src = String::from_utf8_lossy(&o.stdout).trim().to_string();
     if !o.status.success() || src.is_empty() {
         return Err(format!("could not get the add-on: {}", String::from_utf8_lossy(&o.stderr).lines().last().unwrap_or("")));

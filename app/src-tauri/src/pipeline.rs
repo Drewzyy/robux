@@ -93,16 +93,12 @@ fn pipe_dir(root: &Path, id: &str) -> Result<PathBuf, String> {
 pub fn save(root: &Path, p: &PipelineRun) -> Result<(), String> {
     let d = pipe_dir(root, &p.pipeline_id)?;
     fs::create_dir_all(&d).map_err(|e| e.to_string())?;
-    let tmp = d.join("pipeline.json.tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(p).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
-    fs::rename(&tmp, d.join("pipeline.json")).map_err(|e| e.to_string())
+    crate::paths::write_atomic(&d.join("pipeline.json"), serde_json::to_string_pretty(p).map_err(|e| e.to_string())?.as_bytes())
 }
 
 pub fn load(root: &Path, id: &str) -> Result<PipelineRun, String> {
     let p = pipe_dir(root, id)?.join("pipeline.json");
-    let t = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
-    serde_json::from_str(&t).map_err(|e| format!("parse {}: {e}", p.display()))
+    crate::paths::read_json(&p).ok_or_else(|| format!("could not read {}", p.display()))
 }
 
 pub fn list(root: &Path) -> Vec<PipelineRun> {

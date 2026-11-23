@@ -30,22 +30,22 @@ async fn studio_info() -> Value {
 
 #[tauri::command]
 async fn claude_status() -> claude::Connection {
-    claude::status()
+    tauri::async_runtime::spawn_blocking(claude::status).await.unwrap_or_else(|_| claude::status())
 }
 
 #[tauri::command]
 async fn claude_sign_in() -> Result<String, String> {
-    claude::sign_in()
+    tauri::async_runtime::spawn_blocking(claude::sign_in).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
 async fn claude_install() -> Result<String, String> {
-    claude::install()
+    tauri::async_runtime::spawn_blocking(claude::install).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
 async fn uv_install() -> Result<String, String> {
-    claude::install_uv()
+    tauri::async_runtime::spawn_blocking(claude::install_uv).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -775,7 +775,7 @@ async fn chat_send(app: AppHandle, text: String, project: Option<String>, attach
 
 #[tauri::command]
 async fn ollama_status() -> ollama::Status {
-    ollama::status()
+    tauri::async_runtime::spawn_blocking(ollama::status).await.unwrap_or_else(|_| ollama::status())
 }
 
 /// Download one model from the supported list. Andrew presses Download for
@@ -784,9 +784,9 @@ async fn ollama_status() -> ollama::Status {
 async fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
     std::thread::spawn(move || {
         let app2 = app.clone();
-        let res = ollama::pull(&model, &mut |l| {
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ollama::pull(&model, &mut |l| {
             let _ = app2.emit("ollama-line", json!({ "model": model, "line": l }));
-        });
+        }))).unwrap_or_else(|_| Err("the download stopped unexpectedly; press Download again".into()));
         let _ = app.emit("ollama-done", json!({ "model": model, "error": res.err() }));
     });
     Ok(())
@@ -824,12 +824,17 @@ async fn blender_addon_get() -> Result<String, String> {
 
 #[tauri::command]
 async fn project_open_in_studio(project: String) -> Result<String, String> {
-    studio::open_in_studio(&root()?, &project)
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio::open_in_studio(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
 async fn studio_move(dest: String) -> Result<String, String> {
-    studio::move_studio(&root()?, &dest)
+    if !bridge::running().is_empty() {
+        return Err("Agents are working right now. Pause them (or wait until they finish), then move the studio.".into());
+    }
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || studio::move_studio(&r, &dest)).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -851,7 +856,7 @@ async fn pick_folder(app: AppHandle) -> Option<String> {
 
 #[tauri::command]
 async fn apps_status() -> studio_core::apps::Status {
-    studio_core::apps::status()
+    tauri::async_runtime::spawn_blocking(studio_core::apps::status).await.unwrap_or_else(|_| studio_core::apps::status())
 }
 
 /// Install Blender or Obsidian into the Downloads folder (progress events).
@@ -859,9 +864,9 @@ async fn apps_status() -> studio_core::apps::Status {
 async fn app_install(app: AppHandle, name: String) -> Result<(), String> {
     std::thread::spawn(move || {
         let app2 = app.clone();
-        let res = studio_core::apps::install(&name, &mut |l| {
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| studio_core::apps::install(&name, &mut |l| {
             let _ = app2.emit("app-line", json!({ "app": name, "line": l }));
-        });
+        }))).unwrap_or_else(|_| Err("the install stopped unexpectedly; try again".into()));
         let _ = app.emit("app-done", json!({ "app": name, "message": res.as_ref().ok(), "error": res.err() }));
     });
     Ok(())
@@ -951,9 +956,9 @@ async fn textures_download(app: AppHandle, groups: Vec<String>, per_group: usize
     let r = root()?;
     std::thread::spawn(move || {
         let app2 = app.clone();
-        let res = studio_core::textures::download(&r, &groups, per_group.clamp(1, 20), "1k", &mut |l| {
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| studio_core::textures::download(&r, &groups, per_group.clamp(1, 20), "1k", &mut |l| {
             let _ = app2.emit("tex-line", json!({ "line": l }));
-        });
+        }))).unwrap_or_else(|_| Err("the download stopped unexpectedly; try again".into()));
         let _ = app.emit("tex-done", json!({ "message": res.as_ref().ok(), "error": res.err() }));
     });
     Ok(())
@@ -1161,7 +1166,8 @@ async fn screenshot_add(project: String, path: String) -> Result<String, String>
 
 #[tauri::command]
 async fn update_check() -> Result<update::Status, String> {
-    update::check(&root()?)
+    let r = root()?;
+    tauri::async_runtime::spawn_blocking(move || update::check(&r)).await.map_err(|e| e.to_string())?
 }
 
 /// Download (git pull), rebuild, then restart the app automatically.
@@ -1174,7 +1180,8 @@ async fn update_apply(app: AppHandle) -> Result<(), String> {
         let mut on = |l: &str| {
             let _ = app2.emit("update-line", json!({ "line": l }));
         };
-        match update::apply(&r, &mut on) {
+        let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| update::apply(&r, &mut on))).unwrap_or_else(|_| Err("the update stopped unexpectedly".into()));
+        match res {
             Ok(_) => {
                 on("Update installed. Restarting...");
                 notify::send_quiet(notify::Kind::Update, "BrewixGames updated", &[format!("Now on {}", update::check(&r).map(|s| s.local).unwrap_or_default())]);
@@ -1183,6 +1190,8 @@ async fn update_apply(app: AppHandle) -> Result<(), String> {
             }
             Err(e) => {
                 let _ = app.emit("update-line", json!({ "line": format!("Update failed: {e}"), "error": true }));
+                // Agents paused for the update carry on.
+                let _ = continue_paused(&app, None);
             }
         }
     });

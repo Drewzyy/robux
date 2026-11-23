@@ -408,7 +408,15 @@ pub fn run_approved_with<F: FnMut(&str)>(
     });
 
     let stdout = child.stdout.take().unwrap();
-    let mut stream_log = fs::File::create(dir.join("stream.jsonl")).map_err(|e| e.to_string())?;
+    // If the log cannot be written (disk full, locked), keep watching the
+    // agent anyway: never leave it running unobserved.
+    let mut stream_log: Box<dyn Write> = match fs::File::create(dir.join("stream.jsonl")) {
+        Ok(f) => Box::new(f),
+        Err(e) => {
+            eprintln!("could not write the run log: {e}");
+            Box::new(std::io::sink())
+        }
+    };
     let mut final_result: Option<serde_json::Value> = None;
     for line in lossy_lines(stdout) {
         let _ = writeln!(stream_log, "{line}");
@@ -420,7 +428,17 @@ pub fn run_approved_with<F: FnMut(&str)>(
             }
         }
     }
-    let status = child.wait().map_err(|e| e.to_string())?;
+    let status = match child.wait() {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = child.kill();
+            LIVE.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
+            req.status = "failed".into();
+            req.error = Some(format!("could not start Claude properly: {e}"));
+            let _ = runs::save(root, &req);
+            return Err(e.to_string());
+        }
+    };
     LIVE.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
     let asked = ASKED.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
     let stderr_all = err_thread.join().unwrap_or_default();

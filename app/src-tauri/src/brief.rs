@@ -188,7 +188,9 @@ fn ask_model(prompt: &str) -> Result<String, String> {
             let _ = si.write_all(p.as_bytes());
         });
     }
+    let guard = crate::paths::kill_after(child.id(), 180);
     let out = child.wait_with_output().map_err(|e| format!("Claude stopped: {e}"))?;
+    guard.store(true, std::sync::atomic::Ordering::Relaxed);
     let v: Value = serde_json::from_slice(&out.stdout).map_err(|_| format!("Claude did not answer: {}", String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or("")))?;
     Ok(v["result"].as_str().unwrap_or("").to_string())
 }

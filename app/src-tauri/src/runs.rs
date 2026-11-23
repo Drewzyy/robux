@@ -229,17 +229,13 @@ pub fn prepare_with_id(
 pub fn save(root: &Path, req: &RunRequest) -> Result<(), String> {
     let d = run_dir(root, &req.run_id)?;
     fs::create_dir_all(&d).map_err(|e| e.to_string())?;
-    let p = d.join("request.json");
-    let tmp = d.join("request.json.tmp");
-    fs::write(&tmp, serde_json::to_string_pretty(req).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
-    fs::rename(&tmp, &p).map_err(|e| e.to_string())
+    crate::paths::write_atomic(&d.join("request.json"), serde_json::to_string_pretty(req).map_err(|e| e.to_string())?.as_bytes())
 }
 
 pub fn load(root: &Path, run_id: &str) -> Result<RunRequest, String> {
     let p = run_dir(root, run_id)?.join("request.json");
-    let t = fs::read_to_string(&p).map_err(|e| format!("read {}: {e}", p.display()))?;
-    serde_json::from_str(&t).map_err(|e| format!("parse {}: {e}", p.display()))
+    // Falls back to the last good copy if the file is damaged.
+    crate::paths::read_json(&p).ok_or_else(|| format!("could not read {}", p.display()))
 }
 
 /// Parsed request.json files, kept while the file is unchanged (same size

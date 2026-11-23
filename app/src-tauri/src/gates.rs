@@ -12,7 +12,6 @@ use crate::queue::GateCheck;
 use regex::Regex;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 
 const OFFLINE_STD: &str = include_str!("../../../scripts/gates/roblox-offline.yml");
 
@@ -81,8 +80,12 @@ pub fn tool(name: &str) -> PathBuf {
 }
 
 fn run(name: &str, args: &[&str], cwd: &Path) -> (Option<i32>, String) {
-    match crate::paths::command(tool(name)).args(args).current_dir(cwd).stdin(Stdio::null()).output() {
+    // Time limits: a test that loops forever, or a lint waiting on the
+    // network, fails its check instead of holding up every later job.
+    let secs = if name == "lune" { 300 } else { 120 };
+    match crate::paths::output_timeout(crate::paths::command(tool(name)).args(args).current_dir(cwd), secs) {
         Ok(o) => (o.status.code(), format!("{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr))),
+        Err(e) if e.kind() == std::io::ErrorKind::TimedOut => (Some(124), format!("{name} did not finish within {secs} s (a loop that never ends, or a network wait)")),
         Err(_) => (None, format!("NOT RUN: {name} not installed")),
     }
 }
