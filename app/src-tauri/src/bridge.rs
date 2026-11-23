@@ -249,6 +249,8 @@ pub fn run_approved_with<F: FnMut(&str)>(
         notes.push_str(&format!(" Your teammates' finished work, readable now (a file named in your task is in one of these, not in your own folder): {}.", team.join("; ")));
     }
     if req.engine.as_deref() != Some("ollama") {
+        // Open Roblox Studio / Blender first if this agent uses them.
+        crate::connect::ready_for(&req.agent);
         let st = crate::settings::load();
         if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) {
             if let Some(cmd) = crate::studio_mcp::server_command(&st) {
@@ -308,6 +310,20 @@ pub fn run_approved_with<F: FnMut(&str)>(
     )
     .map_err(|e| e.to_string())?;
 
+    // Paused or stopped while it was starting: honour that now.
+    let early = ASKED.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
+    if let Some(what) = early.filter(|w| w == "pause" || w == "stop") {
+        if what == "pause" {
+            req.status = "paused".into();
+            req.resume_at = Some("9999-12-31T00:00:00Z".into());
+            req.error = Some("Paused by you before it started.".into());
+        } else {
+            req.status = "cancelled".into();
+            req.error = Some("Stopped by you before it started.".into());
+        }
+        runs::save(root, &req)?;
+        return Ok(RunOutcome { run_id: run_id.to_string(), ok: false, result_text: String::new(), actual_cost_usd: None, num_turns: None, exit_code: None, stderr_tail: String::new() });
+    }
     req.status = "running".into();
     runs::save(root, &req)?;
 
@@ -618,6 +634,15 @@ fn end_run(run_id: &str, why: &str) -> bool {
         quiet(crate::paths::command("kill").args(["-TERM", &pid.to_string()]));
     }
     true
+}
+
+/// Pause or stop a run whether or not its process is up yet: one that is
+/// still starting is paused (or stopped) the moment it would launch.
+/// Always succeeds.
+pub fn request_end(run_id: &str, pause: bool) {
+    if !stop_run(run_id, pause) {
+        ASKED.lock().unwrap_or_else(|e| e.into_inner()).insert(run_id.to_string(), if pause { "pause" } else { "stop" }.into());
+    }
 }
 
 /// Run ids of agents working right now.

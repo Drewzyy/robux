@@ -4,6 +4,7 @@
 //! through `bridge`, which refuses to start without an approved estimate.
 
 pub mod apps;
+pub mod connect;
 pub mod blender_mcp;
 pub mod bridge;
 pub mod budget;

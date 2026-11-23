@@ -548,10 +548,15 @@ async fn agent_stop(app: AppHandle, id: String, pause: bool) -> Result<(), Strin
         studio_core::changes::stop_or_pause(&r, &id, pause)?;
     } else if !bridge::stop_run(&id, pause) {
         // A pipeline: stop the stage that is running.
-        let p = pipeline::load(&r, &id)?;
+        if let Ok(p) = pipeline::load(&r, &id) {
         let live = bridge::running();
-        let stage = p.stages.iter().find(|s| live.contains(&s.run_id)).ok_or("Nothing is running there right now.")?;
-        bridge::stop_run(&stage.run_id, pause);
+        // The running stage, or the next one about to start.
+        if let Some(stage) = p.stages.iter().find(|s| live.contains(&s.run_id)).or_else(|| p.stages.iter().find(|s| s.status == "running" || s.status == "pending" || s.status == "approved")) {
+            bridge::request_end(&stage.run_id, pause);
+        }
+        } else {
+            bridge::request_end(&id, pause); // a single run still starting
+        }
     }
     let _ = app.emit("change-update", json!({ "id": id }));
     Ok(())
@@ -760,6 +765,12 @@ async fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
 }
 
 // ---------- Roblox Studio connection ----------
+
+/// Green, red or off for Claude, the local model, Roblox Studio, Blender.
+#[tauri::command]
+async fn connections() -> Vec<studio_core::connect::Light> {
+    tauri::async_runtime::spawn_blocking(studio_core::connect::lights).await.unwrap_or_default()
+}
 
 #[tauri::command]
 async fn studio_mcp_status() -> Value {
@@ -1211,6 +1222,7 @@ fn main() {
             pipeline_cancel,
             pipeline_approve_and_start,
             continue_now,
+            connections,
             agent_stop,
             continue_local,
             changes_list,
@@ -1297,6 +1309,11 @@ fn main() {
             // the limit resets (checked every minute, first after 20 s).
             let h = app.handle().clone();
             std::thread::spawn(move || {
+                // Open Roblox Studio and Blender with the app when they are switched on.
+                let opened = studio_core::connect::open_needed();
+                if !opened.is_empty() {
+                    let _ = h.emit("apps-opened", json!({ "apps": opened }));
+                }
                 std::thread::sleep(std::time::Duration::from_secs(20));
                 // Change requests sent before the app closed carry on.
                 dispatch_changes(&h);

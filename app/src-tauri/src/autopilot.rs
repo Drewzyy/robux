@@ -908,9 +908,8 @@ pub fn control(root: &Path, slug: &str, action: &str, budget_usd: Option<f64>) -
                 // Agents working now pause too (their files are kept).
                 let mut n = 0;
                 for c in mine(root, slug).iter().filter(|c| c.status == "working") {
-                    if crate::bridge::stop_run(&c.run_id, true) {
-                        n += 1;
-                    }
+                    crate::bridge::request_end(&c.run_id, true);
+                    n += 1;
                 }
                 post(&mut a, "andrew", None, &format!("Paused the game{}. Nothing new starts until you resume.", if n > 0 { format!(" and {n} working agent(s); they continue where they stopped on Resume") } else { String::new() }));
             }

@@ -620,9 +620,7 @@ pub fn stop_or_pause(root: &Path, id: &str, pause: bool) -> Result<Change, Strin
     let c = list(root).into_iter().find(|c| c.id == id || c.run_id == id).ok_or("no such job")?;
     match c.status.as_str() {
         "working" => {
-            if !crate::bridge::stop_run(&c.run_id, pause) {
-                return Err("That agent is just starting or finishing; try again in a moment.".into());
-            }
+            crate::bridge::request_end(&c.run_id, pause);
             Ok(c)
         }
         "queued" => {
@@ -642,7 +640,7 @@ pub fn stop_or_pause(root: &Path, id: &str, pause: bool) -> Result<Change, Strin
             })
             .ok_or_else(|| "no such job".into())
         }
-        s => Err(format!("That job is {s}; there is nothing to stop.")),
+        _ => Ok(c), // already finished or paused: nothing left to do
     }
 }
 

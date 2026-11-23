@@ -441,3 +441,10 @@ img.lazy.in { opacity: 1; }
 .ap-step.approved, .ap-step.working, .ap-step.review, .ap-step.revising { color: #fff; }
 .ap-more { margin-top: 18px; }
 .ap-more > summary { cursor: pointer; }
+
+/* Connection lights in the sidebar */
+.lights { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 0 0 8px; }
+.light { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); cursor: pointer; background: none; border: 0; padding: 0; }
+.light .ld { width: 8px; height: 8px; border-radius: 50%; background: #48484A; }
+.light.green .ld { background: #30D158; box-shadow: 0 0 6px rgba(48,209,88,.6); }
+.light.red .ld { background: #FF453A; box-shadow: 0 0 6px rgba(255,69,58,.6); }

@@ -153,6 +153,17 @@ async function refreshClaude() {
   $("claude-dot").className = "dot " + (c.logged_in && c.uses_subscription ? "ok" : "bad");
   $("claude-line").textContent = !c.installed ? "Claude Code not found" : c.logged_in ? (c.uses_subscription ? "Claude connected" : "Claude: not a subscription login") : "Claude not signed in";
 }
+// Connection lights: green ready, red needs attention, grey off.
+async function refreshLights() {
+  const box = $("lights");
+  if (!box) return;
+  let ls;
+  try { ls = await invoke("connections"); } catch { return; }
+  box.replaceChildren(...ls.map((l) => el("button", { class: "light " + l.state, title: `${l.name}: ${l.detail}`, onclick: () => { if (l.state === "red") toast(`${l.name}: ${l.detail}`, true); location.hash = "#settings"; } }, el("span", { class: "ld" }), l.name)));
+}
+refreshLights();
+setInterval(refreshLights, 30000);
+T.event.listen("apps-opened", (ev) => { toast(`Opened ${ev.payload.apps.join(" and ")} for the agents.`); setTimeout(refreshLights, 8000); });
 setInterval(() => { if (state.live || (state.spend && state.spend.running.length) || Date.now() - (state.lastStatus || 0) > 20000) { state.lastStatus = Date.now(); refreshStatus(); } }, 5000);
 
 function runningSubtitle() {
