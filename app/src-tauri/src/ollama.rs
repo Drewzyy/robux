@@ -168,17 +168,34 @@ static BIG_CONTEXT: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 /// matter how Ollama was started (the Windows tray app ignores our setting,
 /// and with its small default window the task never reached the model).
 /// Created once with Ollama's create API; falls back to the model itself.
+/// Half the computer's cores (at least 2), so the PC stays usable while
+/// the local model works.
+pub fn cpu_threads() -> usize {
+    (std::thread::available_parallelism().map(|n| n.get()).unwrap_or(8) / 2).max(2)
+}
+
+/// Take every loaded model out of memory (Ollama keeps one loaded for
+/// minutes after a job otherwise, holding several GB).
+pub fn unload_all() {
+    let Ok(ps) = get("/api/ps") else { return };
+    for m in ps.get("models").and_then(|m| m.as_array()).cloned().unwrap_or_default() {
+        if let Some(name) = m.get("name").and_then(|n| n.as_str()) {
+            let _ = ureq::post(&format!("{}/api/generate", base())).timeout(std::time::Duration::from_secs(20)).send_json(serde_json::json!({ "model": name, "keep_alive": 0 }));
+        }
+    }
+}
+
 pub fn with_context(model: &str) -> String {
     if model.starts_with("brewix-") || std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_ok() {
         return model.to_string();
     }
     let ctx = context_tokens();
-    let name = format!("brewix-{}-{}k", model.replace([':', '/'], "-"), ctx / 1024);
+    let name = format!("brewix-{}-{}k-t{}", model.replace([':', '/'], "-"), ctx / 1024, cpu_threads());
     let installed = status().installed;
     if installed.iter().any(|m| m == &name || m == &format!("{name}:latest")) {
         return name;
     }
-    let body = serde_json::json!({ "model": name, "from": model, "parameters": { "num_ctx": ctx }, "stream": false });
+    let body = serde_json::json!({ "model": name, "from": model, "parameters": { "num_ctx": ctx, "num_thread": cpu_threads() }, "stream": false });
     match ureq::post(&format!("{}/api/create", base())).timeout(std::time::Duration::from_secs(300)).send_json(body) {
         Ok(_) => name,
         Err(e) => {
@@ -242,7 +259,7 @@ pub fn ensure_running() -> bool {
         return true;
     }
     let Some(bin) = binary() else { return false };
-    if crate::paths::command(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string())
+    if crate::paths::low_priority(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string())
         // Memory: one model and one conversation at a time, a compact
         // memory window (q8 halves it), and the model unloads after 5 idle
         // minutes so the computer gets its RAM back.
@@ -250,7 +267,7 @@ pub fn ensure_running() -> bool {
         .env("OLLAMA_MAX_LOADED_MODELS", "1")
         .env("OLLAMA_FLASH_ATTENTION", "1")
         .env("OLLAMA_KV_CACHE_TYPE", "q8_0")
-        .env("OLLAMA_KEEP_ALIVE", "5m").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
+        .env("OLLAMA_KEEP_ALIVE", "1m").stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().is_err() {
         return false;
     }
     STARTED_BY_US.store(true, std::sync::atomic::Ordering::Relaxed);

@@ -444,6 +444,10 @@ pub fn run_approved_with<F: FnMut(&str)>(
         }
     };
     LIVE.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
+    // A local job ended: free the model's memory now unless another runs.
+    if req.engine.as_deref() == Some("ollama") && LIVE.lock().unwrap_or_else(|e| e.into_inner()).is_empty() {
+        std::thread::spawn(crate::ollama::unload_all);
+    }
     let asked = ASKED.lock().unwrap_or_else(|e| e.into_inner()).remove(run_id);
     let stderr_all = err_thread.join().unwrap_or_default();
     let stderr_tail: String = stderr_all

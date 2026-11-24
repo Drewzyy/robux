@@ -216,12 +216,15 @@ pub fn watch(root: &Path, url: &str, on_line: &mut dyn FnMut(&str)) -> Result<Va
 
 /// Frames from a video file into frames/, spread by the length budget.
 fn take_frames(ff: &Path, video: &Path, frames_dir: &Path, duration: f64) -> Vec<(String, String)> {
+    // One video at a time, on 2 cores, so the PC stays usable.
+    static ONE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
     let n = frame_budget(duration);
     let fps = (n as f64 / duration.max(1.0)).min(2.0);
-    let _ = crate::paths::output_timeout(crate::paths::command(ff)
-        .args(["-loglevel", "error", "-i"])
+    let _ = crate::paths::output_timeout(crate::paths::low_priority(ff)
+        .args(["-loglevel", "error", "-threads", "2", "-filter_threads", "1", "-i"])
         .arg(video)
-        .args(["-vf", &format!("fps={fps:.4},scale=768:-2"), "-q:v", "5"])
+        .args(["-threads", "2", "-vf", &format!("fps={fps:.4},scale=768:-2"), "-q:v", "5"])
         .arg(frames_dir.join("%03d.jpg")), 300);
     let mut files: Vec<PathBuf> = fs::read_dir(frames_dir).into_iter().flatten().flatten().map(|e| e.path()).collect();
     files.sort();

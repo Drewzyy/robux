@@ -176,6 +176,21 @@ pub fn command<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
     c
 }
 
+/// Like command, but the program runs below normal priority so the
+/// computer stays responsive (video frames, the local model).
+pub fn low_priority<S: AsRef<std::ffi::OsStr>>(program: S) -> std::process::Command {
+    #[allow(unused_mut)]
+    let mut c = std::process::Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        const BELOW_NORMAL_PRIORITY_CLASS: u32 = 0x0000_4000;
+        c.creation_flags(CREATE_NO_WINDOW | BELOW_NORMAL_PRIORITY_CLASS);
+    }
+    c
+}
+
 /// Run a program and collect its output, but never wait longer than
 /// `secs`: a program that hangs (a stuck git, a CLI waiting on the network)
 /// is killed and reported as timed out instead of freezing the app.
