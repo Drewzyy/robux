@@ -448,3 +448,8 @@ img.lazy.in { opacity: 1; }
 .light .ld { width: 8px; height: 8px; border-radius: 50%; background: #48484A; }
 .light.green .ld { background: #30D158; box-shadow: 0 0 6px rgba(48,209,88,.6); }
 .light.red .ld { background: #FF453A; box-shadow: 0 0 6px rgba(255,69,58,.6); }
+
+/* A game waiting for Andrew's approval */
+.hero.hero-review { border-color: rgba(255, 214, 10, .55); box-shadow: 0 0 0 1px rgba(255, 214, 10, .25), 0 0 24px rgba(255, 214, 10, .12); }
+.hero.hero-review .k { color: #FFD60A; }
+.nav-count.urgent { background: #FFD60A; color: #1C1C1E; }

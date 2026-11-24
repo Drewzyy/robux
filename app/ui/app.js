@@ -155,9 +155,13 @@ async function refreshStatus() {
       : "No run in progress";
   }
   try {
-    const items = await invoke("queue_list");
-    const n = items.filter((i) => i.status === "pending").length;
-    $("nav-count").textContent = n ? String(n) : "";
+    const [items, games] = await Promise.all([invoke("queue_list"), invoke("autopilot_list").catch(() => [])]);
+    const reviews = games.filter((g) => g.milestones.some((m) => m.status === "review")).length;
+    const n = items.filter((i) => i.status === "pending").length + reviews;
+    const b = $("nav-count");
+    b.textContent = n ? String(n) : "";
+    b.classList.toggle("urgent", reviews > 0);
+    b.title = reviews ? "A game is waiting for your approval" : "";
   } catch {}
 }
 async function refreshClaude() {
@@ -384,7 +388,20 @@ async function viewDashboard() {
     : left ? [`Finish checking ${plan.title}`, `${left} of ${plan.total} plan items left to check`, "Open Game Plan", `#plans/${plan.run_id}`]
     : !last ? ["Get a second opinion", "Have another AI check the code before you publish", "Open Double-Check", "#review"]
     : [`Build ${plan.title}`, "Every plan item is checked", "Open Game Plan", `#plans/${plan.run_id}`];
-  const hero = el("div", { class: "card hero" }, el("div", {}, el("div", { class: "k" }, "Next step"), el("div", { class: "hero-title" }, next[0]), el("div", { class: "note" }, next[1])),
+  // A finished milestone waiting for Andrew: approve or send it back right here.
+  const decide = toReview ? (() => {
+    const [g, m] = toReview;
+    const last = g.milestones[g.milestones.length - 1].id === m.id;
+    const act = (approve, label, cls) => el("button", { class: cls, onclick: async (e) => {
+      e.currentTarget.disabled = true;
+      try { await invoke("autopilot_review", { slug: g.slug, milestone: m.id, approve, notes: "" }); toast(approve ? `Approved: ${m.title}.` : "Sent back. The team keeps improving it."); } catch (er) { toast(String(er), true); }
+      viewDashboard(); refreshStatus();
+    } }, label);
+    return el("div", { class: "inline", style: "gap:8px;margin-top:10px;flex-wrap:wrap" },
+      act(true, last ? "Final Approve" : "Approve", "btn primary"), act(false, "Not Good Enough", "btn secondary"),
+      el("span", { class: "note" }, last ? "This is the last step: approving finishes the game (nothing is published)." : "Open it first to look; notes go in the box there."));
+  })() : null;
+  const hero = el("div", { class: "card hero" + (toReview ? " hero-review" : "") }, el("div", {}, el("div", { class: "k" }, toReview ? "Needs you" : "Next step"), el("div", { class: "hero-title" }, next[0]), el("div", { class: "note" }, next[1]), decide),
     el("a", { class: "btn primary cta", id: "next-step", href: next[3] }, next[2], el("span", { class: "cta-arrow" }, "→")));
   const earned = money && money.total_robux > 0;
   showIf(nav, page(head("Dashboard", runningSubtitle()),

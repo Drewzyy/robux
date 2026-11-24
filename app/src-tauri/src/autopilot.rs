@@ -91,6 +91,9 @@ pub struct Milestone {
     pub round: u32,
     #[serde(default)]
     pub history: Vec<f64>,
+    /// Reminders sent while this milestone waits for Andrew's review.
+    #[serde(default)]
+    pub reminded: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -144,7 +147,7 @@ pub fn load(root: &Path, slug: &str) -> Result<Autopilot, String> {
     }
     if a.milestones.len() != tpl.len() || a.milestones.iter().zip(tpl.iter()).any(|(m, t)| m.id != t.0) {
         let old = std::mem::take(&mut a.milestones);
-        a.milestones = tpl.iter().map(|(id, t, _, _)| old.iter().find(|m| m.id == *id).cloned().unwrap_or(Milestone { id: id.to_string(), title: t.to_string(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![] })).collect();
+        a.milestones = tpl.iter().map(|(id, t, _, _)| old.iter().find(|m| m.id == *id).cloned().unwrap_or(Milestone { id: id.to_string(), title: t.to_string(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![], reminded: 0 })).collect();
     }
     Ok(a)
 }
@@ -227,7 +230,7 @@ pub fn start(root: &Path, title: &str, idea: &str, budget_usd: f64, slug: Option
         status: "running".into(),
         why: None,
         plan_run: None,
-        milestones: template().into_iter().map(|(id, t, _, _)| Milestone { id: id.into(), title: t.into(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![] }).collect(),
+        milestones: template().into_iter().map(|(id, t, _, _)| Milestone { id: id.into(), title: t.into(), status: "waiting".into(), wave: 0, ready_at: None, approved_at: None, round: 0, history: vec![], reminded: 0 }).collect(),
         board: vec![Msg { at: crate::now_rfc3339(), from: "andrew".into(), to: None, text: format!("Approved the idea: {}", title.trim()) }],
         notes: vec![],
         created_at: crate::now_rfc3339(),
@@ -314,6 +317,26 @@ pub fn ensure_ui_kit(root: &Path, slug: &str) {
             let _ = fs::create_dir_all(&dest);
             let _ = fs::copy(f.path(), &to);
         }
+    }
+}
+
+/// A milestone waiting for Andrew: remind him every 6 hours, 4 times at most.
+fn remind_reviews(root: &Path, a: &mut Autopilot) {
+    let now = chrono::Utc::now();
+    let n = a.milestones.len();
+    for i in 0..n {
+        let m = &a.milestones[i];
+        if m.status != "review" || m.reminded >= 4 {
+            continue;
+        }
+        let Some(at) = m.ready_at.as_deref().and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()) else { continue };
+        if now.signed_duration_since(at) < chrono::Duration::hours(6 * (m.reminded as i64 + 1)) {
+            continue;
+        }
+        a.milestones[i].reminded += 1;
+        let _ = save(root, a); // counted before sending, so it never repeats
+        let (title, last) = (a.milestones[i].title.clone(), i + 1 == n);
+        crate::notify::send_quiet(crate::notify::Kind::NeedsApproval, &format!("Reminder: {}: {} {title}", a.title, if last { "final approval for" } else { "waiting for your approval:" }), &["Open BrewixGames: it is the Next step on the Dashboard.".into()]);
     }
 }
 
@@ -461,6 +484,7 @@ fn advance_inner(root: &Path, slug: &str) {
     let tpl = template();
     let all = mine(root, slug);
     code_audit(root, &mut a, &all);
+    remind_reviews(root, &mut a);
     ensure_ui_kit(root, &a.slug);
     let n = a.milestones.len();
     for i in 0..n {
@@ -556,13 +580,20 @@ fn advance_inner(root: &Path, slug: &str) {
                 a.milestones[i].status = "review".into();
                 a.milestones[i].ready_at = Some(crate::now_rfc3339());
                 post(&mut a, "autopilot", Some("andrew"), &format!("Ready for your review: {title}. {review}"));
-                crate::notify::send_quiet(crate::notify::Kind::NeedsApproval, &format!("{}: {title} is ready", a.title), &[review.to_string(), "Approve it or send notes in BrewixGames (Make the Game, Autopilot).".into()]);
+                a.milestones[i].reminded = 0;
+                let last = i + 1 == a.milestones.len();
+                crate::notify::send_quiet(
+                    crate::notify::Kind::NeedsApproval,
+                    &if last { format!("{}: FINAL APPROVAL needed ({title})", a.title) } else { format!("{}: {title} is ready for your approval", a.title) },
+                    &[review.to_string(), "Open BrewixGames: it is the Next step on the Dashboard. Approve it, or press Not Good Enough to keep improving.".into()],
+                );
             }
         }
     }
     if a.milestones.iter().all(|m| m.status == "approved") {
         a.status = "done".into();
         post(&mut a, "autopilot", Some("andrew"), "Every milestone is approved. The game is ready for you to publish.");
+        crate::notify::send_quiet(crate::notify::Kind::Finished, &format!("{}: done, ready for you to publish", a.title), &["Every part is approved. Nothing was published: open the game in Roblox Studio (Build, Open in Studio), play it once, then File, Publish to Roblox, and make it Public in its settings.".into()]);
     }
     let _ = save(root, &a);
 }
@@ -1284,6 +1315,28 @@ mod tests {
         assert_eq!(changes::env_problem(&c), None);
         c.checks.push(crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "No response for 10 minutes: the agent was stuck".into() });
         assert_eq!(changes::env_problem(&c), Some("stall"));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_waiting_approval_is_reminded_every_six_hours_at_most_four_times() {
+        let root = studio();
+        let a = start(&root, "Remind Game", "Catch falling stars.", 0.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "review".into();
+        g.milestones[0].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(7)).to_rfc3339());
+        save(&root, &g).unwrap();
+        advance(&root, &a.slug);
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 1);
+        advance(&root, &a.slug);
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 1, "not again before 12 hours");
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(100)).to_rfc3339());
+        save(&root, &g).unwrap();
+        for _ in 0..6 {
+            advance(&root, &a.slug);
+        }
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 4, "four at most");
         let _ = fs::remove_dir_all(&root);
     }
 
