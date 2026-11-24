@@ -503,3 +503,9 @@ img.lazy.in { opacity: 1; }
 @keyframes v-z { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(1.2px, -3px); } }
 @keyframes v-hammer { 0%, 100% { transform: rotate(-25deg); } 50% { transform: rotate(35deg); } }
 @keyframes v-bob { 0%, 100% { transform: translate(6.5px, 1.5px); } 50% { transform: translate(6.5px, 1.1px); } }
+
+/* Help and FAQ */
+.faq { margin-bottom: 8px; }
+.faq summary { cursor: pointer; }
+.faq-body { margin-top: 8px; }
+.faq-list { margin: 6px 0 6px 18px; padding: 0; color: var(--text-2); font-size: 13px; line-height: 1.6; }

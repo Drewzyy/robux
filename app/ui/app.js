@@ -403,7 +403,8 @@ function villageSvg(working, onPick) {
     }
     g.appendChild(worker);
     const t = mk("text", { x: 0, y: 7.4, class: "v-label" }); t.textContent = label; g.appendChild(t);
-    const tip = mk("title", {}); tip.textContent = `${label}: ${busy ? "working" : "resting"}`; g.appendChild(tip);
+    const tip = mk("title", {}); const job = (typeof TEAM_JOBS !== "undefined" ? TEAM_JOBS : []).find((t) => t[0].toLowerCase() === id);
+    tip.textContent = `${label}: ${busy ? "working" : "asleep"}${job ? " · " + job[2] : ""}`; g.appendChild(tip);
     g.addEventListener("click", () => onPick(id));
     svg.appendChild(g);
   });
@@ -2113,6 +2114,51 @@ T.event.listen("app-done", (ev) => {
   if ((location.hash || "") === "#settings") viewSettings();
 });
 
+
+// Settings: Help and FAQ (plain answers; one question open at a time is fine).
+const TEAM_JOBS = [
+  ["Lead", "Executive Producer", "The manager. Turns your notes into a plan for the team, and steps in with a new approach when a job keeps failing or the game stops improving."],
+  ["Planner", "Game Plan Producer", "Writes the whole game plan with mockup pictures of every screen. Step 1."],
+  ["Architect", "Game Designer", "Turns the plan into a design doc: core loop, progression, the first 60 seconds, the map layout. Step 2."],
+  ["Director", "Creative Director", "Guards the game's identity and look; scores the game against the best games in its niche in the improvement loop."],
+  ["Simulator", "Player Psychologist", "Predicts how kids, teens and adults would play it: how long they stay, where they quit, what to fix."],
+  ["Frame", "UI Designer", "Designs and builds every screen (HUD, shop, menus) from the UI kit, phone first."],
+  ["Scenic", "World Artist", "Lighting, atmosphere, map layout and mood."],
+  ["Modeler", "3D Modeler", "Makes 3D models in Blender (or free Poly Haven models) and exports them for Studio."],
+  ["Builder", "Programmer", "Writes the game's code (Luau, Rojo project) so it builds and passes the checks. Also audits the code every 12 jobs."],
+  ["Motion", "Animation and Effects", "Tweens, particles, camera kicks: the feel of every action."],
+  ["Librarian", "Audio and Assets", "Sound list and free, license-checked models and effects."],
+  ["Merchant", "Shop and Economy", "Game passes, developer products and prices, fair only (do-not-sell list)."],
+  ["Crowd", "Multiplayer and NPCs", "Multiplayer play, social features, bots and NPCs."],
+  ["Playtest", "Tester", "Plays the game in Roblox Studio (or reads the code without Studio) and reports every problem."],
+  ["Tuner", "Performance", "Makes the game run smoothly on phones."],
+  ["Pulse", "Researcher", "Finds trends and the top games in the niche, and studies open-source games."],
+  ["Splash", "Thumbnails", "Game icon and thumbnails."],
+  ["Release", "Release Manager", "Writes the release checklist. Never publishes anything."],
+];
+function helpFaq() {
+  const q = (title, ...body) => el("details", { class: "card faq" }, el("summary", { class: "row-title" }, title), el("div", { class: "faq-body" }, ...body));
+  const p = (t) => el("p", { class: "note" }, t);
+  const ul = (items) => el("ul", { class: "faq-list" }, items.map((t) => el("li", {}, t)));
+  return el("div", { class: "section", id: "help" }, el("div", { class: "section-label" }, "Help and FAQ"),
+    q("How does making a game work?",
+      p("You give an idea once (Make the Game). The agents then make the whole game in 7 steps, shown as the timeline on the Dashboard:"),
+      ul(["1 Plan: Planner writes the plan with mockups.", "2 Design: Architect, Director and Simulator write the design and walk through a new player's first 15 minutes.", "3 UI: Frame drafts every screen.", "4 World: Scenic (map, lighting) and Modeler (3D models).", "5 Build: Builder writes the code, then Frame, Motion, Librarian and Merchant add UI, feel, sound and shop; Playtest tests it.", "6 Test and improve: a loop of research (Pulse), scoring against the top games (Director), fixes (the right agents) and testing (Playtest) until every area scores 8 of 10.", "7 Polish: Builder, Tuner, Simulator and Splash finish it; Release writes the checklist."]),
+      p("Each step ends with your approval. Everything between runs by itself: failed checks are retried with feedback, Lead finds a new approach when a job keeps failing, and a job that still fails is skipped with a report so the game keeps going.")),
+    q("What does each agent do?", el("div", { class: "list" }, TEAM_JOBS.map(([n, role, job]) => el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, `${n} · ${role}`), el("div", { class: "hint" }, job)))))),
+    q("When do I need to do something?",
+      ul(["Approve each finished step (or press Not Good Enough). It shows as the gold Needs you box on the Dashboard and as a Discord message, with reminders every 6 hours.", "Publish the finished game yourself in Roblox Studio. Nothing is ever published, uploaded or sold for you.", "Sign in to Claude if it signs out (the Claude light turns red).", "Optional: send notes any time; press Pause or Stop on any agent."]),
+      p("Everything else (retries, rescues, switching to the local model when Claude's usage runs out, resuming after a restart) happens by itself.")),
+    q("What can I type, and what do the buttons do?",
+      ul(["The box on the game page (or a note): anything you want changed. It goes to the right agent in the current step.", "Ask Claude: questions, or 'do it' requests. It starts the work itself (it never tells you to click around). 'do research' or 'research shop UIs': it studies open-source Roblox games and saves the lessons for the agents.", "Approve / Final Approve: accept a step. Not Good Enough: send it back to keep improving (notes optional).", "Pause / Resume: the whole game. Pause / Stop on one agent: just that job; Pause keeps its files and Resume continues it.", "Continue on Local Model: keep going for free on your PC while Claude's usage is used up (it also happens by itself)."])),
+    q("How do I check everything is connected?",
+      ul(["Look at the lights at the bottom of the sidebar: green is ready, red needs attention, grey is switched off. Hover a light to see why it is red and what to do.", "Claude: green when signed in (Settings, Claude Code).", "Local model: green when Ollama runs and the model is downloaded (Settings, AI engine).", "Roblox Studio: switch it on in Settings; the app opens Studio for you. Green when open and connected.", "Blender: switch it on in Settings; the app opens Blender. In Blender press N, open the BlenderMCP tab and press Connect once; then it turns green.", "Discord: Settings, Notifications, Send Test."])),
+    q("Which engine should I use?",
+      ul(["Claude: best quality, uses your Claude plan.", "Mostly local: everything runs free on your PC except Playtest in Studio and Modeler in Blender, which use Claude. Saves most of your usage.", "Local (free): everything on your PC through Ollama; weaker results. On a 3070 use qwen3:8b."])),
+    q("Something looks stuck. What now?",
+      ul(["A red step dot or 'Had a problem' on an agent: nothing to do, the team retries or skips it by itself.", "An agent silent for 10 minutes (20 on the local model) is ended and retried by itself.", "If a whole game is paused, the reason is on its page; press Resume.", "Still unsure: ask Ask Claude 'is anything being built?'. It sees the game's live state and restarts stuck work itself."])));
+}
+
 async function viewSettings() {
   const nav = navSeq;
   await freshStatus();
@@ -2201,6 +2247,7 @@ async function viewSettings() {
           bm.uvx ? null : el("button", { class: "btn primary", id: "uv-install", onclick: async (ev) => { ev.target.disabled = true; ev.target.textContent = "Installing uv..."; try { toast(await invoke("uv_install")); } catch (e) { toast(String(e), true); } viewSettings(); } }, "Install uv"),
           el("button", { class: "btn secondary", id: "blender-addon", disabled: !bm.uvx, onclick: async (ev) => { ev.target.disabled = true; try { const p = await invoke("blender_addon_get"); toast(`Add-on saved to ${p}`); } catch (e) { toast(String(e), true); } ev.target.disabled = false; } }, "Get the Blender Add-on")))),
 
+    helpFaq(),
     el("div", { class: "section" }, el("div", { class: "section-label" }, "Notifications"),
       el("div", { class: "list" },
         el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Discord webhook"), el("div", { class: "hint" }, "Stored on this computer only, never in the repo.")),
