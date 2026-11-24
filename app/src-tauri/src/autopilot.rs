@@ -469,9 +469,17 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
     // Opus): bigger models use up Claude's usage much faster.
     let own = crate::cost::load_agents(root).ok().and_then(|x| x.agents.get(agent).map(|p| p.model.clone())).unwrap_or_default();
     let model = if attempt + 1 >= MAX_ATTEMPTS { Some(step_up(&own)) } else { None };
-    let p = prompt(root, a, milestone, job, feedback);
     let agents = crate::cost::load_agents(root)?;
     let mut prof = agents.agents.get(agent).cloned().ok_or_else(|| format!("unknown agent {agent}"))?;
+    let mut p = prompt(root, a, milestone, job, feedback);
+    // Inspiration from what the studio researched, for the agents that design and build.
+    if prof.allowed_sections.iter().any(|s| s == "18-Source-Library") && !milestone.is_empty() {
+        p.push_str("\n\nInspiration (read only the \"Do this\" block of each, then use what fits this job): vault 18-Source-Library/open-source-game-lessons.md and 18-Source-Library/uncopylocked-games-studied.md (patterns from real Roblox games; rebuild the ideas, never copy code or models)");
+        if prof.allowed_sections.iter().any(|s| s == "08-UI-UX") {
+            p.push_str(", and 08-UI-UX/ui-kit.md (build every screen from the UI kit in src/shared/UI)");
+        }
+        p.push('.');
+    }
     if let Some(m) = &model {
         prof.model = m.clone();
     }

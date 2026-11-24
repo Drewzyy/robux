@@ -671,7 +671,10 @@ pub fn evaluate_stage(
                 &if failed.is_empty() { format!("{} checks", g.checks.len()) } else { format!("failed: {}", failed.join("; ")) },
             ));
         }
-        None => checks.push(check("agent's own gate passed", false, "gate.json missing or not in the required shape")),
+        // No self-check file is not a failure on its own: the app's checks
+        // below judge the work. (Local models often skip it, and a whole
+        // retry over a missing self-report wasted hours.)
+        None => checks.push(check("agent's own gate passed", !body.trim().is_empty(), if body.trim().is_empty() { "gate.json missing, and no output either" } else { "no gate.json; judged by the app's checks" })),
     }
 
     // Loaded only allowed vault sections.
