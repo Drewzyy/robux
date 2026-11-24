@@ -252,7 +252,7 @@ const GROUPS = {
 };
 const GROUP_OF = {};
 for (const [g, pages] of Object.entries(GROUPS)) for (const [r] of pages) GROUP_OF[r] = g;
-const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, changes: viewChanges, autopilot: viewAutopilot, home: viewDashboard, chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
+const routes = { files: viewFiles, score: viewScore, brief: viewBrief, tuneup: viewTuneup, ideas: viewHome, review: viewReview, plans: viewPlans, money: viewMoney, references: viewReferences, inspo: viewInspo, changes: viewChanges, autopilot: viewAutopilot, home: () => viewDashboard(false), overview: () => viewDashboard(true), chat: viewChat, simulator: viewSimulator, thumbnails: viewThumbnails, queue: viewQueue, agents: viewAgents, vault: viewVault, runs: viewRuns, run: viewRunDetail, settings: viewSettings };
 function route() {
   const h = location.hash.replace(/^#/, "") || "home";
   const [name, ...rest] = h.split("/");
@@ -355,9 +355,117 @@ async function viewHome() {
 // =====================================================================
 // Dashboard: one look at everything, each widget opens its page
 // =====================================================================
-async function viewDashboard() {
+
+// =====================================================================
+// The game's one page: a timeline of steps, what is happening now, the
+// agents' village, and one box to tell the team anything.
+// =====================================================================
+const STEP_SHORT = { plan: "Plan", design: "Design", ui: "UI", world: "World", build: "Build", quality: "Test & improve", polish: "Polish" };
+const VILLAGE = (() => { // houses evenly around the town hall
+  const who = [["lead", "Lead"], ["pulse", "Pulse"], ["architect", "Architect"], ["builder", "Builder"], ["merchant", "Merchant"], ["modeler", "Modeler"], ["playtest", "Playtest"],
+    ["director", "Director"], ["motion", "Motion"], ["scenic", "Scenic"], ["librarian", "Librarian"], ["frame", "Frame (UI)"], ["planner", "Planner"], ["tuner", "Tuner"]];
+  return who.map(([id, label], i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / who.length; return [id, label, 50 + 39 * Math.cos(a), 54 + 37 * Math.sin(a)]; });
+})();
+function villageSvg(working, onPick) {
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs, ...kids) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v); kids.forEach((c) => c && n.appendChild(c)); return n; };
+  const svg = mk("svg", { viewBox: "-4 6 108 102", class: "village" });
+  svg.appendChild(mk("ellipse", { cx: 50, cy: 54, rx: 48, ry: 44, class: "v-ground" }));
+  // Paths from each house to the hall.
+  VILLAGE.forEach(([, , x, y]) => svg.appendChild(mk("line", { x1: 50, y1: 52, x2: x, y2: y, class: "v-path" })));
+  // Town hall (Lead's team): a big house with a flag.
+  svg.appendChild(mk("g", { class: "v-hall" },
+    mk("rect", { x: 40, y: 46, width: 20, height: 14, rx: 1.5 }),
+    mk("polygon", { points: "37,47 50,36 63,47" }),
+    mk("rect", { x: 47.5, y: 53, width: 5, height: 7, class: "v-door" }),
+    mk("line", { x1: 50, y1: 36, x2: 50, y2: 29, class: "v-pole" }),
+    mk("polygon", { points: "50,29 56,31 50,33", class: "v-flag" })));
+  VILLAGE.forEach(([id, label, x, y]) => {
+    const busy = working.includes(id);
+    const g = mk("g", { class: "v-house" + (busy ? " busy" : ""), transform: `translate(${x} ${y})`, "data-agent": id });
+    g.appendChild(mk("rect", { x: -4.5, y: -2.5, width: 9, height: 6, rx: 0.8, class: "v-wall" }));
+    g.appendChild(mk("polygon", { points: "-6,-2 0,-7 6,-2", class: "v-roof" }));
+    g.appendChild(mk("rect", { x: -1.2, y: 0.5, width: 2.4, height: 3, class: "v-door" }));
+    // The agent: a little worker. Hammering when busy, resting when not.
+    g.appendChild(mk("g", { class: "v-worker", transform: "translate(6.5 1.5)" },
+      mk("circle", { cx: 0, cy: -2.2, r: 1.1, class: "v-head" }),
+      mk("rect", { x: -0.9, y: -1.1, width: 1.8, height: 2.6, rx: 0.6, class: "v-body" }),
+      mk("g", { class: "v-arm" }, mk("line", { x1: 0.6, y1: -0.6, x2: 2.2, y2: -1.8 }), mk("rect", { x: 1.6, y: -2.8, width: 1.6, height: 1, class: "v-hammer" }))));
+    const t = mk("text", { x: 0, y: 7.4, class: "v-label" }); t.textContent = label; g.appendChild(t);
+    const tip = mk("title", {}); tip.textContent = `${label}: ${busy ? "working" : "resting"}`; g.appendChild(tip);
+    g.addEventListener("click", () => onPick(id));
+    svg.appendChild(g);
+  });
+  return svg;
+}
+async function viewGameHome(slug) {
+  const nav = navSeq;
+  await freshStatus();
+  let v;
+  try { v = await invoke("autopilot_view", { slug }); } catch (e) { return viewDashboard(true); }
+  state.apLive ||= {};
+  const jobs = v.milestones.flatMap((m) => m.jobs.map((j) => ({ ...j, step: m.id })));
+  const working = jobs.filter((j) => j.status === "working");
+  const waiting = jobs.filter((j) => j.status === "queued" || j.status === "paused");
+  const busyAgents = [...new Set(working.map((j) => j.agent))];
+  const review = v.milestones.find((m) => m.status === "review");
+  const current = v.milestones.find((m) => m.status === "working" || m.status === "revising") || review || v.milestones.find((m) => m.status === "waiting") || v.milestones[v.milestones.length - 1];
+  const pick = state.gameStep && v.milestones.find((m) => m.id === state.gameStep) || current;
+  // Timeline: one dot per step.
+  const timeline = el("div", { class: "timeline" }, v.milestones.map((m, i) =>
+    el("button", { class: `tl-step ${m.status}${m.id === pick.id ? " picked" : ""}`, "data-step": m.id, title: m.title, onclick: () => { state.gameStep = m.id; viewGameHome(slug); } },
+      el("span", { class: "tl-dot" }), el("span", { class: "tl-num" }, String(i + 1)), el("span", { class: "tl-label" }, STEP_SHORT[m.id] || m.title))));
+  const STATE = { waiting: "Not started", working: "Being made", revising: "Being changed", review: "Needs you", approved: "Done" };
+  // Needs you: approve or send back, right here.
+  const decide = review ? (() => {
+    const last = v.milestones[v.milestones.length - 1].id === review.id;
+    const notes = el("textarea", { rows: 2, placeholder: "Anything to change? (optional)" });
+    const act = (approve, label, cls) => el("button", { class: cls, onclick: async (e) => {
+      e.currentTarget.disabled = true;
+      try { await invoke("autopilot_review", { slug, milestone: review.id, approve: approve && !notes.value.trim(), notes: notes.value }); toast(approve && !notes.value.trim() ? `Approved: ${review.title}.` : "Sent back. The team keeps improving it."); } catch (er) { toast(String(er), true); }
+      viewGameHome(slug); refreshStatus();
+    } }, label);
+    return el("div", { class: "card hero hero-review" }, el("div", { style: "flex:1" },
+      el("div", { class: "k" }, "Needs you"), el("div", { class: "hero-title" }, `${review.title} is ready`), el("div", { class: "note" }, review.review), notes,
+      el("div", { class: "inline", style: "gap:8px;margin-top:8px;flex-wrap:wrap" }, act(true, last ? "Final Approve" : "Approve", "btn primary"), act(false, "Not Good Enough", "btn secondary"))));
+  })() : null;
+  const paused = v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", { style: "white-space:pre-wrap" }, v.why || "Paused."),
+    el("button", { class: "btn primary", style: "margin-top:8px", onclick: async () => { await invoke("autopilot_control", { slug, action: "resume", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Resume")) : null;
+  // Now: what the team is doing this minute.
+  const now = el("div", { class: "card" }, el("div", { class: "k" }, "Now"),
+    working.length ? el("div", { class: "list" }, working.map(jobRow))
+      : el("div", { class: "note", style: "margin-top:6px" }, review ? "Waiting for your approval above." : v.status === "done" ? "The game is finished. Open it in Roblox Studio and publish it when you are happy." : waiting.length ? `${waiting.length} job(s) about to start${waiting.some((j) => j.retry_at) ? " (some retry at a set time after a problem)" : ""}.` : "Starting the next step."));
+  // The picked step: its jobs.
+  const step = el("div", { class: "card" }, el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, pick.title), el("span", { class: "pill" }, STATE[pick.status] || pick.status)),
+    el("div", { class: "note", style: "margin:4px 0 8px" }, pick.review),
+    pick.jobs.length ? el("div", { class: "list" }, pick.jobs.slice().reverse().map(jobRow)) : el("div", { class: "note" }, "Nothing here yet."));
+  // The village: every agent's house; workers hammer while they work.
+  const village = el("div", { class: "card village-card" }, el("div", { class: "k" }, `Team · ${busyAgents.length ? busyAgents.length + " working" : "resting"}`),
+    villageSvg(busyAgents, (id) => { const j = jobs.filter((x) => x.agent === id).pop(); if (j) location.hash = "#run/" + j.run_id; else toast(`${cap(id)} has no job in this game yet.`); }),
+    el("div", { class: "list", style: "margin-top:6px" }, busyAgents.map((a) => el("div", { class: "srow" }, el("span", { class: "light green" }, el("span", { class: "ld" }), cap(a)), el("span", { class: "note" }, (state.apLive[working.find((j) => j.agent === a).run_id] || "working…").slice(0, 60))))));
+  // One box: tell the team anything.
+  const chime = el("textarea", { rows: 2, placeholder: "Tell the team anything: what to change, add or fix. Enter sends." });
+  const send = async () => { const t = chime.value.trim(); if (!t) return; try { await invoke("autopilot_note", { slug, text: t, agent: null }); chime.value = ""; toast("Sent to the team."); viewGameHome(slug); } catch (e) { toast(String(e), true); } };
+  chime.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+  const ctl = v.status === "running" ? el("button", { class: "btn secondary", onclick: async () => { await invoke("autopilot_control", { slug, action: "pause", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Pause") : null;
+  showIf(nav, page(
+    head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), ctl),
+    timeline, decide, paused,
+    el("div", { class: "game-grid" }, el("div", { class: "game-main" }, now, step), el("div", { class: "game-side" }, village)),
+    el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))),
+    el("a", { class: "fold-line", href: "#overview" }, "Studio overview (ideas, usage, money) →")
+  ));
+}
+
+async function viewDashboard(force) {
   const inf = await invoke("studio_info").catch(() => ({}));
   if (!inf.root) { location.hash = "#files"; return; }
+  // A game being made: the Dashboard is that game's one page.
+  if (!force) {
+    const games = await invoke("autopilot_list").catch(() => []);
+    const g = games.find((x) => x.slug === state.game) || games.find((x) => x.status !== "done");
+    if (g) return viewGameHome(g.slug);
+  }
   const nav = navSeq;
   await freshStatus();
   const [p, money, plans, rev, queue, games] = await Promise.all([
@@ -1465,6 +1573,7 @@ function redrawAfterChange() {
   const a = document.activeElement;
   if (a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT") && $("view").contains(a) && a.value) return;
   if (h.startsWith("#autopilot")) viewAutopilot(h.split("/")[1]);
+  else if (h === "" || h === "#home") viewDashboard(false);
   else if (h === "#changes") viewChanges();
   else if (h.startsWith("#plans")) viewPlans(h.split("/")[1]);
 }
