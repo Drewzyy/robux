@@ -364,52 +364,50 @@ const STEP_SHORT = { plan: "Plan", design: "Design", ui: "UI", world: "World", b
 const VILLAGE = (() => { // houses evenly around the town hall
   const who = [["lead", "Lead"], ["pulse", "Pulse"], ["architect", "Architect"], ["builder", "Builder"], ["merchant", "Merchant"], ["modeler", "Modeler"], ["playtest", "Playtest"],
     ["director", "Director"], ["motion", "Motion"], ["scenic", "Scenic"], ["librarian", "Librarian"], ["frame", "Frame (UI)"], ["planner", "Planner"], ["tuner", "Tuner"]];
-  return who.map(([id, label], i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / who.length; return [id, label, 50 + 39 * Math.cos(a), 54 + 37 * Math.sin(a)]; });
+  return who.map(([id, label], i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / who.length; return [id, label, 50 + 35 * Math.cos(a), 53 + 35 * Math.sin(a)]; });
 })();
+// Each agent's character and building, from the Claude Clash art.
+const VILLAGE_ART = {
+  lead: ["claude", null], pulse: ["researcher", "research"], librarian: ["researcher", "memory"], planner: ["strategist", "storage"],
+  architect: ["strategist", "inference"], director: ["strategist", "altar"], frame: ["builder", "gateway"], builder: ["builder", "factory"],
+  scenic: ["builder", "dream"], modeler: ["builder", "upgrade"], motion: ["logistics", "spell"], playtest: ["guardian", "shield"],
+  tuner: ["guardian", "cannon"], simulator: ["medic", "social"], merchant: ["logistics", "rewards"],
+};
 function villageSvg(working, onPick) {
-  const NS = "http://www.w3.org/2000/svg";
-  const mk = (tag, attrs, ...kids) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v); kids.forEach((c) => c && n.appendChild(c)); return n; };
-  const svg = mk("svg", { viewBox: "-4 6 108 102", class: "village" });
-  svg.appendChild(mk("ellipse", { cx: 50, cy: 54, rx: 48, ry: 44, class: "v-ground" }));
-  // Paths from each house to the hall.
-  VILLAGE.forEach(([, , x, y]) => svg.appendChild(mk("line", { x1: 50, y1: 52, x2: x, y2: y, class: "v-path" })));
-  // Town hall (Lead's team): a big house with a flag.
-  svg.appendChild(mk("g", { class: "v-hall" },
-    mk("rect", { x: 40, y: 46, width: 20, height: 14, rx: 1.5 }),
-    mk("polygon", { points: "37,47 50,36 63,47" }),
-    mk("rect", { x: 47.5, y: 53, width: 5, height: 7, class: "v-door" }),
-    mk("line", { x1: 50, y1: 36, x2: 50, y2: 29, class: "v-pole" }),
-    mk("polygon", { points: "50,29 56,31 50,33", class: "v-flag" })));
+  const box = el("div", { class: "village2" });
+  box.appendChild(el("img", { class: "v2-hall", src: "village/townhall.png", alt: "Town hall", title: "Town hall: Lead runs the team from here" }));
   VILLAGE.forEach(([id, label, x, y]) => {
+    const [ch, b] = VILLAGE_ART[id] || ["builder", "hq"];
     const busy = working.includes(id);
-    const g = mk("g", { class: "v-house" + (busy ? " busy" : ""), transform: `translate(${x} ${y})`, "data-agent": id });
-    g.appendChild(mk("rect", { x: -4.5, y: -2.5, width: 9, height: 6, rx: 0.8, class: "v-wall" }));
-    g.appendChild(mk("polygon", { points: "-6,-2 0,-7 6,-2", class: "v-roof" }));
-    g.appendChild(mk("rect", { x: -1.2, y: 0.5, width: 2.4, height: 3, class: "v-door" }));
-    // The agent: a little worker. Working: walks to the town hall and back,
-    // hammering on the way. Idle: sleeps by the door with Z z z rising.
-    const worker = mk("g", { class: "v-worker" },
-      mk("g", { class: "v-figure" },
-        mk("circle", { cx: 0, cy: -2.2, r: 1.1, class: "v-head" }),
-        mk("rect", { x: -0.9, y: -1.1, width: 1.8, height: 2.6, rx: 0.6, class: "v-body" }),
-        mk("g", { class: "v-arm" }, mk("line", { x1: 0.6, y1: -0.6, x2: 2.2, y2: -1.8 }), mk("rect", { x: 1.6, y: -2.8, width: 1.6, height: 1, class: "v-hammer" }))));
-    if (busy) {
-      // Walk 60% of the way to the hall and back, forever.
-      const dx = (50 - x) * 0.6, dy = (52 - y) * 0.6, dur = 5 + (x % 3);
-      worker.appendChild(mk("animateTransform", { attributeName: "transform", type: "translate", values: `6.5 1.5; ${6.5 + dx} ${1.5 + dy}; ${6.5 + dx} ${1.5 + dy}; 6.5 1.5; 6.5 1.5`, keyTimes: "0;0.4;0.5;0.9;1", dur: dur + "s", repeatCount: "indefinite" }));
-    } else {
-      worker.setAttribute("transform", "translate(6.5 2.4) rotate(-80)");
-      ["Z", "z", "z"].forEach((t, k) => { const z = mk("text", { x: 7.5 + k * 1.2, y: -1 - k * 1.4, class: "v-z", style: `animation-delay:${k * 0.6}s` }); z.textContent = t; g.appendChild(z); });
+    const job = (typeof TEAM_JOBS !== "undefined" ? TEAM_JOBS : []).find((t) => t[0].toLowerCase() === id);
+    const tip = `${label}: ${busy ? "working" : "asleep"}${job ? " · " + job[2] : ""}`;
+    if (id === "lead") {
+      // Lead lives in the town hall: stands at its door.
+      const c = el("img", { class: "v2-char" + (busy ? " busy" : " idle"), src: `village/char-${ch}.png`, alt: label, title: tip, style: "left:50%;top:62%;--x0:50%;--y0:62%;--x1:50%;--y1:66%" });
+      c.addEventListener("click", () => onPick(id));
+      box.appendChild(c);
+      if (!busy) box.appendChild(zzz(50, 58));
+      return;
     }
-    g.appendChild(worker);
-    const t = mk("text", { x: 0, y: 7.4, class: "v-label" }); t.textContent = label; g.appendChild(t);
-    const tip = mk("title", {}); const job = (typeof TEAM_JOBS !== "undefined" ? TEAM_JOBS : []).find((t) => t[0].toLowerCase() === id);
-    tip.textContent = `${label}: ${busy ? "working" : "asleep"}${job ? " · " + job[2] : ""}`; g.appendChild(tip);
-    g.addEventListener("click", () => onPick(id));
-    svg.appendChild(g);
+    const house = el("div", { class: "v2-house" + (busy ? " busy" : ""), style: `left:${x}%;top:${y}%`, title: tip, "data-agent": id },
+      el("img", { src: `village/b-${b}.png`, alt: label }), el("span", { class: "v2-label" }, label));
+    house.addEventListener("click", () => onPick(id));
+    box.appendChild(house);
+    // The character: beside the house; when working it walks to the hall and back.
+    const cx = x + (x < 50 ? 7 : -7), cy = y - 1;
+    const hx = 50 + (x - 50) * 0.35, hy = 55 + (y - 54) * 0.35;
+    const c = el("img", { class: "v2-char" + (busy ? " busy" : " idle"), src: `village/char-${ch}.png`, alt: "", title: tip,
+      style: `left:${cx}%;top:${cy}%;--x0:${cx}%;--y0:${cy}%;--x1:${hx}%;--y1:${hy}%;animation-duration:${5 + (Math.round(x) % 4)}s` });
+    c.addEventListener("click", () => onPick(id));
+    box.appendChild(c);
+    if (!busy) box.appendChild(zzz(cx + 2, cy - 7));
   });
-  return svg;
+  return box;
 }
+function zzz(x, y) {
+  return el("div", { class: "v2-zzz", style: `left:${x}%;top:${y}%` }, el("span", {}, "Z"), el("span", {}, "z"), el("span", {}, "z"));
+}
+
 async function viewGameHome(slug) {
   const nav = navSeq;
   await freshStatus();
