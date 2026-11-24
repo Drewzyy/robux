@@ -148,7 +148,10 @@ pub fn context_tokens() -> u32 {
     match memory_gb().unwrap_or(16.0) {
         m if m >= 48.0 => 65536,
         m if m >= 24.0 => 49152,
-        _ => 32768,
+        // 16 GB with an 8 GB graphics card: qwen3:8b plus a 32k window
+        // (about 10 GB) spilled onto the CPU and system memory. 24k keeps
+        // it on the graphics card and still fits Claude Code's tool list.
+        _ => 24576,
     }
 }
 
