@@ -386,11 +386,22 @@ function villageSvg(working, onPick) {
     g.appendChild(mk("rect", { x: -4.5, y: -2.5, width: 9, height: 6, rx: 0.8, class: "v-wall" }));
     g.appendChild(mk("polygon", { points: "-6,-2 0,-7 6,-2", class: "v-roof" }));
     g.appendChild(mk("rect", { x: -1.2, y: 0.5, width: 2.4, height: 3, class: "v-door" }));
-    // The agent: a little worker. Hammering when busy, resting when not.
-    g.appendChild(mk("g", { class: "v-worker", transform: "translate(6.5 1.5)" },
-      mk("circle", { cx: 0, cy: -2.2, r: 1.1, class: "v-head" }),
-      mk("rect", { x: -0.9, y: -1.1, width: 1.8, height: 2.6, rx: 0.6, class: "v-body" }),
-      mk("g", { class: "v-arm" }, mk("line", { x1: 0.6, y1: -0.6, x2: 2.2, y2: -1.8 }), mk("rect", { x: 1.6, y: -2.8, width: 1.6, height: 1, class: "v-hammer" }))));
+    // The agent: a little worker. Working: walks to the town hall and back,
+    // hammering on the way. Idle: sleeps by the door with Z z z rising.
+    const worker = mk("g", { class: "v-worker" },
+      mk("g", { class: "v-figure" },
+        mk("circle", { cx: 0, cy: -2.2, r: 1.1, class: "v-head" }),
+        mk("rect", { x: -0.9, y: -1.1, width: 1.8, height: 2.6, rx: 0.6, class: "v-body" }),
+        mk("g", { class: "v-arm" }, mk("line", { x1: 0.6, y1: -0.6, x2: 2.2, y2: -1.8 }), mk("rect", { x: 1.6, y: -2.8, width: 1.6, height: 1, class: "v-hammer" }))));
+    if (busy) {
+      // Walk 60% of the way to the hall and back, forever.
+      const dx = (50 - x) * 0.6, dy = (52 - y) * 0.6, dur = 5 + (x % 3);
+      worker.appendChild(mk("animateTransform", { attributeName: "transform", type: "translate", values: `6.5 1.5; ${6.5 + dx} ${1.5 + dy}; ${6.5 + dx} ${1.5 + dy}; 6.5 1.5; 6.5 1.5`, keyTimes: "0;0.4;0.5;0.9;1", dur: dur + "s", repeatCount: "indefinite" }));
+    } else {
+      worker.setAttribute("transform", "translate(6.5 2.4) rotate(-80)");
+      ["Z", "z", "z"].forEach((t, k) => { const z = mk("text", { x: 7.5 + k * 1.2, y: -1 - k * 1.4, class: "v-z", style: `animation-delay:${k * 0.6}s` }); z.textContent = t; g.appendChild(z); });
+    }
+    g.appendChild(worker);
     const t = mk("text", { x: 0, y: 7.4, class: "v-label" }); t.textContent = label; g.appendChild(t);
     const tip = mk("title", {}); tip.textContent = `${label}: ${busy ? "working" : "resting"}`; g.appendChild(tip);
     g.addEventListener("click", () => onPick(id));

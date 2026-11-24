@@ -494,9 +494,12 @@ img.lazy.in { opacity: 1; }
 .v-body { fill: #4A90D9; }
 .v-arm line { stroke: #F2C79A; stroke-width: .6; stroke-linecap: round; }
 .v-hammer { fill: #8E8E93; }
-.v-house:not(.busy) .v-worker { opacity: .55; }
+.v-house:not(.busy) .v-worker { opacity: .8; }
 .v-house:not(.busy) .v-arm { display: none; }
-.v-house.busy .v-worker { animation: v-bob .6s ease-in-out infinite; }
+.v-house.busy .v-figure { animation: v-step .35s ease-in-out infinite; }
 .v-house.busy .v-arm { animation: v-hammer .6s ease-in-out infinite; transform-origin: 0.6px -0.6px; }
+@keyframes v-step { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-0.5px); } }
+.v-z { font-size: 2.2px; font-weight: 700; fill: #BFD7FF; opacity: 0; animation: v-z 1.8s ease-out infinite; }
+@keyframes v-z { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(1.2px, -3px); } }
 @keyframes v-hammer { 0%, 100% { transform: rotate(-25deg); } 50% { transform: rotate(35deg); } }
 @keyframes v-bob { 0%, 100% { transform: translate(6.5px, 1.5px); } 50% { transform: translate(6.5px, 1.1px); } }
