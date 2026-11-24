@@ -866,7 +866,8 @@ async function viewReview() {
         el("div", { class: "inline" }, el("button", { class: "btn secondary", onclick: () => invoke("review_reveal", { id: r.id }) }, "Show pack.md"),
           el("button", { class: "btn primary", onclick: async () => { await invoke("review_answer", { id: r.id, text: ta.value }).catch((e) => toast(String(e), true)); viewReview(); } }, "Save Answer")), ta);
     })() : null;
-    return el("details", { class: "card", open: r === d.reviews[0] }, el("summary", { class: "row-title" }, `${r.title} · ${r.engine} · ${r.files} files · ${String(r.at || "").slice(0, 16).replace("T", " ")}`), body, paste);
+    const del = el("button", { class: "btn secondary", style: "margin-left:auto", onclick: async (e) => { e.preventDefault(); if (!confirm(`Delete the review of ${r.title}?`)) return; await invoke("review_delete", { id: r.id }).catch((er) => toast(String(er), true)); viewReview(); } }, "Delete");
+    return el("details", { class: "card", open: r === d.reviews[0] }, el("summary", { class: "row-title inline" }, `${r.title} · ${r.engine} · ${r.files} files · ${String(r.at || "").slice(0, 16).replace("T", " ")}`, del), body, paste);
   };
   showIf(nav, page(head("Second Opinion", "A different AI checks the code, so Claude is not grading its own work"),
     el("div", { class: "card" }, el("div", { class: "field" }, el("label", { for: "review-target" }, "What to check"), target),

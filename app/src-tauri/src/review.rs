@@ -214,7 +214,28 @@ pub fn list(root: &Path) -> Vec<Value> {
         })
         .collect();
     out.sort_by(|a, b| b["at"].as_str().cmp(&a["at"].as_str()));
+    // One review per game: older ones for the same game are removed.
+    let mut seen: Vec<String> = vec![];
+    out.retain(|v| {
+        let t = v["target"].as_str().unwrap_or("").to_string();
+        if seen.contains(&t) {
+            if let Some(id) = v["id"].as_str() {
+                let _ = delete(root, id);
+            }
+            return false;
+        }
+        seen.push(t);
+        true
+    });
     out
+}
+
+/// Remove one review.
+pub fn delete(root: &Path, id: &str) -> Result<(), String> {
+    if !crate::paths::valid_id(id) {
+        return Err("bad review id".into());
+    }
+    fs::remove_dir_all(review_dir(root, id)).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

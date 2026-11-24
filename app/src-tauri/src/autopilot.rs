@@ -517,6 +517,25 @@ fn latest(all: &[Change], milestone: &str) -> Vec<Change> {
     by.into_values().collect()
 }
 
+/// What the game page lists for a step: one line per piece of work. Old
+/// rescues of the same job collapse into the newest, and jobs the team gave
+/// up on or the Warden cleared are not shown.
+fn shown_jobs(jobs: Vec<Change>) -> Vec<Change> {
+    let rescue = |c: &Change| -> Option<(u32, String)> {
+        let k = c.key.as_deref()?.strip_prefix("rescue|")?;
+        let (n, rest) = k.split_once('|')?;
+        Some((n.parse().ok()?, rest.to_string()))
+    };
+    jobs.iter()
+        .filter(|c| !c.summary.as_deref().map(|s| s.starts_with("Skipped") || s.starts_with("Cancelled by the Warden")).unwrap_or(false))
+        .filter(|c| match rescue(c) {
+            Some((n, k)) => !jobs.iter().any(|o| rescue(o).map(|(m, ok)| ok == k && m > n).unwrap_or(false)),
+            None => true,
+        })
+        .cloned()
+        .collect()
+}
+
 fn stuck(c: &Change) -> bool {
     c.status == "failed" && c.attempt + 1 >= MAX_ATTEMPTS && !changes::launch_failed(c)
 }
@@ -667,6 +686,22 @@ fn advance_inner(root: &Path, slug: &str) {
                     }
                     if let Some(p) = last_planner {
                         a.plan_run = Some(p.run_id.clone());
+                    }
+                }
+                // Andrew only sees work worth his time: under the bar
+                // (Game Score 80), the team keeps improving on its own.
+                if mid != &"plan" {
+                    if let Ok(sc) = crate::score::score(root, &a.slug) {
+                        let total = sc["score"].as_f64().unwrap_or(0.0);
+                        if total < REVIEW_BAR {
+                            let n = lat.iter().filter(|c| c.key.as_deref().map(|k| k.starts_with(&format!("{mid}/improve/"))).unwrap_or(false)).count();
+                            let gaps: Vec<String> = sc["parts"].as_array().into_iter().flatten().flat_map(|p| p["missing"].as_array().cloned().unwrap_or_default()).filter_map(|m| m.as_str().map(String::from)).take(6).collect();
+                            let job = format!("{NOT_GOOD_ENOUGH}\n\nThe Game Score is {total:.0}/100 (grade {}); Andrew reviews only at {REVIEW_BAR:.0}+. Biggest gaps: {}.", sc["grade"].as_str().unwrap_or("?"), if gaps.is_empty() { "see the score".into() } else { gaps.join("; ") });
+                            if queue(root, &mut a, mid, "lead", &job, &format!("{mid}/improve/{}", n + 1), 0, "autopilot", None, "task").is_ok() {
+                                post(&mut a, "autopilot", None, &format!("{title} scored {total:.0}/100, under the {REVIEW_BAR:.0} needed for Andrew's review: improving it (round {}).", n + 1));
+                            }
+                            continue;
+                        }
                     }
                 }
                 a.milestones[i].status = "review".into();
@@ -1134,6 +1169,9 @@ pub fn is_ping(text: &str) -> bool {
         || matches!(t.trim_end_matches(['.', '!', '?']), "go" | "go go" | "start" | "work" | "hello" | "hi" | "?")
 }
 
+/// Below this Game Score a step never waits for Andrew: the team keeps improving it.
+pub const REVIEW_BAR: f64 = 80.0;
+
 /// What "Not Good Enough" sends when Andrew writes nothing.
 pub const NOT_GOOD_ENOUGH: &str = "Not good enough yet. Compare this part with the best Roblox games in this niche and raise every aspect that falls short (visuals, environment, UI, sound, animation and game feel, the core loop, code quality), weakest first. Decide the changes and start the agents that should make them with requests.json";
 
@@ -1268,7 +1306,7 @@ pub fn view(root: &Path, slug: &str) -> Result<Value, String> {
     let agents = crate::cost::load_agents(root).ok();
     let tpl = template();
     let ms: Vec<Value> = a.milestones.iter().enumerate().map(|(i, m)| {
-        let jobs: Vec<Value> = latest(&all, &m.id).into_iter().map(|c| {
+        let jobs: Vec<Value> = shown_jobs(latest(&all, &m.id)).into_iter().map(|c| {
             let out = if c.kind == "task" { agents.as_ref().and_then(|ag| ag.agents.get(&c.agent).and_then(|p| p.output.clone())) } else { None }.unwrap_or_else(|| "change.md".into());
             let d = root.join("runs").join(&c.run_id);
             let mocks: Vec<String> = fs::read_dir(d.join("mockups")).into_iter().flatten().flatten().map(|e| format!("runs/{}/mockups/{}", c.run_id, e.file_name().to_string_lossy())).filter(|p| p.ends_with(".svg")).collect();

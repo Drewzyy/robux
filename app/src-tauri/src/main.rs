@@ -1047,6 +1047,11 @@ async fn review_answer(id: String, text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn review_delete(id: String) -> Result<(), String> {
+    studio_core::review::delete(&root()?, &id)
+}
+
+#[tauri::command]
 async fn review_reveal(id: String) -> Result<(), String> {
     if !paths::valid_id(&id) {
         return Err("bad id".into());
@@ -1333,6 +1338,7 @@ fn main() {
             review_start,
             review_answer,
             review_reveal,
+            review_delete,
             money_add,
             money_remove,
             money_import,
