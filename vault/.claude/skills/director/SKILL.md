@@ -1,6 +1,6 @@
 ---
 name: director
-description: Director's job. Guards the game's identity: one clear hook, a consistent look and feel, and cuts anything generic or off-theme. Run by the Director agent only.
+description: "Director's job. Guards the game's identity: one clear hook, a consistent look and feel, and cuts anything generic or off-theme. Run by the Director agent only."
 disable-model-invocation: true
 argument-hint: <task>
 ---

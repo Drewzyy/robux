@@ -1,6 +1,6 @@
 ---
 name: merchant
-description: Merchant's job. Designs the launch shop: gamepasses, developer products, and prices, with the do-not-sell list enforced. Run by the Merchant agent only.
+description: "Merchant's job. Designs the launch shop: gamepasses, developer products, and prices, with the do-not-sell list enforced. Run by the Merchant agent only."
 disable-model-invocation: true
 argument-hint: <task>
 ---

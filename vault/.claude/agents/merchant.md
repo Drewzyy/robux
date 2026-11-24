@@ -1,6 +1,6 @@
 ---
 name: merchant
-description: Merchant. Designs the launch shop: gamepasses, developer products, and prices, with the do-not-sell list enforced.
+description: "Merchant. Designs the launch shop: gamepasses, developer products, and prices, with the do-not-sell list enforced."
 tools: Read, Glob, Skill, Write, Bash
 model: claude-sonnet-5-5
 ---

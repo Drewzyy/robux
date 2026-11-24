@@ -1,6 +1,6 @@
 ---
 name: director
-description: Director (Creative Director). Guards the game's identity: one clear hook, a consistent look and feel, and cuts anything generic or off-theme.
+description: "Director (Creative Director). Guards the game's identity: one clear hook, a consistent look and feel, and cuts anything generic or off-theme."
 tools: Read, Glob, Grep, Skill, Write, Bash
 model: claude-sonnet-5-5
 ---

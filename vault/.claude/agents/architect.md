@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Architect. Turns a pitch into a one-page game design doc: core loop, mechanics, progression, first 60 seconds, layout.
+description: "Architect. Turns a pitch into a one-page game design doc: core loop, mechanics, progression, first 60 seconds, layout."
 tools: Read, Glob, Skill, Write, Bash
 model: claude-sonnet-5-5
 ---
