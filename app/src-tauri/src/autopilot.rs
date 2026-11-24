@@ -282,8 +282,30 @@ fn prompt(root: &Path, a: &Autopilot, milestone: &str, job: &str, feedback: Opti
     let fb = feedback.map(|f| format!("\nYOUR LAST ATTEMPT DID NOT PASS. Fix exactly this, keep what was fine:\n{f}\n")).unwrap_or_default();
     format!(
         "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above; when a choice is his to make, decide the safest default and put the choice in a section headed \"Questions for Andrew\" in your output (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
-        a.title, a.slug, a.idea
+        a.title, a.slug, idea_for_prompt(root, a)
     )
+}
+
+/// The idea, short enough for every job. A long spec (Andrew's full game
+/// document) is saved once to projects/<game>/docs/idea.md and only its
+/// opening and the path go into each job: the whole document in every
+/// prompt wasted usage and overflowed local models (the task never
+/// reached them).
+fn idea_for_prompt(root: &Path, a: &Autopilot) -> String {
+    if a.idea.len() <= 1500 {
+        return a.idea.clone();
+    }
+    let rel = format!("projects/{}/docs/idea.md", a.slug);
+    let path = root.join(&rel);
+    if fs::read_to_string(&path).map(|t| t != a.idea).unwrap_or(true) {
+        let _ = fs::create_dir_all(path.parent().unwrap());
+        let _ = fs::write(&path, &a.idea);
+    }
+    let mut head: String = a.idea.chars().take(900).collect();
+    if let Some(i) = head.rfind(char::is_whitespace) {
+        head.truncate(i);
+    }
+    format!("{head} ... [The full game document is {rel} ({} words): read only the sections your job needs.]", a.idea.split_whitespace().count())
 }
 
 fn spent(root: &Path, slug: &str) -> (f64, f64) {
@@ -372,6 +394,7 @@ pub fn warden_lead(root: &Path, slug: &str) -> bool {
 /// pressed has none) resume, and jobs waiting on a retry timer start now
 /// instead of waiting out the timer. A game Andrew paused stays paused.
 pub fn wake_all(root: &Path) {
+    tidy(root);
     for a in list(root) {
         if a.status == "paused" && a.why.is_some() {
             let _ = control(root, &a.slug, "resume", None);
@@ -573,7 +596,7 @@ fn advance_inner(root: &Path, slug: &str) {
             }
             for (k, (agent, job)) in waves[0].iter().enumerate() {
                 let key = format!("{mid}/0/{k}");
-                let job = format!("{job}{}", if *mid == "plan" { format!("\n\nThe idea: {}\nUse the slug \"{}\" in plan.json.", a.idea, a.slug) } else { String::new() });
+                let job = format!("{job}{}", if *mid == "plan" { format!("\n\nThe idea is above (the full document, when long, is in the file it names). Use the slug \"{}\" in plan.json.", a.slug) } else { String::new() });
                 if queue(root, &mut a, mid, agent, &job, &key, 0, "autopilot", None, "task").is_err() {
                     let _ = save(root, &a);
                     return;
@@ -592,7 +615,7 @@ fn advance_inner(root: &Path, slug: &str) {
             for (k, (agent, job)) in waves[w].iter().enumerate() {
                 let key = format!("{mid}/{w}/{k}");
                 if !all.iter().any(|c| c.key.as_deref() == Some(&key) && c.status != "cancelled") {
-                    let job = format!("{job}{}", if *mid == "plan" { format!("\n\nThe idea: {}\nUse the slug \"{}\" in plan.json.", a.idea, a.slug) } else { String::new() });
+                    let job = format!("{job}{}", if *mid == "plan" { format!("\n\nThe idea is above (the full document, when long, is in the file it names). Use the slug \"{}\" in plan.json.", a.slug) } else { String::new() });
                     if queue(root, &mut a, mid, agent, &job, &key, 0, "autopilot", None, "task").is_err() {
                         let _ = save(root, &a);
                         return;
@@ -931,7 +954,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                     );
                     // It never gives up: after the first rescues it keeps trying a new
                     // approach every 30 minutes (only the game's budget stops it).
-                    if rescues >= MAX_RESCUES || key.contains("/note/") {
+                    if rescues >= MAX_RESCUES || key.contains("/note/") || key.starts_with("plan/fold") {
                         // Lead's fixes did not help (or it was a note, which may
                         // just be a question): skip this job and keep the game
                         // moving instead of burning usage or waiting for Andrew.
@@ -1001,6 +1024,28 @@ pub fn note(root: &Path, slug: &str, text: &str, agent: Option<&str>, milestone:
     if text.is_empty() {
         return Err("Write a note first.".into());
     }
+    // "Is it going?", "get to work", "retry now": a nudge, not a job. Wake
+    // the team (resume, start waiting jobs now, next step) and say so.
+    if is_ping(text) {
+        {
+            let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            let mut a = load(root, slug)?;
+            post(&mut a, "andrew", None, text);
+            if a.status != "running" && a.status != "done" {
+                a.status = "running".into();
+                a.why = None;
+            }
+            save(root, &a)?;
+        }
+        changes::clear_retry_timers(root);
+        advance(root, slug);
+        let open = mine(root, slug).iter().filter(|c| ["queued", "working"].contains(&c.status.as_str())).count();
+        let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let mut a = load(root, slug)?;
+        post(&mut a, "warden", Some("andrew"), &if open > 0 { format!("On it: {open} job(s) are working or starting now. Nothing was waiting on you.") } else { "Nothing is queued; the Warden will give the team its next work.".into() });
+        save(root, &a)?;
+        return Ok(a);
+    }
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut a = load(root, slug)?;
     a.notes.push(text.into());
@@ -1036,6 +1081,51 @@ pub fn note(root: &Path, slug: &str, text: &str, agent: Option<&str>, milestone:
     }
     save(root, &a)?;
     Ok(a)
+}
+
+/// Clear out wasted work: jobs made from status messages ("is it going?"),
+/// rescues of notes or of the optional plan merge, rescues whose job is
+/// already finished, and extra rescues (one per game). Returns how many.
+pub fn tidy(root: &Path) -> usize {
+    let all = changes::list(root);
+    let note_text = |c: &Change| c.text.strip_prefix("Andrew's note: ").map(|t| t.trim_end_matches(". Make the change he asks for.").to_string());
+    let ping_job = |c: &Change| c.source == "andrew" && note_text(c).map(|t| is_ping(&t)).unwrap_or(false);
+    // The newest job of each key: is it finished?
+    let finished = |key: &str| all.iter().filter(|x| x.key.as_deref() == Some(key)).next_back().map(|x| x.status == "done" || x.status == "cancelled").unwrap_or(true);
+    let mut n = changes::cancel_queued(root, |c| ping_job(c));
+    n += changes::cancel_queued(root, |c| {
+        let Some(k) = c.key.as_deref().and_then(|k| k.strip_prefix("rescue|")) else { return false };
+        let target = k.splitn(2, '|').nth(1).unwrap_or("");
+        target.contains("/note/") || target.starts_with("plan/fold") || finished(target)
+    });
+    // One queued rescue per game: keep the oldest.
+    let mut kept: Vec<String> = vec![];
+    let ids: Vec<String> = changes::list(root).into_iter().filter(|c| c.status == "queued" && c.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false))
+        .filter(|c| { let g = c.autopilot.clone().unwrap_or_default(); if kept.contains(&g) { true } else { kept.push(g); false } })
+        .map(|c| c.id).collect();
+    n += changes::cancel_queued(root, |c| ids.contains(&c.id));
+    // Notes that were only status messages leave the notes list too.
+    for mut a in list(root) {
+        let before = a.notes.len();
+        a.notes.retain(|t| !is_ping(t));
+        if a.notes.len() != before {
+            let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            let _ = save(root, &a);
+        }
+    }
+    n
+}
+
+/// A short status question or "go" command, not a change to make.
+pub fn is_ping(text: &str) -> bool {
+    let t = text.trim().to_lowercase();
+    if t.len() > 90 {
+        return false;
+    }
+    const PINGS: [&str; 22] = ["is it going", "is it goin", "is it working", "is anything", "are they", "stuck", "why wait", "retry", "get to work", "keep going", "keep goin", "keep it going", "continue", "go on", "hurry", "status", "what is happening", "whats happening", "what's happening", "why is everyone", "start working", "resume"];
+    let change_words = ["add ", "make ", "change", "fix ", "remove", "build ", "use ", "replace", "improve"];
+    PINGS.iter().any(|p| t.contains(p)) && !change_words.iter().any(|w| t.contains(w))
+        || matches!(t.trim_end_matches(['.', '!', '?']), "go" | "go go" | "start" | "work" | "hello" | "hi" | "?")
 }
 
 /// What "Not Good Enough" sends when Andrew writes nothing.
@@ -1468,6 +1558,34 @@ mod tests {
         assert!(did.iter().any(|d| d.contains("research")), "{did:?}");
         changes::cancel_queued(&root, |_| true);
         assert!(crate::warden::rounds(&root).is_empty(), "only once per waiting step");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn pings_long_ideas_and_lost_tasks_waste_nothing() {
+        // Status messages are nudges, change requests are not.
+        for t in ["is it goign they are both stuck on starting...?", "retry now why wait to 4:52", "get to work", "keep going", "why is everyone paused get to work"] {
+            assert!(is_ping(t), "{t}");
+        }
+        for t in ["make the UI nicer", "add footsteps to the game too", "fix the shop button"] {
+            assert!(!is_ping(t), "{t}");
+        }
+        assert!(crate::bridge::lost_task("I'm ready to help with file operations. Please provide the file path"));
+        assert!(!crate::bridge::lost_task("Built the shop UI from the kit."));
+        let root = studio();
+        // A long spec goes to a file once; jobs get a short opening plus its path.
+        let spec = "BUILD A COMPLETE ROBLOX GAME. ".repeat(400);
+        let a = start(&root, "Big Game", &spec, 0.0, None).unwrap();
+        let job = queued(&root, &a.slug).remove(0);
+        let prompt = crate::runs::load(&root, &job.run_id).unwrap().prompt;
+        assert!(prompt.len() < spec.len() / 2, "prompt {} vs spec {}", prompt.len(), spec.len());
+        assert!(prompt.contains("projects/big-game/docs/idea.md"));
+        assert_eq!(fs::read_to_string(root.join("projects/big-game/docs/idea.md")).unwrap(), spec.trim());
+        // A ping note starts no job.
+        let before = changes::list(&root).len();
+        note(&root, &a.slug, "is it going?", None, None).unwrap();
+        assert_eq!(changes::list(&root).len(), before, "no job from a status message");
+        assert!(load(&root, &a.slug).unwrap().board.iter().any(|b| b.from == "warden"));
         let _ = fs::remove_dir_all(&root);
     }
 

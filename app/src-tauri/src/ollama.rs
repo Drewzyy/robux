@@ -160,6 +160,31 @@ pub fn loaded_context() -> Option<u64> {
 
 static BIG_CONTEXT: std::sync::Mutex<bool> = std::sync::Mutex::new(false);
 
+/// The local model to run agents on: a copy of the chosen model with a big
+/// memory window built in ("brewix-<model>"), so the window is right no
+/// matter how Ollama was started (the Windows tray app ignores our setting,
+/// and with its small default window the task never reached the model).
+/// Created once with Ollama's create API; falls back to the model itself.
+pub fn with_context(model: &str) -> String {
+    if model.starts_with("brewix-") || std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_ok() {
+        return model.to_string();
+    }
+    let ctx = context_tokens();
+    let name = format!("brewix-{}-{}k", model.replace([':', '/'], "-"), ctx / 1024);
+    let installed = status().installed;
+    if installed.iter().any(|m| m == &name || m == &format!("{name}:latest")) {
+        return name;
+    }
+    let body = serde_json::json!({ "model": name, "from": model, "parameters": { "num_ctx": ctx }, "stream": false });
+    match ureq::post(&format!("{}/api/create", base())).timeout(std::time::Duration::from_secs(300)).send_json(body) {
+        Ok(_) => name,
+        Err(e) => {
+            eprintln!("could not make the big-window copy of {model}: {e}");
+            model.to_string()
+        }
+    }
+}
+
 /// Before local agent work: make sure Ollama runs with a big enough
 /// context window. An Ollama that was already open (the tray app) uses its
 /// own small default, so it is restarted once per app run with the right

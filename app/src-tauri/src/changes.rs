@@ -627,7 +627,7 @@ pub fn env_problem(c: &Change) -> Option<&'static str> {
     } else if any(&["no response for"]) {
         // The watchdog ended a silent agent.
         Some("stall")
-    } else if any(&["no user query found"]) {
+    } else if any(&["no user query found", "did not get the task"]) {
         // Ollama cut the request off (window too small); not the network.
         Some("localmodel")
     } else if any(&["connection error", "econnrefused", "econnreset", "enotfound", "getaddrinfo", "network error", "timed out", "overloaded", "api error: 5", "internal server error", "service unavailable", "bad gateway"]) {

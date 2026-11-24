@@ -10,6 +10,10 @@ use std::path::Path;
 
 pub fn rounds(root: &Path) -> Vec<String> {
     let mut did = vec![];
+    let cleared = crate::autopilot::tidy(root);
+    if cleared > 0 {
+        did.push(format!("cleared {cleared} wasted job(s) (status messages, duplicate or pointless rescues)"));
+    }
     // 1. Jobs that say "working" but have no agent running: let them retry.
     let live = crate::bridge::running();
     for c in crate::changes::list(root).into_iter().filter(|c| c.status == "working" && !live.contains(&c.run_id)) {

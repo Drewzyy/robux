@@ -272,6 +272,10 @@ pub fn run_approved_with<F: FnMut(&str)>(
         tools.push("mcp__Figma".into());
         notes.push_str(" Figma is connected (mcp__Figma__ tools) through Andrew's own Figma login. Draw each screen as a frame in the Figma file Andrew names, with layers named as 08-UI-UX/figma-handoff says. Reads are limited on Figma's free plan: read a file at most once per run, and never read when you can write from the plan. If the tools are missing or refuse, fall back to the SVG handoff.");
     }
+    // Local model: its big-window copy, so the whole task fits.
+    if req.engine.as_deref() == Some("ollama") {
+        req.estimate.model = crate::ollama::with_context(&req.estimate.model);
+    }
     let mut args = build_args(&req, &tools, &add_dirs, &dir, has_skill);
     // A real bound on the run: Claude Code stops at this many turns and
     // reports subtype error_max_turns (checked with Claude Code 2.1.326).
@@ -469,7 +473,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
     // an agent that stops without writing its output file (a local model
     // that asks a question back, for one) did not finish.
     let missing_output = profile.output.as_ref().filter(|o| process_ok && req.chat.is_none() && req.change.is_none() && !dir.join(o.as_str()).is_file()).cloned();
-    let ok = process_ok && missing_output.is_none();
+    let ok = process_ok && missing_output.is_none() && !(req.engine.as_deref() == Some("ollama") && lost_task(&result_text));
     req.usage = final_result.as_ref().map(usage_of);
     req.stop_reason = final_result.as_ref().and_then(stop_reason_of).map(String::from);
 
@@ -488,6 +492,8 @@ pub fn run_approved_with<F: FnMut(&str)>(
             )
         } else if req.stop_reason.as_deref() == Some("budget_cap") {
             format!("Stopped at the approved cap (${:.2}, API-equivalent) before it finished. Everything it wrote is kept in runs/{run_id}.", req.estimate.cap_usd)
+        } else if req.engine.as_deref() == Some("ollama") && lost_task(&result_text) {
+            format!("The local model did not get the task (its memory window cut it off) and asked what to do instead. What it said: {}", result_text.chars().take(160).collect::<String>())
         } else if let Some(o) = &missing_output {
             format!("The agent ended without writing {o}. What it said last: {}", result_text.chars().take(300).collect::<String>())
         } else if final_result.is_none() {
@@ -663,6 +669,12 @@ fn end_run(run_id: &str, why: &str) -> bool {
         });
     }
     true
+}
+
+/// A local model that never saw its task answers like a fresh chat.
+pub fn lost_task(text: &str) -> bool {
+    let t = text.to_lowercase();
+    ["please provide", "please clarify", "ready to help", "what would you like", "could you specify", "specify the file", "your query does not specify", "how can i help", "how can i assist"].iter().any(|p| t.contains(p))
 }
 
 /// Lines of a pipe, never stopping at text that is not valid UTF-8 (which
