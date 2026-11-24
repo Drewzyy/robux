@@ -14,6 +14,14 @@ pub fn rounds(root: &Path) -> Vec<String> {
     if cleared > 0 {
         did.push(format!("cleared {cleared} wasted job(s) (status messages, duplicate or pointless rescues)"));
     }
+    // 0. Two workers on the same thing waste compute: cancel the copy.
+    let dups = crate::changes::cancel_duplicates(root);
+    if !dups.is_empty() {
+        let mut names: Vec<String> = dups.iter().map(|d| d.0.clone()).collect();
+        names.sort();
+        names.dedup();
+        did.push(format!("cancelled {} duplicate job(s) that repeated work already running or waiting ({})", dups.len(), names.join(", ")));
+    }
     // 1. Jobs that say "working" but have no agent running: let them retry.
     let live = crate::bridge::running();
     for c in crate::changes::list(root).into_iter().filter(|c| c.status == "working" && !live.contains(&c.run_id)) {

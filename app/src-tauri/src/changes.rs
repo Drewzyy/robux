@@ -401,9 +401,69 @@ pub fn submit(root: &Path, target: &str, reqs: &[Request]) -> Result<Vec<Change>
 /// Changes to start now: queued ones, oldest first, while fewer than
 /// MAX_AT_ONCE are working and no change for the same agent and target is.
 /// The picked ones are marked working before this returns.
+fn words(t: &str) -> std::collections::HashSet<String> {
+    t.to_lowercase().split(|ch: char| !ch.is_alphanumeric()).filter(|w| w.len() > 2).map(String::from).collect()
+}
+
+/// Two jobs are the same work: same agent, same game or target, and the
+/// same job key or nearly the same wording (85% of the words shared).
+pub fn same_work(a: &Change, b: &Change) -> bool {
+    if a.id == b.id || a.agent != b.agent || a.target != b.target || a.autopilot != b.autopilot {
+        return false;
+    }
+    if a.key.is_some() && a.key == b.key {
+        return true;
+    }
+    let (x, y) = (words(&a.text), words(&b.text));
+    if x.is_empty() || y.is_empty() {
+        return a.text.trim() == b.text.trim();
+    }
+    let shared = x.intersection(&y).count() as f64;
+    shared / (x.union(&y).count() as f64) >= 0.85
+}
+
+/// Cancel waiting jobs that repeat work another job is already doing or
+/// waiting to do (the older or running one is kept). Never stops a job
+/// that is running. Returns (agent, the duplicate's text) for each.
+fn cancel_duplicates_in(root: &Path, all: &mut [Change]) -> Vec<(String, String)> {
+    let mut out = vec![];
+    for i in 0..all.len() {
+        if all[i].status != "queued" {
+            continue;
+        }
+        let dup = all.iter().enumerate().any(|(j, o)| j != i && same_work(&all[i], o) && (o.status == "working" || (o.status == "queued" && j < i)));
+        if dup {
+            let c = &mut all[i];
+            c.status = "cancelled".into();
+            c.finished_at = Some(crate::now_rfc3339());
+            c.summary = Some("Cancelled by the Warden: another job is already doing the same work.".into());
+            if let Ok(mut r) = crate::runs::load(root, &c.run_id) {
+                if r.status == "approved" {
+                    r.status = "cancelled".into();
+                    let _ = crate::runs::save(root, &r);
+                }
+            }
+            out.push((c.agent.clone(), c.text.chars().take(80).collect()));
+        }
+    }
+    out
+}
+
+pub fn cancel_duplicates(root: &Path) -> Vec<(String, String)> {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let out = cancel_duplicates_in(root, &mut all);
+    if !out.is_empty() {
+        let _ = save_all(root, &all);
+    }
+    out
+}
+
 pub fn take_next(root: &Path) -> Vec<Change> {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
+    // Never start a job that repeats one already running or waiting.
+    let deduped = !cancel_duplicates_in(root, &mut all).is_empty();
     let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
     let mut rescuing: Vec<String> = all.iter().filter(|c| c.status == "working" && c.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false)).map(|c| c.target.clone()).collect();
     let mut out = vec![];
@@ -441,7 +501,7 @@ pub fn take_next(root: &Path) -> Vec<Change> {
         busy.push((c.agent.clone(), c.target.clone()));
         out.push(c.clone());
     }
-    if !out.is_empty() {
+    if !out.is_empty() || deduped {
         let _ = save_all(root, &all);
     }
     out
@@ -882,6 +942,27 @@ mod tests {
     }
 
     #[test]
+    fn workers_never_do_the_same_thing_twice() {
+        let d = std::env::temp_dir().join(format!("dup-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("runs")).unwrap();
+        let mk = |id: &str, agent: &str, status: &str, text: &str| { let mut c = change(id, agent, "game:g", status); c.text = text.into(); c };
+        let all = vec![
+            mk("a", "builder", "working", "Add a double jump that resets when touching walls"),
+            mk("b", "builder", "queued", "Add a double jump that resets when touching the walls"),
+            mk("c", "frame", "queued", "Add a double jump that resets when touching walls"),
+            mk("d", "builder", "queued", "Make the shop button bigger and gold"),
+            mk("e", "builder", "queued", "Make the shop button bigger and gold"),
+        ];
+        save_all(&d, &all).unwrap();
+        let out = cancel_duplicates(&d);
+        let st: Vec<String> = list(&d).iter().map(|c| format!("{}:{}", c.id, c.status)).collect();
+        assert_eq!(out.len(), 2);
+        assert_eq!(st, vec!["a:working", "b:cancelled", "c:queued", "d:queued", "e:cancelled"]);
+        let _ = fs::remove_dir_all(&d);
+    }
+
+    #[test]
     fn the_warden_benches_an_agent_that_keeps_failing() {
         let d = std::env::temp_dir().join(format!("bench-t-{}", std::process::id()));
         let _ = fs::remove_dir_all(&d);
@@ -930,13 +1011,14 @@ mod tests {
         let d = std::env::temp_dir().join(format!("chg-t-{}", std::process::id()));
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(d.join("runs")).unwrap();
-        let all = vec![
+        let mut all = vec![
             change("1", "frame", "project:a", "queued"),
             change("2", "frame", "project:a", "queued"),
             change("3", "scenic", "project:a", "queued"),
             change("4", "frame", "project:b", "queued"),
             change("5", "motion", "project:a", "queued"),
         ];
+        all[1].text = "a different change".into();
         save_all(&d, &all).unwrap();
         std::env::set_var("ROBUX_MAX_AT_ONCE", "3"); // a big computer
         let first: Vec<String> = take_next(&d).into_iter().map(|c| c.id).collect();

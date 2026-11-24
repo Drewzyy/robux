@@ -2210,7 +2210,7 @@ const TEAM_JOBS = [
   ["Pulse", "Researcher", "Finds trends and the top games in the niche, and studies open-source games."],
   ["Splash", "Thumbnails", "Game icon and thumbnails."],
   ["Release", "Release Manager", "Writes the release checklist. Never publishes anything."],
-  ["Warden", "Supervisor", "Every 10 minutes while your PC is on: finds jobs stuck with no agent behind them and restarts them, wakes an idle team (next step, or Lead decides the next work), and sets the team researching while a step waits for you."],
+  ["Warden", "Supervisor", "Every 10 minutes while your PC is on: finds jobs stuck with no agent behind them and restarts them, wakes an idle team (next step, or Lead decides the next work), sets the team researching while a step waits for you, and cancels any job that repeats work another worker is already doing."],
 ];
 function helpFaq() {
   const q = (title, ...body) => el("details", { class: "card faq" }, el("summary", { class: "row-title" }, title), el("div", { class: "faq-body" }, ...body));
