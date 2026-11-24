@@ -452,10 +452,21 @@ async function viewGameHome(slug) {
   })() : null;
   const paused = v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", { style: "white-space:pre-wrap" }, v.why || "Paused."),
     el("button", { class: "btn primary", style: "margin-top:8px", onclick: async () => { await invoke("autopilot_control", { slug, action: "resume", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Resume")) : null;
-  // Now: what the team is doing this minute.
+  // Now: what the team is doing this minute, and why the rest waits.
+  const at = (t) => new Date(t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const whyWait = (j) => j.status === "paused" ? "paused" : j.retry_at && new Date(j.retry_at) > new Date() ? `retries at ${at(j.retry_at)} after a problem` : working.length ? "waits for the agent working now (one at a time)" : "starts within a minute";
   const now = el("div", { class: "card" }, el("div", { class: "k" }, "Now"),
-    working.length ? el("div", { class: "list" }, working.map(jobRow))
-      : el("div", { class: "note", style: "margin-top:6px" }, review ? "Waiting for your approval above." : v.status === "done" ? "The game is finished. Open it in Roblox Studio and publish it when you are happy." : waiting.length ? `${waiting.length} job(s) about to start${waiting.some((j) => j.retry_at) ? " (some retry at a set time after a problem)" : ""}.` : "Starting the next step."));
+    working.length ? el("div", { class: "list" }, working.map(jobRow)) : null,
+    !working.length ? el("div", { class: "note", style: "margin-top:6px" }, review ? "Waiting for your approval above." : v.status === "done" ? "The game is finished. Open it in Roblox Studio and publish it when you are happy." : waiting.length ? "" : "Starting the next step.") : null,
+    waiting.length ? el("div", { style: "margin-top:8px" }, el("div", { class: "note" }, `Waiting (${waiting.length}):`),
+      el("ul", { class: "faq-list" }, waiting.slice(0, 6).map((j) => el("li", {}, `${cap(j.agent)}: ${whyWait(j)}`))),
+      waiting.some((j) => j.retry_at && new Date(j.retry_at) > new Date()) ? el("button", { class: "btn secondary", style: "margin-top:6px", onclick: async (e) => { e.currentTarget.disabled = true; await invoke("autopilot_note", { slug, text: "retry now", agent: null }).catch((er) => toast(String(er), true)); toast("Starting them now."); viewGameHome(slug); } }, "Start Them Now") : null) : null);
+  // Finished work from any agent that waits for a yes or no (the Dashboard badge counts it).
+  const queueItems = await invoke("queue_list").catch(() => []);
+  const pendingQ = queueItems.filter((i) => i.status === "pending");
+  const queueCard = pendingQ.length ? el("div", { class: "card hero hero-review" }, el("div", { style: "flex:1" }, el("div", { class: "k" }, "Needs you"),
+    el("div", { class: "hero-title" }, `${pendingQ.length} finished item${pendingQ.length === 1 ? "" : "s"} to look at`), el("div", { class: "note" }, "Work an agent finished outside the game's steps (for example a single run). Say yes or no in the Review Queue.")),
+    el("a", { class: "btn primary cta", href: "#queue" }, "Open Review Queue", el("span", { class: "cta-arrow" }, "→"))) : null;
   // The picked step: its jobs.
   const step = el("div", { class: "card" }, el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, pick.title), el("span", { class: "pill" }, STATE[pick.status] || pick.status)),
     el("div", { class: "note", style: "margin:4px 0 8px" }, pick.review),
@@ -474,7 +485,7 @@ async function viewGameHome(slug) {
   const ctl = v.status === "running" ? el("button", { class: "btn secondary", onclick: async () => { await invoke("autopilot_control", { slug, action: "pause", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Pause") : null;
   showIf(nav, page(
     head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), ctl),
-    timeline, decide, paused,
+    timeline, decide, queueCard, paused,
     el("div", { class: "game-grid" }, now, step),
     village,
     el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))),
