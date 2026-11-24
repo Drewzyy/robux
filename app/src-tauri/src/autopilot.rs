@@ -320,6 +320,22 @@ pub fn ensure_ui_kit(root: &Path, slug: &str) {
     }
 }
 
+/// When the app opens: every game carries on by itself. Games an older
+/// version paused because of a problem (they carry a reason; a pause Andrew
+/// pressed has none) resume, and jobs waiting on a retry timer start now
+/// instead of waiting out the timer. A game Andrew paused stays paused.
+pub fn wake_all(root: &Path) {
+    for a in list(root) {
+        if a.status == "paused" && a.why.is_some() {
+            let _ = control(root, &a.slug, "resume", None);
+        }
+    }
+    changes::clear_retry_timers(root);
+    for a in list(root).into_iter().filter(|a| a.status == "running") {
+        advance(root, &a.slug);
+    }
+}
+
 /// A milestone waiting for Andrew: remind him every 6 hours, 4 times at most.
 fn remind_reviews(root: &Path, a: &mut Autopilot) {
     let now = chrono::Utc::now();
@@ -1353,6 +1369,26 @@ mod tests {
         assert!(queued(&root, &a.slug).iter().any(|c| c.agent == "frame" && c.text.contains("Build the shop UI")));
         assert!(queued(&root, &a.slug).len() > before);
         assert!(crate::chat::act_on_requests(&root, "run-assistant-t1").is_empty(), "never twice");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn opening_the_app_picks_everything_back_up() {
+        let root = studio();
+        let a = start(&root, "Wake Game", "Catch falling stars.", 0.0, None).unwrap();
+        let b = start(&root, "Held Game", "Collect shells.", 0.0, None).unwrap();
+        // An older version paused one game for a problem; Andrew paused the other.
+        let mut g = load(&root, &a.slug).unwrap();
+        g.status = "paused".into();
+        g.why = Some("planner is stuck".into());
+        save(&root, &g).unwrap();
+        control(&root, &b.slug, "pause", None).unwrap();
+        let j = queued(&root, &a.slug).remove(0);
+        changes::delay(&root, &j.id, 30);
+        wake_all(&root);
+        assert_eq!(load(&root, &a.slug).unwrap().status, "running", "a problem pause is lifted");
+        assert_eq!(load(&root, &b.slug).unwrap().status, "paused", "Andrew's own pause stays");
+        assert!(changes::list(&root).iter().find(|c| c.id == j.id).unwrap().not_before.is_none(), "no waiting out an old retry timer");
         let _ = fs::remove_dir_all(&root);
     }
 

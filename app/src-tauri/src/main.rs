@@ -1354,7 +1354,11 @@ fn main() {
                 if !opened.is_empty() {
                     let _ = h.emit("apps-opened", json!({ "apps": opened }));
                 }
-                std::thread::sleep(std::time::Duration::from_secs(20));
+                std::thread::sleep(std::time::Duration::from_secs(8));
+                // Pick up where everything left off, without being asked.
+                if let Ok(r) = paths::studio_root() {
+                    studio_core::autopilot::wake_all(&r);
+                }
                 // Change requests sent before the app closed carry on.
                 dispatch_changes(&h);
                 loop {

@@ -733,6 +733,20 @@ pub fn archive_old(root: &Path) {
     }
 }
 
+/// At app start: queued jobs waiting on a retry timer may start at once.
+pub fn clear_retry_timers(root: &Path) {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut all = list(root);
+    let mut n = 0;
+    for c in all.iter_mut().filter(|c| c.status == "queued" && c.not_before.is_some()) {
+        c.not_before = None;
+        n += 1;
+    }
+    if n > 0 {
+        let _ = save_all(root, &all);
+    }
+}
+
 /// Mark a failed job as skipped: it counts as finished so work moves on.
 pub fn mark_skipped(root: &Path, id: &str, why: &str) {
     update(root, id, |x| {
