@@ -151,9 +151,14 @@ pub fn build_gate(root: &Path, project: &str) -> Vec<GateCheck> {
         (code, out) = run("selene", &["--no-summary", &src.to_string_lossy()], &td);
         note = " (offline std: Roblox globals only, API members not checked)";
     }
-    checks.push(c("selene lint", code == Some(0), &format!("{}{note}", if code == Some(0) { "clean".into() } else { tail(&out, 600) })));
+    // Warnings (style hints like "use UDim2.fromScale") never fail a job:
+    // only real errors do. Retrying a whole agent run over a hint wasted hours.
+    let lint_ok = code == Some(0) || (!out.contains("error[") && !out.contains("ERROR"));
+    checks.push(c("selene lint", lint_ok, &format!("{}{note}", if code == Some(0) { "clean".into() } else if lint_ok { format!("passed with warnings: {}", tail(&out, 300)) } else { tail(&out, 600) })));
     let _ = fs::remove_dir_all(&td);
 
+    // Formatting is automatic: format first, so no agent burns a try on spacing.
+    let _ = run("stylua", &[&src.to_string_lossy()], &proj);
     let (code, out) = run("stylua", &["--check", &src.to_string_lossy()], &proj);
     checks.push(c("stylua --check", code == Some(0), &if code == Some(0) { "formatted".into() } else { tail(&out, 600) }));
 

@@ -700,6 +700,10 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
     for line in log.lines() {
         let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
         let tool = v.get("tool").and_then(|t| t.as_str()).unwrap_or("");
+        // Skills are shared playbooks every agent may load.
+        if tool == "Skill" {
+            continue;
+        }
         let mut target = v.get("target").and_then(|t| t.as_str()).unwrap_or("").to_string();
         if tool == "Glob" || tool == "Grep" {
             let path = v.pointer("/input/path").and_then(|t| t.as_str()).unwrap_or("");
@@ -729,7 +733,7 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
             match tp.strip_prefix(&vault) {
                 Ok(r) => r.to_string_lossy().to_string(),
                 Err(_) => {
-                    let allowed_abs = tp.starts_with(run_dir)
+                    let allowed_abs = tp == root || tp.starts_with(run_dir)
                         || tp.starts_with(root.join("projects"))
                         || prior_dirs.iter().any(|d| tp.starts_with(d));
                     if !allowed_abs {
@@ -741,6 +745,8 @@ pub fn loads_within(root: &Path, run_dir: &Path, agent: &str, allowed: &[String]
         } else {
             target.clone()
         };
+        // Windows writes 00-Start-Here\\index.md: judge it like 00-Start-Here/index.md.
+        let rel = rel.replace('\\', "/");
         let first = rel.split('/').next().unwrap_or("").to_string();
         if is_section(&vault, &first) {
             if !seen.contains(&first) {
