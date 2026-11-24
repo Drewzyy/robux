@@ -437,19 +437,33 @@ async function viewGameHome(slug) {
     el("button", { class: `tl-step ${m.status}${m.id === pick.id ? " picked" : ""}`, "data-step": m.id, title: m.title, onclick: () => { state.gameStep = m.id; viewGameHome(slug); } },
       el("span", { class: "tl-dot" }), el("span", { class: "tl-num" }, String(i + 1)), el("span", { class: "tl-label" }, STEP_SHORT[m.id] || m.title))));
   const STATE = { waiting: "Not started", working: "Being made", revising: "Being changed", review: "Needs you", approved: "Done" };
-  // Needs you: approve or send back, right here.
-  const decide = review ? (() => {
+  const queueItems = await invoke("queue_list").catch(() => []);
+  const pendingQ = queueItems.filter((i) => i.status === "pending");
+  // Everything waiting for Andrew, at the top: look, add your 2 cents, approve.
+  const reviewRow = (title, sub, look, onDecide) => {
+    const notes = el("textarea", { rows: 1, class: "rv-notes", placeholder: "Your 2 cents (optional)" });
+    const act = (approve, label, cls) => el("button", { class: cls, onclick: async (e) => { e.currentTarget.disabled = true; try { await onDecide(approve, notes.value.trim()); } catch (er) { toast(String(er), true); } viewGameHome(slug); refreshStatus(); } }, label);
+    return el("div", { class: "rv-row" },
+      el("div", { class: "rv-text" }, el("div", { class: "row-title" }, title), el("div", { class: "note" }, sub)),
+      notes,
+      el("div", { class: "rv-actions" }, look, act(true, "Approve", "btn primary"), act(false, "Not Good Enough", "btn secondary")));
+  };
+  const rows = [];
+  if (review) {
     const last = v.milestones[v.milestones.length - 1].id === review.id;
-    const notes = el("textarea", { rows: 2, placeholder: "Anything to change? (optional)" });
-    const act = (approve, label, cls) => el("button", { class: cls, onclick: async (e) => {
-      e.currentTarget.disabled = true;
-      try { await invoke("autopilot_review", { slug, milestone: review.id, approve: approve && !notes.value.trim(), notes: notes.value }); toast(approve && !notes.value.trim() ? `Approved: ${review.title}.` : "Sent back. The team keeps improving it."); } catch (er) { toast(String(er), true); }
-      viewGameHome(slug); refreshStatus();
-    } }, label);
-    return el("div", { class: "card hero hero-review" }, el("div", { style: "flex:1" },
-      el("div", { class: "k" }, "Needs you"), el("div", { class: "hero-title" }, `${review.title} is ready`), el("div", { class: "note" }, review.review), notes,
-      el("div", { class: "inline", style: "gap:8px;margin-top:8px;flex-wrap:wrap" }, act(true, last ? "Final Approve" : "Approve", "btn primary"), act(false, "Not Good Enough", "btn secondary"))));
-  })() : null;
+    rows.push(reviewRow(`${last ? "Final step: " : "Step: "}${review.title}`, review.review, el("a", { class: "btn secondary", href: `#autopilot/${slug}` }, "Look"),
+      async (approve, note) => { await invoke("autopilot_review", { slug, milestone: review.id, approve: approve && !note, notes: note }); toast(approve && !note ? `Approved: ${review.title}.` : "Sent back with your notes; the team keeps improving it."); }));
+  }
+  for (const it of pendingQ) {
+    const look = el("button", { class: "btn secondary", onclick: () => { if (it.artifacts && it.artifacts[0]) openText(it.artifacts[0]); else location.hash = "#queue"; } }, "Look");
+    rows.push(reviewRow(it.title, `${cap(it.created_by)} · ${it.summary.slice(0, 140)}`, look,
+      async (approve, note) => {
+        if (approve) await invoke("queue_decide", { id: it.id, verdict: "approved", note });
+        else await invoke("queue_request_changes", { id: it.id, note: note || "Not good enough yet: raise the quality and fix what falls short." });
+        toast(approve ? "Approved. Nothing was published." : "Sent back with your notes.");
+      }));
+  }
+  const reviewBox = rows.length ? el("div", { class: "card hero-review rv-box" }, el("div", { class: "k" }, `Needs your review (${rows.length})`), ...rows) : null;
   const paused = v.status === "paused" ? el("div", { class: "card warn-card" }, el("div", { style: "white-space:pre-wrap" }, v.why || "Paused."),
     el("button", { class: "btn primary", style: "margin-top:8px", onclick: async () => { await invoke("autopilot_control", { slug, action: "resume", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Resume")) : null;
   // Now: what the team is doing this minute, and why the rest waits.
@@ -461,16 +475,13 @@ async function viewGameHome(slug) {
     waiting.length ? el("div", { style: "margin-top:8px" }, el("div", { class: "note" }, `Waiting (${waiting.length}):`),
       el("ul", { class: "faq-list" }, waiting.slice(0, 6).map((j) => el("li", {}, `${cap(j.agent)}: ${whyWait(j)}`))),
       waiting.some((j) => j.retry_at && new Date(j.retry_at) > new Date()) ? el("button", { class: "btn secondary", style: "margin-top:6px", onclick: async (e) => { e.currentTarget.disabled = true; await invoke("autopilot_note", { slug, text: "retry now", agent: null }).catch((er) => toast(String(er), true)); toast("Starting them now."); viewGameHome(slug); } }, "Start Them Now") : null) : null);
-  // Finished work from any agent that waits for a yes or no (the Dashboard badge counts it).
-  const queueItems = await invoke("queue_list").catch(() => []);
-  const pendingQ = queueItems.filter((i) => i.status === "pending");
-  const queueCard = pendingQ.length ? el("div", { class: "card hero hero-review" }, el("div", { style: "flex:1" }, el("div", { class: "k" }, "Needs you"),
-    el("div", { class: "hero-title" }, `${pendingQ.length} finished item${pendingQ.length === 1 ? "" : "s"} to look at`), el("div", { class: "note" }, "Work an agent finished outside the game's steps (for example a single run). Say yes or no in the Review Queue.")),
-    el("a", { class: "btn primary cta", href: "#queue" }, "Open Review Queue", el("span", { class: "cta-arrow" }, "→"))) : null;
   // The picked step: its jobs.
-  const step = el("div", { class: "card" }, el("div", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, pick.title), el("span", { class: "pill" }, STATE[pick.status] || pick.status)),
+  // The step's plan and jobs fold away like a dropdown; the choice is remembered.
+  const step = el("details", { class: "card fold" }, el("summary", { class: "inline", style: "justify-content:space-between" }, el("div", { class: "row-title" }, `${pick.title} · ${pick.jobs.length} job${pick.jobs.length === 1 ? "" : "s"}`), el("span", { class: "pill" }, STATE[pick.status] || pick.status)),
     el("div", { class: "note", style: "margin:4px 0 8px" }, pick.review),
     pick.jobs.length ? el("div", { class: "list" }, pick.jobs.slice().reverse().map(jobRow)) : el("div", { class: "note" }, "Nothing here yet."));
+  try { if (localStorage.getItem("stepOpen") === "1") step.open = true; } catch {}
+  step.addEventListener("toggle", () => { try { localStorage.setItem("stepOpen", step.open ? "1" : "0"); } catch {} });
   // The village: every agent's house; workers hammer while they work.
   const wl = await invoke("warden_last").catch(() => ({}));
   const wardenLine = wl && wl.at ? el("div", { class: "note", style: "margin-top:6px" }, `Warden checked ${ago(wl.at)}: ${wl.did && wl.did.length ? wl.did.join("; ") : "everything is running"}.`) : el("div", { class: "note", style: "margin-top:6px" }, "Warden: first round within a minute of opening the app.");
@@ -485,7 +496,7 @@ async function viewGameHome(slug) {
   const ctl = v.status === "running" ? el("button", { class: "btn secondary", onclick: async () => { await invoke("autopilot_control", { slug, action: "pause", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Pause") : null;
   showIf(nav, page(
     head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), ctl),
-    timeline, decide, queueCard, paused,
+    reviewBox, timeline, paused,
     el("div", { class: "game-grid" }, now, step),
     village,
     el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))),

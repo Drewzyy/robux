@@ -562,3 +562,11 @@ img.lazy.in { opacity: 1; }
 .village-card .v2-label { font-size: 11px; bottom: -14px; padding: 1px 7px; }
 .village-card .v2-zzz { font-size: 13px; }
 .village-card .village2::before { inset: 10% 8% 8% 8%; }
+.fold > summary { cursor: pointer; list-style: none; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::before { content: "▸"; margin-right: 6px; color: var(--muted, #888); }
+.fold[open] > summary::before { content: "▾"; }
+.rv-box .rv-row { display: grid; grid-template-columns: 1fr minmax(160px, 1fr) auto; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid rgba(127,127,127,.2); }
+.rv-box .rv-notes { width: 100%; resize: vertical; }
+.rv-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 800px) { .rv-box .rv-row { grid-template-columns: 1fr; } }
