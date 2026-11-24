@@ -797,6 +797,11 @@ async fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
 
 // ---------- Roblox Studio connection ----------
 
+#[tauri::command]
+async fn warden_last() -> Value {
+    root().map(|r| studio_core::warden::last(&r)).unwrap_or(json!({}))
+}
+
 /// Green, red or off for Claude, the local model, Roblox Studio, Blender.
 #[tauri::command]
 async fn connections() -> Vec<studio_core::connect::Light> {
@@ -1263,6 +1268,7 @@ fn main() {
             pipeline_approve_and_start,
             continue_now,
             connections,
+            warden_last,
             agent_stop,
             continue_local,
             changes_list,
@@ -1361,7 +1367,19 @@ fn main() {
                 }
                 // Change requests sent before the app closed carry on.
                 dispatch_changes(&h);
+                let mut warden_at = std::time::Instant::now() - std::time::Duration::from_secs(600);
                 loop {
+                    // The Warden's rounds, every 10 minutes.
+                    if warden_at.elapsed() >= std::time::Duration::from_secs(600) {
+                        warden_at = std::time::Instant::now();
+                        if let Ok(r) = paths::studio_root() {
+                            let did = std::panic::catch_unwind(|| studio_core::warden::rounds(&r)).unwrap_or_default();
+                            let _ = h.emit("warden", json!({ "did": did }));
+                            if !did.is_empty() {
+                                dispatch_changes(&h);
+                            }
+                        }
+                    }
                     // One bad minute never stops the loop for the rest of the session.
                     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     // Keep every running game moving (also after a restart).

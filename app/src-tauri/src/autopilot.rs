@@ -320,6 +320,53 @@ pub fn ensure_ui_kit(root: &Path, slug: &str) {
     }
 }
 
+/// A line from the Warden on a game's board.
+pub fn warden_note(root: &Path, slug: &str, text: &str) {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    if let Ok(mut a) = load(root, slug) {
+        post(&mut a, "warden", None, text);
+        let _ = save(root, &a);
+    }
+}
+
+/// Warden: while a step waits for Andrew, research the next steps (once
+/// per waiting step). Returns true when it queued something.
+pub fn warden_research(root: &Path, slug: &str) -> bool {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Ok(mut a) = load(root, slug) else { return false };
+    let Some(m) = a.milestones.iter().find(|m| m.status == "review").map(|m| m.id.clone()) else { return false };
+    let key = format!("{m}/warden-research");
+    if mine(root, slug).iter().any(|c| c.key.as_deref() == Some(&key)) {
+        return false;
+    }
+    let job = format!("{RESEARCH_JOB} Focus on what the next steps of this game need (after: {m}).");
+    let ok = queue(root, &mut a, &m, "pulse", &job, &key, 0, "autopilot", None, "change").is_ok();
+    if ok {
+        post(&mut a, "warden", None, "The team was resting while a step waits for Andrew: Pulse researches the next steps meanwhile.");
+    }
+    let _ = save(root, &a);
+    ok
+}
+
+/// Warden: a running game with nothing queued and no step to start: Lead
+/// decides the next work (at most once an hour).
+pub fn warden_lead(root: &Path, slug: &str) -> bool {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let Ok(mut a) = load(root, slug) else { return false };
+    let recent = mine(root, slug).iter().any(|c| c.key.as_deref().map(|k| k.contains("/warden-lead")).unwrap_or(false) && c.created_at.as_str() > (chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339().as_str());
+    if recent {
+        return false;
+    }
+    let m = a.milestones.iter().find(|m| m.status == "working" || m.status == "revising").or_else(|| a.milestones.iter().rev().find(|m| m.status != "waiting")).map(|m| m.id.clone()).unwrap_or_else(|| "plan".into());
+    let job = "Warden check: the team is idle but the game is not finished. Read the game's state (milestones, the last jobs and their results, Andrew's notes) and decide the most useful next work for this step. Start the agents that should do it with requests.json, and write change.md: what you decided and why.";
+    let ok = queue(root, &mut a, &m, "lead", job, &format!("{m}/warden-lead/{}", chrono::Utc::now().timestamp()), 0, "autopilot", None, "change").is_ok();
+    if ok {
+        post(&mut a, "warden", None, "The team was idle with nothing queued: Lead is deciding the next work.");
+    }
+    let _ = save(root, &a);
+    ok
+}
+
 /// When the app opens: every game carries on by itself. Games an older
 /// version paused because of a problem (they carry a reason; a pause Andrew
 /// pressed has none) resume, and jobs waiting on a retry timer start now
@@ -899,9 +946,11 @@ pub fn on_finish(root: &Path, c: &Change) {
                     if rescues == MAX_RESCUES {
                         crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is having a hard time", a.title, c.agent), &[c.text.chars().take(200).collect(), "The team keeps trying new approaches by itself. A note from you can steer it.".into()]);
                     }
+                    // One rescue at a time per game: more Leads at once only pile up.
+                    let busy_rescue = mine(root, &slug).iter().any(|x| x.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false) && ["queued", "working"].contains(&x.status.as_str()));
                     if let Ok(n) = queue(root, &mut a, &mid, "lead", &job, &format!("rescue|{}|{key}", rescues + 1), 0, "autopilot", None, "change") {
-                        if wait > 0 {
-                            changes::delay(root, &n.id, wait);
+                        if wait > 0 || busy_rescue {
+                            changes::delay(root, &n.id, if busy_rescue { wait.max(20) } else { wait });
                         }
                     }
                 } else {
@@ -1389,6 +1438,36 @@ mod tests {
         assert_eq!(load(&root, &a.slug).unwrap().status, "running", "a problem pause is lifted");
         assert_eq!(load(&root, &b.slug).unwrap().status, "paused", "Andrew's own pause stays");
         assert!(changes::list(&root).iter().find(|c| c.id == j.id).unwrap().not_before.is_none(), "no waiting out an old retry timer");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn the_warden_keeps_the_team_working() {
+        let root = studio();
+        let a = start(&root, "Warden Game", "Catch falling stars.", 0.0, None).unwrap();
+        // A job that says working, but its agent is gone (run says running, no process).
+        let j = queued(&root, &a.slug).remove(0);
+        changes::update_for_test(&root, &j.id, |x| x.status = "working".into());
+        let mut r = crate::runs::load(&root, &j.run_id).unwrap();
+        r.status = "running".into();
+        crate::runs::save(&root, &r).unwrap();
+        let did = crate::warden::rounds(&root);
+        assert!(did.iter().any(|d| d.contains("stuck")), "{did:?}");
+        assert!(queued(&root, &a.slug).iter().any(|c| c.key == j.key && c.id != j.id), "retried");
+        // An idle team: nothing open at all. The Warden gets someone working.
+        changes::cancel_queued(&root, |_| true);
+        let did = crate::warden::rounds(&root);
+        assert!(!did.is_empty(), "the Warden acted: {did:?}");
+        assert!(!queued(&root, &a.slug).is_empty(), "someone is working again");
+        // A step waiting for Andrew: research meanwhile, once.
+        changes::cancel_queued(&root, |_| true);
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "review".into();
+        save(&root, &g).unwrap();
+        let did = crate::warden::rounds(&root);
+        assert!(did.iter().any(|d| d.contains("research")), "{did:?}");
+        changes::cancel_queued(&root, |_| true);
+        assert!(crate::warden::rounds(&root).is_empty(), "only once per waiting step");
         let _ = fs::remove_dir_all(&root);
     }
 

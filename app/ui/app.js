@@ -184,6 +184,13 @@ async function refreshLights() {
 }
 refreshLights();
 setInterval(refreshLights, 30000);
+T.event.listen("warden", (ev) => {
+  state.wardenAt = Date.now();
+  const did = (ev.payload && ev.payload.did) || [];
+  if (did.length) toast("Warden: " + did[0]);
+  const h = location.hash || "";
+  if (h === "" || h === "#home") viewDashboard(false);
+});
 T.event.listen("apps-opened", (ev) => { toast(`Opened ${ev.payload.apps.join(" and ")} for the agents.`); setTimeout(refreshLights, 8000); });
 setInterval(() => { if (state.live || (state.spend && state.spend.running.length) || Date.now() - (state.lastStatus || 0) > 20000) { state.lastStatus = Date.now(); refreshStatus(); } }, 5000);
 
@@ -364,7 +371,7 @@ const STEP_SHORT = { plan: "Plan", design: "Design", ui: "UI", world: "World", b
 const VILLAGE = (() => { // houses evenly around the town hall
   const who = [["lead", "Lead"], ["pulse", "Pulse"], ["architect", "Architect"], ["builder", "Builder"], ["merchant", "Merchant"], ["modeler", "Modeler"], ["playtest", "Playtest"],
     ["director", "Director"], ["motion", "Motion"], ["scenic", "Scenic"], ["librarian", "Librarian"], ["frame", "Frame (UI)"], ["planner", "Planner"], ["tuner", "Tuner"]];
-  return who.map(([id, label], i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / who.length; return [id, label, 50 + 35 * Math.cos(a), 53 + 35 * Math.sin(a)]; });
+  return who.map(([id, label], i) => { const a = -Math.PI / 2 + (i * 2 * Math.PI) / who.length; return [id, label, 50 + 41 * Math.cos(a), 51 + 39 * Math.sin(a)]; });
 })();
 // Each agent's character and building, from the Claude Clash art.
 const VILLAGE_ART = {
@@ -394,7 +401,7 @@ function villageSvg(working, onPick) {
     house.addEventListener("click", () => onPick(id));
     box.appendChild(house);
     // The character: beside the house; when working it walks to the hall and back.
-    const cx = x + (x < 50 ? 7 : -7), cy = y - 1;
+    const cx = x + (x < 50 ? 5 : -5), cy = y + 1;
     const hx = 50 + (x - 50) * 0.35, hy = 55 + (y - 54) * 0.35;
     const c = el("img", { class: "v2-char" + (busy ? " busy" : " idle"), src: `village/char-${ch}.png`, alt: "", title: tip,
       style: `left:${cx}%;top:${cy}%;--x0:${cx}%;--y0:${cy}%;--x1:${hx}%;--y1:${hy}%;animation-duration:${5 + (Math.round(x) % 4)}s` });
@@ -402,6 +409,10 @@ function villageSvg(working, onPick) {
     box.appendChild(c);
     if (!busy) box.appendChild(zzz(cx + 2, cy - 7));
   });
+  // The Warden: stands by the hall; after each of his rounds he walks a lap.
+  const patrol = state.wardenAt && Date.now() - state.wardenAt < 25000;
+  const w = el("img", { class: "v2-warden" + (patrol ? " patrol" : ""), src: "village/char-guardian.png", alt: "Warden", title: "Warden: checks every 10 minutes that the team is working, and gets it going if not" });
+  box.appendChild(w);
   return box;
 }
 function zzz(x, y) {
@@ -450,7 +461,10 @@ async function viewGameHome(slug) {
     el("div", { class: "note", style: "margin:4px 0 8px" }, pick.review),
     pick.jobs.length ? el("div", { class: "list" }, pick.jobs.slice().reverse().map(jobRow)) : el("div", { class: "note" }, "Nothing here yet."));
   // The village: every agent's house; workers hammer while they work.
+  const wl = await invoke("warden_last").catch(() => ({}));
+  const wardenLine = wl && wl.at ? el("div", { class: "note", style: "margin-top:6px" }, `Warden checked ${ago(wl.at)}: ${wl.did && wl.did.length ? wl.did.join("; ") : "everything is running"}.`) : el("div", { class: "note", style: "margin-top:6px" }, "Warden: first round within a minute of opening the app.");
   const village = el("div", { class: "card village-card" }, el("div", { class: "k" }, `Team · ${busyAgents.length ? busyAgents.length + " working" : "resting"}`),
+    wardenLine,
     villageSvg(busyAgents, (id) => { const j = jobs.filter((x) => x.agent === id).pop(); if (j) location.hash = "#run/" + j.run_id; else toast(`${cap(id)} has no job in this game yet.`); }),
     el("div", { class: "list", style: "margin-top:6px" }, busyAgents.map((a) => el("div", { class: "srow" }, el("span", { class: "light green" }, el("span", { class: "ld" }), cap(a)), el("span", { class: "note" }, (state.apLive[working.find((j) => j.agent === a).run_id] || "working…").slice(0, 60))))));
   // One box: tell the team anything.
@@ -461,7 +475,8 @@ async function viewGameHome(slug) {
   showIf(nav, page(
     head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), ctl),
     timeline, decide, paused,
-    el("div", { class: "game-grid" }, el("div", { class: "game-main" }, now, step), el("div", { class: "game-side" }, village)),
+    el("div", { class: "game-grid" }, now, step),
+    village,
     el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))),
     el("a", { class: "fold-line", href: "#overview" }, "Studio overview (ideas, usage, money) →")
   ));
@@ -2133,6 +2148,7 @@ const TEAM_JOBS = [
   ["Pulse", "Researcher", "Finds trends and the top games in the niche, and studies open-source games."],
   ["Splash", "Thumbnails", "Game icon and thumbnails."],
   ["Release", "Release Manager", "Writes the release checklist. Never publishes anything."],
+  ["Warden", "Supervisor", "Every 10 minutes while your PC is on: finds jobs stuck with no agent behind them and restarts them, wakes an idle team (next step, or Lead decides the next work), and sets the team researching while a step waits for you."],
 ];
 function helpFaq() {
   const q = (title, ...body) => el("details", { class: "card faq" }, el("summary", { class: "row-title" }, title), el("div", { class: "faq-body" }, ...body));

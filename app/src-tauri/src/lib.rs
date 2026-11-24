@@ -39,6 +39,7 @@ pub mod references;
 pub mod runs;
 pub mod search;
 pub mod study;
+pub mod warden;
 
 pub fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)

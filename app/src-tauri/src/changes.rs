@@ -405,6 +405,7 @@ pub fn take_next(root: &Path) -> Vec<Change> {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
     let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
+    let mut rescuing: Vec<String> = all.iter().filter(|c| c.status == "working" && c.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false)).map(|c| c.target.clone()).collect();
     let mut out = vec![];
     let finished: std::collections::HashSet<String> = all.iter().filter(|c| ["done", "failed", "cancelled"].contains(&c.status.as_str())).map(|c| c.id.clone()).collect();
     // Games that are paused, out of budget or stopped start nothing new.
@@ -427,6 +428,14 @@ pub fn take_next(root: &Path) -> Vec<Change> {
         }
         if busy.iter().any(|(a, t)| *a == c.agent && *t == c.target) {
             continue;
+        }
+        // Never two Lead rescues of the same game at once.
+        let is_rescue = |x: &Change| x.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false);
+        if is_rescue(c) && rescuing.contains(&c.target) {
+            continue;
+        }
+        if is_rescue(c) {
+            rescuing.push(c.target.clone());
         }
         c.status = "working".into();
         busy.push((c.agent.clone(), c.target.clone()));
@@ -870,6 +879,28 @@ mod tests {
 
     fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
         Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None }
+    }
+
+    #[test]
+    fn the_warden_benches_an_agent_that_keeps_failing() {
+        let d = std::env::temp_dir().join(format!("bench-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("runs")).unwrap();
+        let mut all: Vec<Change> = (0..6).map(|i| {
+            let mut c = change(&format!("f{i}"), "lead", "game:g", "failed");
+            c.finished_at = Some(crate::now_rfc3339());
+            c
+        }).collect();
+        all.push(change("w", "lead", "game:g", "queued"));
+        all.push(change("ok", "frame", "game:g", "queued"));
+        save_all(&d, &all).unwrap();
+        let did = crate::warden::rounds(&d);
+        assert!(did.iter().any(|x| x.starts_with("lead kept failing")), "{did:?}");
+        let l = list(&d);
+        assert!(l.iter().find(|c| c.id == "w").unwrap().not_before.is_some(), "Lead's waiting job is held");
+        assert!(l.iter().find(|c| c.id == "ok").unwrap().not_before.is_none(), "others keep working");
+        assert!(crate::warden::rounds(&d).iter().all(|x| !x.starts_with("lead kept failing")), "not held again and again");
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

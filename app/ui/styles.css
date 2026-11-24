@@ -471,7 +471,7 @@ img.lazy.in { opacity: 1; }
 .tl-step.picked .tl-label { color: var(--text); font-weight: 600; }
 .tl-step.picked .tl-dot { outline: 2px solid rgba(255, 255, 255, .5); outline-offset: 3px; }
 @keyframes tl-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 159, 10, .55); } 50% { box-shadow: 0 0 0 8px rgba(255, 159, 10, 0); } }
-.game-grid { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 14px; margin: 14px 0; align-items: start; }
+.game-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin: 14px 0; align-items: start; }
 .game-main { display: flex; flex-direction: column; gap: 14px; }
 @media (max-width: 900px) { .game-grid { grid-template-columns: 1fr; } .tl-label { font-size: 10px; } }
 .village { width: 100%; height: auto; margin-top: 6px; }
@@ -543,3 +543,22 @@ img.lazy.in { opacity: 1; }
 .v2-zzz span:nth-child(2) { animation-delay: .8s; font-size: 9px; }
 .v2-zzz span:nth-child(3) { animation-delay: 1.6s; font-size: 8px; }
 @keyframes v2-z { 0% { opacity: 0; transform: translate(0, 0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -22px); } }
+
+/* The Warden: a blue guard by the hall who patrols after each round */
+.v2-warden { position: absolute; width: 9%; left: 62%; top: 70%; transform: translate(-50%, -80%); z-index: 4; pointer-events: auto;
+  filter: hue-rotate(185deg) saturate(1.4) drop-shadow(0 0 6px rgba(80, 160, 255, .8)); }
+.v2-warden.patrol { animation: v2-patrol 22s linear 1; }
+@keyframes v2-patrol {
+  0% { left: 62%; top: 70%; } 12% { left: 80%; top: 52%; } 25% { left: 72%; top: 26%; } 37% { left: 50%; top: 18%; }
+  50% { left: 28%; top: 26%; } 62% { left: 20%; top: 52%; } 75% { left: 28%; top: 78%; } 87% { left: 50%; top: 86%; } 100% { left: 62%; top: 70%; }
+}
+
+/* Wide village: room to read every building */
+.village-card .village2 { aspect-ratio: 1.7 / 1; }
+.village-card .v2-hall { width: 17%; }
+.village-card .v2-house { width: 8.5%; }
+.village-card .v2-char { width: 3.6%; }
+.village-card .v2-warden { width: 4%; }
+.village-card .v2-label { font-size: 11px; bottom: -14px; padding: 1px 7px; }
+.village-card .v2-zzz { font-size: 13px; }
+.village-card .village2::before { inset: 10% 8% 8% 8%; }
