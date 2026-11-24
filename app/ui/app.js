@@ -419,6 +419,47 @@ function zzz(x, y) {
   return el("div", { class: "v2-zzz", style: `left:${x}%;top:${y}%` }, el("span", {}, "Z"), el("span", {}, "z"), el("span", {}, "z"));
 }
 
+// Dashboard widgets: Andrew can reorder them and make each wide or narrow.
+// "Needs your review" always stays on top. Saved per computer.
+let arranging = false;
+const BOARD_DEFAULT = [["timeline", 2], ["now", 1], ["step", 1], ["village", 2], ["chime", 2]];
+const BOARD_NAMES = { timeline: "Timeline", now: "Now", step: "Step plan", village: "Team village", chime: "Tell the team" };
+function boardLayout() {
+  let saved = [];
+  try { saved = JSON.parse(localStorage.getItem("boardLayout") || "[]"); } catch {}
+  const keys = BOARD_DEFAULT.map((x) => x[0]);
+  const out = saved.filter((x) => Array.isArray(x) && keys.includes(x[0]) && (x[1] === 1 || x[1] === 2));
+  for (const d of BOARD_DEFAULT) if (!out.some((x) => x[0] === d[0])) out.push(d);
+  return out;
+}
+function saveBoard(l) { try { localStorage.setItem("boardLayout", JSON.stringify(l)); } catch {} }
+function board(widgets) {
+  const layout = boardLayout();
+  const grid = el("div", { class: "board" + (arranging ? " arranging" : "") });
+  const redraw = () => grid.replaceWith(board(widgets));
+  layout.forEach(([key, span], i) => {
+    const w = widgets[key];
+    if (!w) return;
+    const move = (d) => { const l = boardLayout(); const j = i + d; if (j < 0 || j >= l.length) return; [l[i], l[j]] = [l[j], l[i]]; saveBoard(l); redraw(); };
+    const bar = arranging ? el("div", { class: "board-bar" },
+      el("span", { class: "board-grip", title: "Drag to move" }, "⠿ " + BOARD_NAMES[key]),
+      el("span", { class: "inline" },
+        el("button", { class: "btn secondary", title: "Move up", onclick: () => move(-1) }, "↑"),
+        el("button", { class: "btn secondary", title: "Move down", onclick: () => move(1) }, "↓"),
+        el("button", { class: "btn secondary", onclick: () => { const l = boardLayout(); l[i][1] = span === 2 ? 1 : 2; saveBoard(l); redraw(); } }, span === 2 ? "Make Narrow" : "Make Wide"))) : null;
+    const cell = el("div", { class: "board-cell", style: `grid-column: span ${span}` }, bar, w);
+    if (arranging) {
+      cell.draggable = true;
+      cell.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/plain", String(i)));
+      cell.addEventListener("dragover", (e) => e.preventDefault());
+      cell.addEventListener("drop", (e) => { e.preventDefault(); const from = Number(e.dataTransfer.getData("text/plain")); if (from === i) return; const l = boardLayout(); const [m] = l.splice(from, 1); l.splice(i, 0, m); saveBoard(l); redraw(); });
+    }
+    grid.append(cell);
+  });
+  if (arranging) grid.append(el("div", { class: "board-cell", style: "grid-column: span 2" }, el("button", { class: "btn secondary", onclick: () => { saveBoard(BOARD_DEFAULT.map((x) => [...x])); redraw(); } }, "Reset Layout")));
+  return grid;
+}
+
 async function viewGameHome(slug) {
   const nav = navSeq;
   await freshStatus();
@@ -495,11 +536,10 @@ async function viewGameHome(slug) {
   chime.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
   const ctl = v.status === "running" ? el("button", { class: "btn secondary", onclick: async () => { await invoke("autopilot_control", { slug, action: "pause", budgetUsd: null }).catch((e) => toast(String(e), true)); viewGameHome(slug); } }, "Pause") : null;
   showIf(nav, page(
-    head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), ctl),
-    reviewBox, timeline, paused,
-    el("div", { class: "game-grid" }, now, step),
-    village,
-    el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))),
+    head(v.title, el("span", {}, `${STATE[current.status] ? (current.title + ": " + STATE[current.status].toLowerCase()) : ""}${v.status === "paused" ? " · paused" : ""}`), el("span", { class: "inline" }, el("button", { class: "btn secondary", onclick: () => { arranging = !arranging; viewGameHome(slug); } }, arranging ? "Done Arranging" : "Arrange"), ctl)),
+    reviewBox, paused,
+    board({ timeline, now, step, village,
+      chime: el("div", { class: "card ap-chime" }, chime, el("div", { class: "inline", style: "margin-top:8px" }, el("button", { class: "btn primary", onclick: send }, "Send"), el("span", { class: "note" }, "Or ask anything in Ask Claude: it starts work for you."))) }),
     el("a", { class: "fold-line", href: "#overview" }, "Studio overview (ideas, usage, money) →")
   ));
 }
