@@ -1093,7 +1093,10 @@ const AGENT_STATUS = {
   // Finished work waiting in the Review Queue reads differently from a run
   // that needs your yes before it starts.
   waiting: (a) => el("span", { class: "pill red-soft", title: a && a.detail || "" }, a && /review queue/.test(a.detail || "") ? "Ready for review" : "Needs your approval"),
-  blocked: () => el("span", { class: "pill white" }, "Blocked"),
+  queued: (a) => el("span", { class: "pill", title: a && a.detail || "" }, "Waiting its turn"),
+  paused: (a) => el("span", { class: "pill", title: a && a.detail || "" }, "Paused"),
+  problem: (a) => el("span", { class: "pill white", title: a && a.detail || "" }, "Had a problem"),
+  blocked: () => el("span", { class: "pill white" }, "Had a problem"),
 };
 async function viewAgents() {
   const nav = navSeq;
@@ -1121,9 +1124,15 @@ function agentSheet(a) {
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Writes"), el("span", { class: "note" }, a.output || "–")),
       el("div", { class: "srow" }, el("div", { class: "grow label" }, "Vault sections it may read"), el("span", { class: "note" }, a.sections.join(", ")))
     ),
+    // What Andrew can do about it, first.
+    a.status === "waiting" ? el("div", { class: "card warn-card", style: "margin-top:14px" },
+      el("div", {}, /review queue/.test(a.detail) ? "Its finished work is waiting for your yes or no." : "This run waits for you to approve it before it starts."),
+      el("button", { class: "btn primary", style: "margin-top:8px", onclick: () => { closeSheet(); location.hash = /review queue/.test(a.detail) ? "#queue" : "#run/" + a.last_run; } }, /review queue/.test(a.detail) ? "Open Review Queue" : "Open to Approve")) : null,
+    a.status === "problem" ? el("p", { class: "note", style: "margin-top:12px" }, "Nothing for you to do: the team retries the job, asks Lead for a new approach, or skips it and carries on. Open the last job to see what went wrong.") : null,
+    a.status === "queued" ? el("p", { class: "note", style: "margin-top:12px" }, "Nothing for you to do: the job is approved and starts when an agent slot is free.") : null,
     el("div", { class: "inline", style: "margin-top:16px" },
       el("button", { class: "btn primary", onclick: () => { state.composer.mode = "agent"; state.composer.agent = a.name; state.runsTab = "new"; location.hash = "#runs"; } }, `Run ${cap(a.name)}`),
-      a.last_run ? el("button", { class: "btn secondary", onclick: () => { location.hash = "#run/" + a.last_run; } }, "Last Run") : null)
+      a.last_run ? el("button", { class: "btn secondary", onclick: () => { closeSheet(); location.hash = "#run/" + a.last_run; } }, a.status === "problem" ? "See What Failed" : "Last Job") : null)
   );
 }
 

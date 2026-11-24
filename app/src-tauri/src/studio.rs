@@ -14,7 +14,7 @@ pub struct AgentStatus {
     pub model: String,
     pub output: Option<String>,
     pub sections: Vec<String>,
-    /// idle | working | waiting | blocked
+    /// idle | working | waiting (Andrew can act) | queued | paused | problem
     pub status: String,
     pub detail: String,
     pub last_run: Option<String>,
@@ -31,20 +31,26 @@ pub fn agent_statuses(root: &Path) -> Result<Vec<AgentStatus>, String> {
     for name in names {
         let a = &cfg.agents[name];
         let mine: Vec<&runs::RunRequest> = all.iter().filter(|r| &r.agent == name).collect();
+        // Only things Andrew can act on say they need him. Queued game jobs
+        // are approved already (they wait their turn), and failed jobs are
+        // retried or skipped by the team on their own.
+        let newest = mine.first();
         let (status, detail) = if let Some(r) = mine.iter().find(|r| r.status == "running") {
-            ("working", format!("running {}", r.run_id))
-        } else if let Some(r) = mine.iter().find(|r| r.status == "awaiting-approval" || r.status == "approved") {
-            ("waiting", format!("run {} waits for your approval", r.run_id))
+            ("working", format!("working on {}", r.run_id))
+        } else if let Some(r) = mine.iter().find(|r| r.status == "awaiting-approval") {
+            ("waiting", format!("run {} waits for you to approve its cost", r.run_id))
         } else if items.iter().any(|i| i.status == "pending" && i.created_by == *name) {
-            ("waiting", "output waits in the review queue".to_string())
-        } else if let Some(r) = mine.iter().find(|r| r.status == "done" || r.status == "failed") {
-            if r.status == "failed" {
-                ("blocked", format!("last run failed: {}", r.error.clone().unwrap_or_default().chars().take(120).collect::<String>()))
-            } else {
-                ("idle", format!("last run {}", r.finished_at.clone().unwrap_or_default()))
-            }
+            ("waiting", "its work waits in the review queue".to_string())
+        } else if let Some(r) = mine.iter().find(|r| r.status == "approved") {
+            ("queued", format!("job {} waits its turn (nothing for you to do)", r.run_id))
+        } else if newest.map(|r| r.status == "paused").unwrap_or(false) {
+            ("paused", newest.and_then(|r| r.error.clone()).unwrap_or_else(|| "paused; it continues by itself".into()))
+        } else if let Some(r) = newest.filter(|r| r.status == "failed") {
+            ("problem", format!("last job failed (the team retries or skips it by itself): {}", r.error.clone().unwrap_or_default().chars().take(120).collect::<String>()))
+        } else if let Some(r) = mine.iter().find(|r| r.status == "done") {
+            ("idle", format!("last job finished {}", r.finished_at.clone().unwrap_or_default().get(..16).unwrap_or("").replace('T', " ")))
         } else {
-            ("idle", "no runs yet".to_string())
+            ("idle", "no jobs yet".to_string())
         };
         out.push(AgentStatus {
             name: name.clone(),
