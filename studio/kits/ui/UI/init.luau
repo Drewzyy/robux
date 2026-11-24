@@ -252,7 +252,7 @@ function UI.Button(parent: Instance, props: { [string]: any }): TextButton
 	local label = UI.Label(row, {
 		Text = props.Text or "",
 		TextSize = props.TextSize or Theme.TextSize.Button,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.fromScale(0, 1),
 		LayoutOrder = 2,
 	})
 	label.AutomaticSize = Enum.AutomaticSize.X
@@ -361,7 +361,7 @@ function UI.Counter(parent: Instance, props: { [string]: any }?)
 		Text = UI.abbreviate(props.Value or 0),
 		Color = props.Color or C.Gold,
 		TextSize = Theme.TextSize.Button,
-		Size = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.fromScale(0, 1),
 		Align = Enum.TextXAlignment.Left,
 		LayoutOrder = 2,
 	})
@@ -524,7 +524,7 @@ function UI.Card(grid: Instance, props: { [string]: any }): Frame
 			BackgroundTransparency = 1,
 			Image = props.Image,
 			ScaleType = Enum.ScaleType.Fit,
-			Size = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.fromScale(1, 0.5),
 			LayoutOrder = 1,
 			Parent = card.Body,
 		})

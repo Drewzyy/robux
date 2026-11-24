@@ -338,6 +338,12 @@ pub fn ensure_ui_kit(root: &Path, slug: &str) {
         if !to.exists() {
             let _ = fs::create_dir_all(&dest);
             let _ = fs::copy(f.path(), &to);
+        } else if let Ok(old) = fs::read_to_string(&to) {
+            // Older kit copies failed the lint on three lines; fix just those.
+            let new = old.replace("Size = UDim2.new(0, 0, 1, 0),", "Size = UDim2.fromScale(0, 1),").replace("Size = UDim2.new(1, 0, 0.5, 0),", "Size = UDim2.fromScale(1, 0.5),");
+            if new != old {
+                let _ = fs::write(&to, new);
+            }
         }
     }
 }
