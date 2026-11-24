@@ -560,13 +560,45 @@ pub fn refresh_from_template(root: &Path, template: &Path) -> Result<String, Str
             copy_dir_all(&from, &kept.join(k), &mut n)?;
         }
     }
-    for d in ["vault", "studio"] {
-        let src = tmp.join(d);
-        if src.is_dir() {
-            let _ = fs::remove_dir_all(root.join(d));
-            let mut n = 0;
-            copy_dir_all(&src, &root.join(d), &mut n)?;
+    // All or nothing: copy the new folders next to the old ones first, then
+    // swap them in; if anything fails, the old folders stay as they were.
+    let dirs: Vec<&str> = ["vault", "studio"].into_iter().filter(|d| tmp.join(d).is_dir()).collect();
+    for d in &dirs {
+        let staged = root.join(format!("{d}.new"));
+        let _ = fs::remove_dir_all(&staged);
+        let mut n = 0;
+        if let Err(e) = copy_dir_all(&tmp.join(d), &staged, &mut n) {
+            for d2 in &dirs {
+                let _ = fs::remove_dir_all(root.join(format!("{d2}.new")));
+            }
+            let _ = fs::remove_dir_all(&tmp);
+            return Err(format!("could not stage the update ({e}); nothing was changed"));
         }
+    }
+    let mut swapped: Vec<&str> = vec![];
+    for d in &dirs {
+        let (cur, old, new) = (root.join(d), root.join(format!("{d}.old")), root.join(format!("{d}.new")));
+        let _ = fs::remove_dir_all(&old);
+        let moved_old = !cur.exists() || fs::rename(&cur, &old).is_ok();
+        if !moved_old || fs::rename(&new, &cur).is_err() {
+            // Undo: put back every folder already swapped, and this one.
+            if moved_old && old.exists() && !cur.exists() {
+                let _ = fs::rename(&old, &cur);
+            }
+            for s2 in &swapped {
+                let _ = fs::remove_dir_all(root.join(s2));
+                let _ = fs::rename(root.join(format!("{s2}.old")), root.join(s2));
+            }
+            for d2 in &dirs {
+                let _ = fs::remove_dir_all(root.join(format!("{d2}.new")));
+            }
+            let _ = fs::remove_dir_all(&tmp);
+            return Err(format!("could not swap in the new {d} (is a file in it open, for example in Obsidian?); nothing was changed, it will try again next start"));
+        }
+        swapped.push(d);
+    }
+    for d in &dirs {
+        let _ = fs::remove_dir_all(root.join(format!("{d}.old")));
     }
     for k in KEEP {
         if kept.join(k).is_dir() {
@@ -628,7 +660,13 @@ pub fn move_studio(current: &Path, dest: &str) -> Result<String, String> {
         if dest.is_dir() && fs::read_dir(&dest).map(|mut r| r.next().is_some()).unwrap_or(false) {
             return Err(format!("{} is not empty. Choose a new or empty folder.", dest.display()));
         }
+        // Copy into a temporary folder and rename it only when complete, so a
+        // failed copy is never mistaken for a finished studio.
+        let final_dest = dest.clone();
+        let dest = final_dest.with_file_name(format!("{}.copying", final_dest.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_default()));
+        let _ = fs::remove_dir_all(&dest);
         fs::create_dir_all(&dest).map_err(|e| format!("could not create {}: {e}", dest.display()))?;
+        let copy = (|| -> Result<(), String> {
         for entry in fs::read_dir(current).map_err(|e| e.to_string())?.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if [".git", ".cache", "target", "node_modules", "app"].contains(&name.as_str()) {
@@ -642,9 +680,17 @@ pub fn move_studio(current: &Path, dest: &str) -> Result<String, String> {
                 fs::copy(&p, dest.join(&name)).map_err(|e| e.to_string())?;
             }
         }
-        if !marker.is_file() {
-            return Err("the copy did not finish; the old folder is still in use".into());
+        Ok(())
+        })();
+        if let Err(e) = copy.and_then(|_| if dest.join("studio/agents.json").is_file() { Ok(()) } else { Err("the copy is incomplete".into()) }) {
+            let _ = fs::remove_dir_all(&dest);
+            return Err(format!("The copy did not finish ({e}); the old folder is still in use and nothing changed."));
         }
+        let _ = fs::remove_dir(&final_dest); // empty folder made by the user, if any
+        fs::rename(&dest, &final_dest).map_err(|e| {
+            let _ = fs::remove_dir_all(&dest);
+            format!("could not finish the move ({e}); the old folder is still in use")
+        })?;
     }
     let mut s = crate::settings::load();
     s.studio_root = dest.display().to_string();

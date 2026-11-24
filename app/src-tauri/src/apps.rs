@@ -105,32 +105,73 @@ fn latest_obsidian() -> Result<(String, String), String> {
     Ok((tag, url))
 }
 
+/// Download a file, resuming where it stopped after a dropped connection
+/// (up to 5 tries; 2 minutes without data counts as dropped), and check
+/// the size before using it.
 pub(crate) fn download(url: &str, dest: &Path, on_line: &mut dyn FnMut(&str)) -> Result<(), String> {
     std::fs::create_dir_all(dest.parent().unwrap()).map_err(|e| e.to_string())?;
-    let resp = ureq::get(url)
-        .set("User-Agent", "BrewixGames")
-        .timeout(std::time::Duration::from_secs(3600))
-        .call()
-        .map_err(|e| format!("download failed: {e}"))?;
-    let total: u64 = resp.header("Content-Length").and_then(|h| h.parse().ok()).unwrap_or(0);
-    let mut r = resp.into_reader();
     let tmp = dest.with_extension("part");
-    let mut f = std::fs::File::create(&tmp).map_err(|e| e.to_string())?;
-    let (mut got, mut buf, mut last) = (0u64, vec![0u8; 1 << 16], 0u64);
-    loop {
-        let n = r.read(&mut buf).map_err(|e| format!("download interrupted: {e}"))?;
-        if n == 0 {
-            break;
+    let _ = std::fs::remove_file(&tmp);
+    let agent = ureq::AgentBuilder::new().timeout_connect(std::time::Duration::from_secs(20)).timeout_read(std::time::Duration::from_secs(120)).build();
+    let mut total: u64 = 0;
+    let mut last_err = String::new();
+    for attempt in 0..5 {
+        if attempt > 0 {
+            on_line(&format!("Connection dropped; resuming (try {} of 5)", attempt + 1));
+            std::thread::sleep(std::time::Duration::from_secs(3 * attempt as u64));
         }
-        std::io::Write::write_all(&mut f, &buf[..n]).map_err(|e| e.to_string())?;
-        got += n as u64;
-        if got - last > 8 << 20 {
-            last = got;
-            on_line(&if total > 0 { format!("Downloading {}%", got * 100 / total) } else { format!("Downloading {} MB", got >> 20) });
+        let have = std::fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0);
+        let mut req = agent.get(url).set("User-Agent", "BrewixGames");
+        if have > 0 {
+            req = req.set("Range", &format!("bytes={have}-"));
+        }
+        let resp = match req.call() {
+            Ok(r) => r,
+            Err(e) => {
+                last_err = e.to_string();
+                continue;
+            }
+        };
+        let resumed = have > 0 && resp.status() == 206;
+        let len: u64 = resp.header("Content-Length").and_then(|h| h.parse().ok()).unwrap_or(0);
+        if total == 0 || !resumed {
+            total = if resumed { have + len } else { len };
+        }
+        let mut f = match std::fs::OpenOptions::new().create(true).write(true).append(resumed).truncate(!resumed).open(&tmp) {
+            Ok(f) => f,
+            Err(e) => return Err(e.to_string()),
+        };
+        let mut got = if resumed { have } else { 0 };
+        let (mut buf, mut last) = (vec![0u8; 1 << 16], got);
+        let mut r = resp.into_reader();
+        let finished = loop {
+            match r.read(&mut buf) {
+                Ok(0) => break true,
+                Ok(n) => {
+                    if let Err(e) = std::io::Write::write_all(&mut f, &buf[..n]) {
+                        return Err(format!("could not save the download (disk full?): {e}"));
+                    }
+                    got += n as u64;
+                    if got - last > 8 << 20 {
+                        last = got;
+                        on_line(&if total > 0 { format!("Downloading {}%", got * 100 / total) } else { format!("Downloading {} MB", got >> 20) });
+                    }
+                }
+                Err(e) => {
+                    last_err = e.to_string();
+                    break false;
+                }
+            }
+        };
+        drop(f);
+        if finished && (total == 0 || got >= total) {
+            return std::fs::rename(&tmp, dest).map_err(|e| e.to_string());
+        }
+        if finished {
+            last_err = format!("the download ended early ({} of {} MB)", got >> 20, total >> 20);
         }
     }
-    drop(f);
-    std::fs::rename(&tmp, dest).map_err(|e| e.to_string())
+    Err(format!("download failed after 5 tries: {last_err}. Check the internet connection and try again; it resumes where it stopped."))
 }
 
 pub fn install(app: &str, on_line: &mut dyn FnMut(&str)) -> Result<String, String> {

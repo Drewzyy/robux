@@ -707,6 +707,32 @@ pub fn max_at_once() -> usize {
     }
 }
 
+/// Keep the job list small: once it passes 600 jobs, finished jobs of
+/// finished games, and finished jobs outside a game older than 30 days,
+/// move to runs/changes-archive.jsonl. A running game's history (used to
+/// count its retries) is never moved.
+pub fn archive_old(root: &Path) {
+    let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let all = list(root);
+    if all.len() <= 600 {
+        return;
+    }
+    let cutoff = chrono::Utc::now() - chrono::Duration::days(30);
+    let finished = |c: &Change| ["done", "failed", "cancelled"].contains(&c.status.as_str());
+    let game_done = |slug: &str| crate::autopilot::load(root, slug).map(|a| a.status == "done").unwrap_or(true);
+    let old = |c: &Change| c.finished_at.as_deref().or(Some(c.created_at.as_str())).and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t < cutoff).unwrap_or(false);
+    let (move_out, keep): (Vec<Change>, Vec<Change>) = all.into_iter().partition(|c| finished(c) && match &c.autopilot { Some(slug) => game_done(slug), None => old(c) });
+    if move_out.is_empty() || keep.is_empty() {
+        return;
+    }
+    let lines: String = move_out.iter().filter_map(|c| serde_json::to_string(c).ok()).map(|l| l + "\n").collect();
+    use std::io::Write;
+    let ok = fs::OpenOptions::new().create(true).append(true).open(root.join("runs/changes-archive.jsonl")).and_then(|mut f| f.write_all(lines.as_bytes())).is_ok();
+    if ok {
+        let _ = save_all(root, &keep);
+    }
+}
+
 /// Mark a failed job as skipped: it counts as finished so work moves on.
 pub fn mark_skipped(root: &Path, id: &str, why: &str) {
     update(root, id, |x| {
@@ -775,6 +801,7 @@ pub fn resumed(root: &Path, change_id: &str) {
 /// At startup: changes left working had their run cut off (the run itself
 /// is paused or failed by runs::recover_stale); follow the run's state.
 pub fn recover(root: &Path) {
+    archive_old(root);
     let mut finished = vec![];
     recover_locked(root, &mut finished);
     // The agent did finish before the app closed: check its work normally.
@@ -829,6 +856,28 @@ mod tests {
 
     fn change(id: &str, agent: &str, target: &str, status: &str) -> Change {
         Change { id: id.into(), target: target.into(), item: None, text: "x".into(), agent: agent.into(), status: status.into(), run_id: format!("run-{id}"), created_at: id.into(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: None, milestone: None, key: None, attempt: 0, source: "andrew".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None }
+    }
+
+    #[test]
+    fn old_finished_jobs_are_archived_and_active_ones_stay() {
+        let d = std::env::temp_dir().join(format!("archive-t-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(d.join("runs")).unwrap();
+        let mut all: Vec<Change> = (0..650).map(|i| {
+            let mut c = change(&format!("old{i}"), "frame", "project:a", "done");
+            c.finished_at = Some("2020-01-01T00:00:00Z".into());
+            c
+        }).collect();
+        let mut recent = change("new", "frame", "project:a", "done");
+        recent.finished_at = Some(crate::now_rfc3339());
+        all.push(recent);
+        all.push(change("waiting", "frame", "project:a", "queued"));
+        save_all(&d, &all).unwrap();
+        archive_old(&d);
+        let left: Vec<String> = list(&d).into_iter().map(|c| c.id).collect();
+        assert_eq!(left, vec!["new".to_string(), "waiting".to_string()]);
+        assert_eq!(fs::read_to_string(d.join("runs/changes-archive.jsonl")).unwrap().lines().count(), 650);
+        let _ = fs::remove_dir_all(&d);
     }
 
     #[test]

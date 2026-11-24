@@ -120,6 +120,25 @@ const state = {
 // ---------- sidebar status: running cost always visible ----------
 // Pages wait for status only the first time; after that the 5 s timer keeps it fresh.
 const freshStatus = () => (state.spend ? void refreshStatus() : refreshStatus());
+
+// Long jobs (downloads, installs, updates): if no progress arrives for a
+// while, give the button back so nothing stays stuck.
+const lastLine = {};
+["tex", "ref", "ollama", "app", "update"].forEach((k) => {
+  T.event.listen(k + "-line", () => { lastLine[k] = Date.now(); });
+  T.event.listen(k + "-done", () => { lastLine[k] = -1; });
+});
+function stallGuard(btn, kind, minutes) {
+  lastLine[kind] = Date.now();
+  const t = setInterval(() => {
+    if (lastLine[kind] === -1 || !btn || !btn.isConnected) { clearInterval(t); return; }
+    if (Date.now() - lastLine[kind] > minutes * 60000) {
+      clearInterval(t);
+      btn.disabled = false;
+      toast(`No progress for ${minutes} minutes. You can try again; it continues where it can.`, true);
+    }
+  }, 15000);
+}
 async function refreshStatus() {
   try {
     state.spend = await invoke("spend");
@@ -1182,7 +1201,7 @@ function texturePanel(tex) {
     const groups = boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
     if (!groups.length) { toast("Pick at least one kind.", true); return; }
     go.disabled = true; status.textContent = "Starting...";
-    try { await invoke("textures_download", { groups, perGroup: parseInt(per.value, 10) }); } catch (e) { go.disabled = false; toast(String(e), true); }
+    try { await invoke("textures_download", { groups, perGroup: parseInt(per.value, 10) }); stallGuard(go, "tex", 10); } catch (e) { go.disabled = false; toast(String(e), true); }
   } }, "Download Textures");
   return el("details", { class: "card tex-panel" }, el("summary", { class: "row-title" }, `Texture library · ${tex.count} textures · Powered by Poly Haven`),
     status, el("div", { class: "chips" }, boxes), el("div", { class: "inline", style: "margin-top:10px" }, per, go));
@@ -1478,7 +1497,7 @@ async function viewInspo() {
     : `${lib.games.length} popular games ready. Download their pictures once (about 2 MB a game, from Roblox, Steam, the App Store and Wikipedia).`);
   const go = el("button", { class: "btn primary", id: "ref-download", disabled: !!state.refBusy, onclick: async () => {
     go.disabled = true; state.refBusy = true; status.textContent = "Starting...";
-    try { await invoke("refs_download", { ids: [], perGame: parseInt(per.value, 10), refresh: false }); } catch (e) { go.disabled = false; state.refBusy = false; toast(String(e), true); }
+    try { await invoke("refs_download", { ids: [], perGame: parseInt(per.value, 10), refresh: false }); stallGuard(go, "ref", 10); } catch (e) { go.disabled = false; state.refBusy = false; toast(String(e), true); }
   } }, have ? "Download Missing Pictures" : "Download Pictures");
   draw();
   showIf(nav, page(
@@ -1906,7 +1925,7 @@ function localModelRows(s, o, save) {
     dl.disabled = true;
     state.ollamaPull = pick.value;
     state.ollamaPicked = pick.value;
-    try { await invoke("ollama_pull", { model: pick.value }); info.textContent = "Starting download..."; } catch (e) { dl.disabled = false; toast(String(e), true); }
+    try { await invoke("ollama_pull", { model: pick.value }); info.textContent = "Starting download..."; stallGuard(dl, "ollama", 10); } catch (e) { dl.disabled = false; toast(String(e), true); }
   };
   refresh();
   return [
@@ -1935,7 +1954,7 @@ function appRow(id, name, path, canInstall, hint, dir) {
   const status = el("div", { class: "hint", id: `app-${id}-status` }, path ? `Installed: ${path}` : `${hint} Folder: ${dir || ""}`);
   const install = canInstall ? el("button", { class: path ? "btn secondary" : "btn primary", id: `app-${id}-install`, onclick: async (ev) => {
     ev.target.disabled = true; status.textContent = "Starting...";
-    try { await invoke("app_install", { name: id }); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
+    try { await invoke("app_install", { name: id }); stallGuard(ev.target, "app", 15); } catch (e) { ev.target.disabled = false; toast(String(e), true); }
   } }, path ? "Reinstall" : "Install Here") : null;
   const open = id === "git" || id === "graphify" ? null : path || id === "obsidian" ? el("button", { class: "btn secondary", onclick: () => invoke("app_open", { name: id }).catch((e) => toast(String(e), true)) }, id === "obsidian" ? "Open Vault" : "Open") : null;
   const pick = el("button", { class: "btn secondary", id: `app-${id}-pick`, onclick: () => chooseAppFolder(id, name) }, "Choose Folder");
@@ -2075,7 +2094,7 @@ async function checkUpdates(row, log) {
         e.target.disabled = true;
         log.classList.remove("hidden");
         log.textContent = "";
-        try { await invoke("update_apply"); } catch (err) { log.textContent += String(err) + "\n"; e.target.disabled = false; }
+        try { await invoke("update_apply"); stallGuard(e.target, "update", 20); } catch (err) { log.textContent += String(err) + "\n"; e.target.disabled = false; }
       } }, "Update and Restart"));
   } catch (e) {
     hint.textContent = String(e);

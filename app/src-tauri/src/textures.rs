@@ -39,7 +39,7 @@ fn dir(root: &Path) -> PathBuf {
 }
 
 pub fn library(root: &Path) -> Vec<Texture> {
-    fs::read_to_string(dir(root).join("library.json")).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+    crate::paths::read_json(&dir(root).join("library.json")).unwrap_or_default()
 }
 
 fn get_json(url: &str) -> Result<serde_json::Value, String> {
@@ -88,6 +88,7 @@ pub fn download(root: &Path, groups: &[String], per_group: usize, res: &str, on_
     let Some(assets) = all.as_object() else { return Err("unexpected reply from Poly Haven".into()) };
     let mut lib = library(root);
     let mut added = 0;
+    let mut failed = 0;
     for g in groups {
         let mut cands: Vec<(&String, &serde_json::Value)> = assets
             .iter()
@@ -108,7 +109,12 @@ pub fn download(root: &Path, groups: &[String], per_group: usize, res: &str, on_
             }
             let name = a.get("name").and_then(|x| x.as_str()).unwrap_or(id).to_string();
             on_line(&format!("{g}: {name}"));
-            let files = get_json(&format!("{API}/files/{id}"))?;
+            // One texture failing (a dropped connection) skips it; the rest go on.
+            let Ok(files) = get_json(&format!("{API}/files/{id}")) else {
+                on_line(&format!("{name}: could not reach Poly Haven, skipped"));
+                failed += 1;
+                continue;
+            };
             let maps = pick_maps(&files, res);
             if !maps.iter().any(|(k, _, _)| *k == "color") {
                 continue;
@@ -116,23 +122,42 @@ pub fn download(root: &Path, groups: &[String], per_group: usize, res: &str, on_
             let folder = dir(root).join(g).join(id);
             fs::create_dir_all(&folder).map_err(|e| e.to_string())?;
             let mut saved = std::collections::BTreeMap::new();
+            let mut ok = true;
             for (kind, url, ext) in maps {
-                let resp = ureq::get(&url).set("User-Agent", "BrewixGames").timeout(std::time::Duration::from_secs(300)).call().map_err(|e| format!("download failed: {e}"))?;
-                let mut bytes = vec![];
-                std::io::Read::read_to_end(&mut resp.into_reader(), &mut bytes).map_err(|e| e.to_string())?;
                 let file = format!("{kind}.{ext}");
-                fs::write(folder.join(&file), bytes).map_err(|e| e.to_string())?;
-                saved.insert(kind.to_string(), format!("textures/{g}/{id}/{file}"));
+                // Two tries per map, then the whole texture is skipped.
+                let got = (0..2).find_map(|_| {
+                    let resp = ureq::get(&url).set("User-Agent", "BrewixGames").timeout(std::time::Duration::from_secs(300)).call().ok()?;
+                    let mut bytes = vec![];
+                    std::io::Read::read_to_end(&mut resp.into_reader(), &mut bytes).ok()?;
+                    (!bytes.is_empty()).then_some(bytes)
+                });
+                match got {
+                    Some(bytes) => {
+                        fs::write(folder.join(&file), bytes).map_err(|e| e.to_string())?;
+                        saved.insert(kind.to_string(), format!("textures/{g}/{id}/{file}"));
+                    }
+                    None => {
+                        ok = false;
+                        break;
+                    }
+                }
+            }
+            if !ok {
+                on_line(&format!("{name}: download failed, skipped"));
+                let _ = fs::remove_dir_all(&folder);
+                failed += 1;
+                continue;
             }
             let tags = a.get("tags").and_then(|x| x.as_array()).map(|v| v.iter().filter_map(|t| t.as_str().map(String::from)).take(6).collect()).unwrap_or_default();
             lib.push(Texture { id: id.clone(), name, group: g.clone(), tags, maps: saved });
-            fs::write(dir(root).join("library.json"), serde_json::to_string_pretty(&lib).unwrap()).map_err(|e| e.to_string())?;
+            crate::paths::write_atomic(&dir(root).join("library.json"), serde_json::to_string_pretty(&lib).unwrap_or_default().as_bytes())?;
             added += 1;
             n += 1;
         }
     }
     write_note(root, &lib)?;
-    Ok(format!("Added {added} textures ({} in the library). Powered by Poly Haven.", lib.len()))
+    Ok(format!("Added {added} textures ({} in the library){}. Powered by Poly Haven.", lib.len(), if failed > 0 { format!("; {failed} could not be downloaded, press Download again for them") } else { String::new() }))
 }
 
 const MATERIALS: &str = "Plastic, SmoothPlastic, Neon, Wood, WoodPlanks, Marble, Basalt, Slate, CrackedLava, Concrete, Limestone, Granite, Pavement, Brick, Pebble, Cobblestone, Rock, Sandstone, CorrodedMetal, DiamondPlate, Foil, Metal, Grass, LeafyGrass, Sand, Fabric, Snow, Mud, Ground, Asphalt, Salt, Ice, Glacier, Glass, ForceField, Cardboard, Carpet, CeramicTiles, ClayRoofTiles, RoofShingles, Leather, Plaster, Rubber";
