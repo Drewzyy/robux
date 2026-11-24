@@ -336,17 +336,36 @@ fn install_graphify(on_line: &mut dyn FnMut(&str)) -> Result<String, String> {
     let uv = uvx.with_file_name(if cfg!(windows) { "uv.exe" } else { "uv" });
     let dir = crate::paths::app_dir("graphify");
     on_line("Installing Graphify (code map for the agents)...");
-    let out = crate::paths::command(&uv)
-        .args(["tool", "install", "--force", "graphifyy"])
-        .env("UV_TOOL_DIR", dir.join("tools"))
-        .env("UV_TOOL_BIN_DIR", graphify_bin_dir())
-        .stdin(std::process::Stdio::null())
-        .output()
-        .map_err(|e| format!("could not run uv: {e}"))?;
-    match graphify_bin() {
-        Some(p) => Ok(format!("Graphify is installed ({}). Builder, Tuner and Playtest can map your game's code with it.", p.display())),
-        None => Err(format!("Graphify did not install: {}", String::from_utf8_lossy(&out.stderr).lines().last().unwrap_or(""))),
+    // uv's own Python 3.12 (not whatever Python is on the computer) and
+    // ready-made packages only: nothing is compiled, so no build tools are
+    // needed. Up to 3 tries for a flaky connection.
+    let mut err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            on_line("Trying again...");
+            std::thread::sleep(std::time::Duration::from_secs(3));
+        }
+        let out = crate::paths::output_timeout(
+            crate::paths::command(&uv)
+                .args(["tool", "install", "--force", "--python", "3.12", "--python-preference", "only-managed", "--no-build", "graphifyy"])
+                .env("UV_TOOL_DIR", dir.join("tools"))
+                .env("UV_TOOL_BIN_DIR", graphify_bin_dir()),
+            900,
+        );
+        match out {
+            Ok(o) if o.status.success() && graphify_bin().is_some() => {
+                let p = graphify_bin().unwrap_or_default();
+                return Ok(format!("Graphify is installed ({}). Builder, Tuner and Playtest can map your game's code with it.", p.display()));
+            }
+            Ok(o) => {
+                // The useful line (which package and why), not uv's last hint.
+                let text = String::from_utf8_lossy(&o.stderr).to_string();
+                err = text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with("hint:") && !l.starts_with("help:")).take(3).collect::<Vec<_>>().join(" ");
+            }
+            Err(e) => err = e.to_string(),
+        }
     }
+    Err(format!("Graphify did not install: {err}. Graphify is optional: agents work without it."))
 }
 
 /// Open Blender, or the studio's vault in Obsidian, from the Downloads folder.
