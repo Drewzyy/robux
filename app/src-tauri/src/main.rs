@@ -365,6 +365,9 @@ fn spawn_chat(app: AppHandle, r: std::path::PathBuf, bin: std::path::PathBuf, ru
         }
         let msg = msg.unwrap_or_else(|_| chat::Message { role: "assistant".into(), text: "That didn't finish: the app hit an error. Try again.".into(), at: studio_core::now_rfc3339(), cost_usd: None, run_id: Some(id.clone()), failed: true, attachments: vec![] });
         let _ = app.emit("chat-done", json!({ "run_id": id, "message": msg }));
+        // Work the assistant started: get it going now.
+        dispatch_changes(&app);
+        let _ = app.emit("change-update", json!({}));
     });
 }
 

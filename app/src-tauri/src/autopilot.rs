@@ -1341,6 +1341,22 @@ mod tests {
     }
 
     #[test]
+    fn ask_claude_starts_work_on_the_game_itself() {
+        let root = studio();
+        let a = start(&root, "Chat Game", "Catch falling stars.", 0.0, None).unwrap();
+        let before = queued(&root, &a.slug).len();
+        let run = root.join("runs/run-assistant-t1");
+        fs::create_dir_all(&run).unwrap();
+        fs::write(run.join("requests.json"), r#"[{"to": "frame", "task": "Build the shop UI"}, {"action": "resume"}]"#).unwrap();
+        let done = crate::chat::act_on_requests(&root, "run-assistant-t1");
+        assert!(done.iter().any(|d| d.starts_with("Started frame on chat-game")), "{done:?}");
+        assert!(queued(&root, &a.slug).iter().any(|c| c.agent == "frame" && c.text.contains("Build the shop UI")));
+        assert!(queued(&root, &a.slug).len() > before);
+        assert!(crate::chat::act_on_requests(&root, "run-assistant-t1").is_empty(), "never twice");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn not_good_enough_sends_it_back_to_keep_improving() {
         let root = studio();
         let a = start(&root, "Meh Game", "Catch falling stars.", 500.0, None).unwrap();

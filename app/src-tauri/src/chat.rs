@@ -105,6 +105,14 @@ pub fn with_context(root: &Path, text: &str, project: Option<&str>, attachments:
     if let Some(p) = project.filter(|p| crate::paths::valid_id(p) && root.join("projects").join(p).is_dir()) {
         s.push_str(&format!("\n\n[Andrew is working on the game projects/{p}. Its own direction is in projects/{p}/docs (brief.md, notes-from-andrew.md, design.md, score.json when present) and its references in vault/19-Project-Memory/{p}-references.md. Read only what this question needs.]"));
     }
+    // Live state of the games being made, so the answer to "is anything
+    // being built?" is right and stuck work can be restarted.
+    for g in crate::autopilot::list(root).into_iter().filter(|g| g.status != "done").take(3) {
+        let now = g.milestones.iter().find(|m| m.status == "working" || m.status == "revising" || m.status == "review").map(|m| format!("{} ({})", m.title, m.status)).unwrap_or_else(|| "between steps".into());
+        let jobs: Vec<String> = crate::changes::list(root).into_iter().filter(|c| c.autopilot.as_deref() == Some(g.slug.as_str()) && ["queued", "working", "paused", "failed"].contains(&c.status.as_str())).rev().take(8)
+            .map(|c| format!("{} {}{}", c.agent, c.status, c.not_before.as_deref().map(|t| format!(" (retry at {})", t.get(11..16).unwrap_or(""))).unwrap_or_default())).collect();
+        s.push_str(&format!("\n\n[Game being made: {} (slug {}), status {}, now: {}. Jobs: {}.{}]", g.title, g.slug, g.status, now, if jobs.is_empty() { "none open".into() } else { jobs.join(", ") }, g.why.as_deref().map(|w| format!(" Why paused: {w}")).unwrap_or_default()));
+    }
     let real: Vec<&String> = attachments.iter().filter(|a| Path::new(a).starts_with(files_dir(root))).collect();
     if !real.is_empty() {
         s.push_str("\n\n[Andrew attached these files. Open every one with Read before answering. For pictures, say what you see and what to take from it for the game; video frames are in time order.]\n");
@@ -203,7 +211,10 @@ pub fn finish<F: FnMut(&str)>(root: &Path, run_id: &str, claude_bin: &Path, mut 
             if session.is_some() {
                 c.session = session;
             }
-            Message { role: "assistant".into(), text: o.result_text, at: crate::now_rfc3339(), cost_usd: o.actual_cost_usd, run_id: Some(run_id.into()), failed: false, attachments: vec![] }
+            // What the assistant started for Andrew (requests.json), said plainly.
+            let done = act_on_requests(root, run_id);
+            let text = if done.is_empty() { o.result_text } else { format!("{}\n\n{}", o.result_text.trim_end(), done.iter().map(|d| format!("- {d}")).collect::<Vec<_>>().join("\n")) };
+            Message { role: "assistant".into(), text, at: crate::now_rfc3339(), cost_usd: o.actual_cost_usd, run_id: Some(run_id.into()), failed: false, attachments: vec![] }
         }
         Ok(o) => Message {
             role: "assistant".into(),
@@ -244,3 +255,57 @@ mod tests {
     }
 }
 
+
+
+/// Ask Claude acts instead of telling Andrew what to click: the assistant
+/// writes requests.json in its run folder and the app carries it out.
+///   [{"to": "frame", "task": "Build the shop UI", "game": "<slug>"}]  work for an agent
+///   [{"action": "resume" | "retry", "game": "<slug>"}]                 restart a game's work
+/// Work for a game being made goes into its autopilot like a note from
+/// Andrew (it joins that game's plan); otherwise it starts as a job.
+/// Returns one plain line per thing done.
+pub fn act_on_requests(root: &Path, run_id: &str) -> Vec<String> {
+    let Ok(dir) = runs::run_dir(root, run_id) else { return vec![] };
+    let Some(v) = fs::read_to_string(dir.join("requests.json")).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) else { return vec![] };
+    let asks: Vec<serde_json::Value> = if v.is_array() { v.as_array().cloned().unwrap_or_default() } else { vec![v] };
+    let games = crate::autopilot::list(root);
+    // The game: named, or the one being made (newest first).
+    let pick = |ask: &serde_json::Value| -> Option<String> {
+        ask["game"].as_str().map(|g| g.trim_start_matches("projects/").to_string()).filter(|g| crate::paths::valid_id(g)).or_else(|| games.iter().find(|g| g.status != "done").or(games.first()).map(|g| g.slug.clone()))
+    };
+    let mut out = vec![];
+    let mut leftover = vec![];
+    for ask in asks.iter().take(8) {
+        let game = pick(ask);
+        let has_autopilot = game.as_ref().map(|g| games.iter().any(|x| &x.slug == g)).unwrap_or(false);
+        if let Some(action) = ask["action"].as_str() {
+            match (action, game.as_ref().filter(|_| has_autopilot)) {
+                ("resume" | "retry", Some(g)) => match crate::autopilot::control(root, g, action, None) {
+                    Ok(_) => out.push(format!("{} {g}'s work.", if action == "resume" { "Resumed" } else { "Restarted the stuck jobs of" })),
+                    Err(e) => out.push(format!("Could not {action} {g}: {e}")),
+                },
+                _ => out.push(format!("Could not {action}: no game is being made with Autopilot.")),
+            }
+            continue;
+        }
+        let Some(task) = ask["task"].as_str().map(str::trim).filter(|t| !t.is_empty()) else { continue };
+        let to = ask["to"].as_str().filter(|a| !a.is_empty());
+        match game.as_ref().filter(|_| has_autopilot) {
+            Some(g) => match crate::autopilot::note(root, g, task, to, None) {
+                Ok(_) => out.push(format!("Started {} on {g}: {}", to.map(|a| a.to_string()).unwrap_or_else(|| "the right agent".into()), task.chars().take(120).collect::<String>())),
+                Err(e) => out.push(format!("Could not start it: {e}")),
+            },
+            None => leftover.push(ask.clone()),
+        }
+    }
+    if !leftover.is_empty() {
+        let _ = fs::write(dir.join("requests.json"), serde_json::to_string(&leftover).unwrap_or_default());
+        let (made, notes) = crate::changes::ingest_requests(root, run_id, None);
+        for m in made {
+            out.push(format!("Started {}: {}", m.agent, m.text.chars().take(120).collect::<String>()));
+        }
+        out.extend(notes);
+    }
+    let _ = fs::rename(dir.join("requests.json"), dir.join("requests.done.json")); // never twice
+    out
+}
