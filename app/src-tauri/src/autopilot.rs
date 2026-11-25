@@ -281,7 +281,7 @@ fn prompt(root: &Path, a: &Autopilot, milestone: &str, job: &str, feedback: Opti
     let notes = if a.notes.is_empty() { String::new() } else { format!("\nAndrew's notes so far (follow them):\n{}\n", a.notes.iter().rev().take(12).map(|n| format!("- {n}")).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")) };
     let fb = feedback.map(|f| format!("\nYOUR LAST ATTEMPT DID NOT PASS. Fix exactly this, keep what was fine:\n{f}\n")).unwrap_or_default();
     format!(
-        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above; when a choice is his to make, decide the safest default and put the choice in a section headed \"Questions for Andrew\" in your output (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
+        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above. Never ask Andrew anything: he wants the team to decide. For every open choice, pick what gets a high-quality game out fastest, do it, and list it under a heading \"Decisions made\" (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
         a.title, a.slug, idea_for_prompt(root, a)
     )
 }
@@ -605,6 +605,11 @@ fn advance_inner(root: &Path, slug: &str) {
     code_audit(root, &mut a, &all);
     remind_reviews(root, &mut a);
     ensure_ui_kit(root, &a.slug);
+    // A plan already waiting for Andrew goes ahead (he asked the team to decide).
+    if let Some(m) = a.milestones.iter_mut().find(|m| m.id == "plan" && m.status == "review") {
+        m.status = "approved".into();
+        m.approved_at = Some(crate::now_rfc3339());
+    }
     let n = a.milestones.len();
     for i in 0..n {
         let (mid, title, review, waves) = (&tpl[i].0, tpl[i].1, tpl[i].2, &tpl[i].3);
@@ -712,6 +717,14 @@ fn advance_inner(root: &Path, slug: &str) {
                             continue;
                         }
                     }
+                }
+                // Andrew asked the team to decide and move fast: the plan
+                // (which has no code to score) goes ahead without waiting.
+                if mid == &"plan" {
+                    a.milestones[i].status = "approved".into();
+                    a.milestones[i].approved_at = Some(crate::now_rfc3339());
+                    post(&mut a, "autopilot", None, "The plan is done and the team moved on to the next step (Andrew asked the team to decide and keep going).");
+                    continue;
                 }
                 a.milestones[i].status = "review".into();
                 a.milestones[i].ready_at = Some(crate::now_rfc3339());
@@ -1419,10 +1432,8 @@ mod tests {
         finish_as(&root, &fold[0], "done", "");
         let q = vec![fold[0].clone()];
         let a = load(&root, &a.slug).unwrap();
-        assert_eq!(a.milestones[0].status, "review");
+        assert_eq!(a.milestones[0].status, "approved", "the plan goes ahead without waiting for Andrew");
         assert_eq!(a.plan_run.as_deref(), Some(q[0].run_id.as_str()));
-        assert!(queued(&root, &a.slug).is_empty(), "design waits for the plan approval");
-        review(&root, &a.slug, "plan", true, "").unwrap();
         let q = queued(&root, &a.slug);
         assert_eq!(q.iter().map(|c| c.agent.as_str()).collect::<Vec<_>>(), vec!["architect"]);
         // A failure is retried with what failed.
