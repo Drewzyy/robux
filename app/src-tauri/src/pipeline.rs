@@ -651,7 +651,13 @@ pub fn evaluate_stage(
 ) -> Gate {
     let mut checks = vec![];
     let out = run_dir.join(output);
-    let body = fs::read_to_string(&out).unwrap_or_default();
+    let mut body = fs::read_to_string(&out).unwrap_or_default();
+    // "Nothing to do:" (the stay-on-track rule) is a valid finish: the run
+    // stopped instead of inventing work, so it must not fail and retry.
+    let note = fs::read_to_string(run_dir.join("change.md")).unwrap_or_default();
+    if body.trim().is_empty() && note.trim_start().to_lowercase().starts_with("nothing to do") {
+        body = note;
+    }
     checks.push(check(
         &format!("wrote {output}"),
         !body.trim().is_empty(),
