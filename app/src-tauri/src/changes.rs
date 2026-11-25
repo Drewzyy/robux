@@ -462,8 +462,18 @@ pub fn cancel_duplicates(root: &Path) -> Vec<(String, String)> {
 pub fn take_next(root: &Path) -> Vec<Change> {
     let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let mut all = list(root);
-    // Never start a job that repeats one already running or waiting.
-    let deduped = !cancel_duplicates_in(root, &mut all).is_empty();
+    // Never start a job that repeats one already running or waiting, or
+    // one that was only a status message ("is it going?").
+    let mut deduped = !cancel_duplicates_in(root, &mut all).is_empty();
+    for c in all.iter_mut().filter(|c| c.status == "queued" && c.source == "andrew") {
+        let t = c.text.strip_prefix("Andrew's note: ").map(|t| t.trim_end_matches(". Make the change he asks for.")).unwrap_or("");
+        if !t.is_empty() && crate::autopilot::is_ping(t) {
+            c.status = "cancelled".into();
+            c.finished_at = Some(crate::now_rfc3339());
+            c.summary = Some("Cancelled by the Warden: a status message, not work.".into());
+            deduped = true;
+        }
+    }
     let mut busy: Vec<(String, String)> = all.iter().filter(|c| c.status == "working").map(|c| (c.agent.clone(), c.target.clone())).collect();
     let mut rescuing: Vec<String> = all.iter().filter(|c| c.status == "working" && c.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false)).map(|c| c.target.clone()).collect();
     let mut out = vec![];

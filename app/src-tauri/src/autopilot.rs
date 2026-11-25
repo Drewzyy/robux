@@ -658,7 +658,8 @@ fn advance_inner(root: &Path, slug: &str) {
         }
         let all = mine(root, slug);
         if st == "working" || st == "revising" {
-            let lat = latest(&all, mid);
+            // Code audits are side work: they never hold a step open.
+            let lat: Vec<Change> = latest(&all, mid).into_iter().filter(|c| !c.key.as_deref().unwrap_or("").starts_with("audit/")).collect();
             let open = lat.iter().any(|c| ["queued", "working", "paused"].contains(&c.status.as_str()));
             let failed_stuck = lat.iter().any(stuck);
             let wave = a.milestones[i].wave;
@@ -1147,6 +1148,16 @@ pub fn tidy(root: &Path) -> usize {
         let target = k.splitn(2, '|').nth(1).unwrap_or("");
         target.contains("/note/") || target.starts_with("plan/fold") || finished(target)
     });
+    // Failed status-message jobs and failed rescues of notes are not
+    // waiting for anything: close them so the step can finish.
+    for c in changes::list(root).into_iter().filter(|c| c.status == "failed") {
+        let k = c.key.clone().unwrap_or_default();
+        let note_rescue = k.starts_with("rescue|") && (k.contains("/note/") || k.contains("plan/fold"));
+        if ping_job(&c) || note_rescue {
+            changes::mark_skipped(root, &c.id, "Skipped: a status message or a rescue that is no longer needed.");
+            n += 1;
+        }
+    }
     // One queued rescue per game: keep the oldest.
     let mut kept: Vec<String> = vec![];
     let ids: Vec<String> = changes::list(root).into_iter().filter(|c| c.status == "queued" && c.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false))
