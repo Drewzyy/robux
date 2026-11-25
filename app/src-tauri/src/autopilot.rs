@@ -1061,9 +1061,6 @@ pub fn on_finish(root: &Path, c: &Change) {
                     }
                     let wait = 0;
                     post(&mut a, "autopilot", Some("lead"), &format!("{} failed {MAX_ATTEMPTS} times; Lead is working out why and a new way to do it{}.", c.agent, if wait > 0 { format!(" (rescue {}, in {wait} min)", rescues + 1) } else { String::new() }));
-                    if rescues == MAX_RESCUES {
-                        crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: {} is having a hard time", a.title, c.agent), &[c.text.chars().take(200).collect(), "The team keeps trying new approaches by itself. A note from you can steer it.".into()]);
-                    }
                     // One rescue at a time per game: more Leads at once only pile up.
                     let busy_rescue = mine(root, &slug).iter().any(|x| x.key.as_deref().map(|k| k.starts_with("rescue|")).unwrap_or(false) && ["queued", "working"].contains(&x.status.as_str()));
                     if let Ok(n) = queue(root, &mut a, &mid, "lead", &job, &format!("rescue|{}|{key}", rescues + 1), 0, "autopilot", None, "change") {
@@ -1093,8 +1090,7 @@ fn skip(root: &Path, a: &mut Autopilot, c: &Change, why: &str) {
     let first = why.lines().next().unwrap_or("").trim_start_matches("- ").chars().take(200).collect::<String>();
     changes::mark_skipped(root, &c.id, &format!("Skipped after {} tries: {first}", c.attempt + 1));
     let line = format!("Skipped {}'s job after it kept failing ({first}); the team carries on with what exists. Send a note if you want it tried another way.", c.agent);
-    post(a, "autopilot", Some("andrew"), &line);
-    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: skipped a job, still going", a.title), &[c.text.chars().take(160).collect(), first]);
+    post(a, "autopilot", None, &line);
 }
 
 /// A rescue ended: start the rescued job over (fresh tries) with Lead's
