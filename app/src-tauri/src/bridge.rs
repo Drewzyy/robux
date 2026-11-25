@@ -248,10 +248,28 @@ pub fn run_approved_with<F: FnMut(&str)>(
     if !team.is_empty() {
         notes.push_str(&format!(" Your teammates' finished work, readable now (a file named in your task is in one of these, not in your own folder): {}.", team.join("; ")));
     }
-    if req.engine.as_deref() != Some("ollama") {
+    // Studio and Blender tools go to every engine: the local model used to
+    // get neither, so its agents reported them "unreachable" while both
+    // were open and connected.
+    {
         // Open Roblox Studio / Blender first if this agent uses them.
         crate::connect::ready_for(&req.agent);
         let st = crate::settings::load();
+        // Playtest needs the game itself in Studio, not an empty baseplate:
+        // build it and open it once per game per session.
+        if req.agent == "playtest" && st.studio_mcp == "studio" {
+            static OPENED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(vec![]);
+            if let Some(slug) = crate::changes::list(root).into_iter().find(|c| c.run_id == req.run_id).and_then(|c| c.autopilot) {
+                let mut o = OPENED.lock().unwrap_or_else(|e| e.into_inner());
+                if !o.contains(&slug) {
+                    if let Ok(place) = crate::studio::open_in_studio(root, &format!("projects/{slug}")) {
+                        o.push(slug.clone());
+                        notes.push_str(&format!(" The game was just built and opened in Roblox Studio from {place}. If list_roblox_studios shows more than one Studio, use the one with that place, not an empty Baseplate."));
+                        std::thread::sleep(std::time::Duration::from_secs(25));
+                    }
+                }
+            }
+        }
         if crate::studio_mcp::AGENTS.contains(&req.agent.as_str()) {
             if let Some(cmd) = crate::studio_mcp::server_command(&st) {
                 servers.insert(crate::studio_mcp::SERVER.into(), serde_json::json!({ "type": "stdio", "command": cmd.0, "args": cmd.1 }));
