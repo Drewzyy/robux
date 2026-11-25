@@ -478,6 +478,33 @@ fn code_audit(root: &Path, a: &mut Autopilot, all: &[Change]) {
     let _ = queue(root, a, &mid, "builder", job, &format!("audit/{}", n + 1), 0, "autopilot", None, "change");
 }
 
+/// The one rule that stops every kind of loop seen so far (retries,
+/// rescues of rescues, re-issued plans, repeated notes, audits): the same
+/// job, or the same work by the same agent, is not started again once it
+/// has been tried too often in the last 24 hours.
+pub const LOOP_SAME_KEY: usize = 8;
+pub const LOOP_SAME_TEXT: usize = 6;
+pub const LOOP_PER_HOUR: usize = 40;
+
+pub fn loop_guard(all: &[Change], agent: &str, job: &str, key: &str) -> Option<String> {
+    let day = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
+    let hour = (chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
+    let recent: Vec<&Change> = all.iter().filter(|c| c.created_at > day).collect();
+    let base = |k: &str| k.rsplit_once("/improve/").map(|x| x.0.to_string()).unwrap_or_else(|| k.to_string());
+    if recent.iter().filter(|c| c.key.as_deref().map(|k| base(k) == base(key)).unwrap_or(false)).count() >= LOOP_SAME_KEY {
+        return Some(format!("tried the same job {LOOP_SAME_KEY} times in a day"));
+    }
+    let norm = |t: &str| t.to_lowercase().split_whitespace().take(40).collect::<Vec<_>>().join(" ");
+    let me = norm(job);
+    if recent.iter().filter(|c| c.agent == agent && c.key.as_deref() != Some(key) && norm(&c.text) == me).count() >= LOOP_SAME_TEXT {
+        return Some(format!("was given the same work {LOOP_SAME_TEXT} times in a day"));
+    }
+    if recent.iter().filter(|c| c.created_at > hour).count() >= LOOP_PER_HOUR {
+        return Some(format!("would be the {}th job this hour for this game", LOOP_PER_HOUR + 1));
+    }
+    None
+}
+
 /// The next model up for a last try.
 pub fn step_up(model: &str) -> String {
     if model.contains("haiku") { "claude-sonnet-5-5".into() } else { STRONG_MODEL.into() }
@@ -485,6 +512,19 @@ pub fn step_up(model: &str) -> String {
 
 /// Queue one job, unless it would go over this game's budget.
 fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str, key: &str, attempt: u32, source: &str, feedback: Option<&str>, kind: &str) -> Result<Change, String> {
+    if let Some(why) = loop_guard(&mine(root, &a.slug), agent, job, key) {
+        // Post once per hour per key, not on every refusal.
+        let line = format!("Stopped a loop: {agent} {why}. Skipped it; the team moves on with other work.");
+        if !a.board.iter().rev().take(40).any(|m| m.text == line) {
+            post(a, "warden", None, &line);
+        }
+        // Close the job it would have redone, so the step is not left
+        // waiting on it.
+        if let Some(c) = mine(root, &a.slug).into_iter().rev().find(|c| c.key.as_deref() == Some(key) && c.status == "failed") {
+            changes::mark_skipped(root, &c.id, &format!("Skipped: {why}."));
+        }
+        return Err(format!("loop guard: {why}"));
+    }
     // Only the last try moves up one model (Haiku to Sonnet, Sonnet to
     // Opus): bigger models use up Claude's usage much faster.
     let own = crate::cost::load_agents(root).ok().and_then(|x| x.agents.get(agent).map(|p| p.model.clone())).unwrap_or_default();
@@ -1584,6 +1624,23 @@ mod tests {
         c.checks.push(crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "No response for 10 minutes: the agent was stuck".into() });
         assert_eq!(changes::env_problem(&c), Some("stall"));
         let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn no_job_can_loop_forever() {
+        let mk = |i: usize, agent: &str, key: &str, text: &str| {
+            let mut c = crate::changes::Change { id: format!("c{i}"), target: "game:g".into(), item: None, text: text.into(), agent: agent.into(), status: "failed".into(), run_id: format!("r{i}"), created_at: crate::now_rfc3339(), finished_at: None, summary: None, checks: vec![], cost_usd: None, kind: "change".into(), autopilot: Some("g".into()), milestone: Some("design".into()), key: Some(key.into()), attempt: 0, source: "autopilot".into(), parent_run: None, group: None, depth: 0, after: None, not_before: None };
+            c.attempt = (i % 4) as u32;
+            c
+        };
+        let same_key: Vec<_> = (0..8).map(|i| mk(i, "lead", "design/improve/1", &format!("try {i}"))).collect();
+        assert!(loop_guard(&same_key, "lead", "new", "design/improve/2").is_some(), "improve rounds count as one job");
+        let same_text: Vec<_> = (0..6).map(|i| mk(i, "builder", &format!("k{i}"), "Make the shop button bigger")).collect();
+        assert!(loop_guard(&same_text, "builder", "Make the shop button bigger", "k9").is_some());
+        assert!(loop_guard(&same_text, "frame", "Make the shop button bigger", "k9").is_none(), "another agent is different work");
+        let busy: Vec<_> = (0..40).map(|i| mk(i, "builder", &format!("x{i}"), &format!("job {i}"))).collect();
+        assert!(loop_guard(&busy, "frame", "something new", "y").is_some(), "40 jobs an hour is the ceiling");
+        assert!(loop_guard(&busy[..5], "frame", "something new", "y").is_none());
     }
 
     #[test]
