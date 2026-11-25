@@ -734,11 +734,15 @@ fn advance_inner(root: &Path, slug: &str) {
                 }
                 // Andrew only sees work worth his time: under the bar
                 // (Game Score 80), the team keeps improving on its own.
-                if mid != &"plan" {
+                {
                     if let Ok(sc) = crate::score::score(root, &a.slug) {
                         let total = sc["score"].as_f64().unwrap_or(0.0);
                         if total < REVIEW_BAR {
                             let n = lat.iter().filter(|c| c.key.as_deref().map(|k| k.starts_with(&format!("{mid}/improve/"))).unwrap_or(false)).count();
+                            let hour_ago = (chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
+                            if all.iter().any(|c| c.key.as_deref().map(|k| k.starts_with(&format!("{mid}/improve/"))).unwrap_or(false) && c.created_at > hour_ago) {
+                                continue;
+                            }
                             let gaps: Vec<String> = sc["parts"].as_array().into_iter().flatten().flat_map(|p| p["missing"].as_array().cloned().unwrap_or_default()).filter_map(|m| m.as_str().map(String::from)).take(6).collect();
                             let job = format!("{NOT_GOOD_ENOUGH}\n\nThe Game Score is {total:.0}/100 (grade {}); Andrew reviews only at {REVIEW_BAR:.0}+. Biggest gaps: {}.", sc["grade"].as_str().unwrap_or("?"), if gaps.is_empty() { "see the score".into() } else { gaps.join("; ") });
                             if queue(root, &mut a, mid, "lead", &job, &format!("{mid}/improve/{}", n + 1), 0, "autopilot", None, "task").is_ok() {
@@ -750,10 +754,10 @@ fn advance_inner(root: &Path, slug: &str) {
                 }
                 // Andrew asked the team to decide and move fast: the plan
                 // (which has no code to score) goes ahead without waiting.
-                if mid == &"plan" {
+                if ["plan", "design", "ui", "world"].contains(mid) {
                     a.milestones[i].status = "approved".into();
                     a.milestones[i].approved_at = Some(crate::now_rfc3339());
-                    post(&mut a, "autopilot", None, "The plan is done and the team moved on to the next step (Andrew asked the team to decide and keep going).");
+                    post(&mut a, "autopilot", None, &format!("{title} is done; the team moved on to the next step (no code to score yet, and Andrew asked the team to decide and keep going)."));
                     continue;
                 }
                 a.milestones[i].status = "review".into();
@@ -954,7 +958,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                 // Messages to other agents.
                 let dir = root.join("runs").join(&c.run_id);
                 let asks: Vec<Value> = fs::read_to_string(dir.join("requests.json")).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).map(|v| if v.is_array() { v.as_array().cloned().unwrap_or_default() } else { vec![v] }).unwrap_or_default();
-                let made_by_agents = mine(root, &slug).iter().filter(|x| x.milestone.as_deref() == Some(&mid) && x.source.starts_with("agent:") && x.attempt == 0).count();
+                let made_by_agents = mine(root, &slug).iter().filter(|x| x.milestone.as_deref() == Some(&mid) && x.source.starts_with("agent:") && x.attempt == 0 && ["queued", "working", "paused"].contains(&x.status.as_str())).count();
                 let mut room = MAX_AGENT_REQUESTS.saturating_sub(made_by_agents);
                 for ask in asks.iter().take(8) {
                     if let Some(stop) = ask["stop"].as_str() {
@@ -1098,6 +1102,10 @@ fn skip(root: &Path, a: &mut Autopilot, c: &Change, why: &str) {
 fn rescue_done(root: &Path, a: &mut Autopilot, mid: &str, key: &str, rescue: &Change, ok: bool) {
     let orig_key = key.splitn(3, '|').nth(2).unwrap_or("").to_string();
     let Some(orig) = latest(&mine(root, &a.slug), mid).into_iter().find(|x| x.key.as_deref() == Some(orig_key.as_str())) else { return };
+    // Once per rescue: the job was already queued again after this rescue.
+    if orig.created_at > rescue.created_at || side_work(&orig_key) {
+        return;
+    }
     let advice = fs::read_to_string(root.join("runs").join(&rescue.run_id).join("change.md")).unwrap_or_default();
     let fb = if ok && !advice.trim().is_empty() {
         format!("Earlier attempts all failed. Lead looked into why; follow this advice:\n{}", advice.chars().take(3000).collect::<String>())

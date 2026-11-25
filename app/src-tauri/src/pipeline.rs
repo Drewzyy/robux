@@ -665,9 +665,12 @@ pub fn evaluate_stage(
     {
         Some(g) => {
             let failed: Vec<String> = g.checks.iter().filter(|c| !c.passed).map(|c| c.name.clone()).collect();
+            // Advisory: agents list goals they cannot meet in one run ("game
+            // reaches 80+"), and failing the job on that looped forever. The
+            // app's own checks below decide.
             checks.push(check(
                 "agent's own gate passed",
-                g.passed && failed.is_empty() && !g.checks.is_empty(),
+                !body.trim().is_empty() || (g.passed && failed.is_empty() && !g.checks.is_empty()),
                 &if failed.is_empty() { format!("{} checks", g.checks.len()) } else { format!("failed: {}", failed.join("; ")) },
             ));
         }
