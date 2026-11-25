@@ -1552,20 +1552,21 @@ mod tests {
         let root = studio();
         let a = start(&root, "Remind Game", "Catch falling stars.", 0.0, None).unwrap();
         let mut g = load(&root, &a.slug).unwrap();
-        g.milestones[0].status = "review".into();
-        g.milestones[0].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(7)).to_rfc3339());
+        g.milestones[0].status = "approved".into();
+        g.milestones[1].status = "review".into();
+        g.milestones[1].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(7)).to_rfc3339());
         save(&root, &g).unwrap();
         advance(&root, &a.slug);
-        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 1);
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[1].reminded, 1);
         advance(&root, &a.slug);
-        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 1, "not again before 12 hours");
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[1].reminded, 1, "not again before 12 hours");
         let mut g = load(&root, &a.slug).unwrap();
-        g.milestones[0].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(100)).to_rfc3339());
+        g.milestones[1].ready_at = Some((chrono::Utc::now() - chrono::Duration::hours(100)).to_rfc3339());
         save(&root, &g).unwrap();
         for _ in 0..6 {
             advance(&root, &a.slug);
         }
-        assert_eq!(load(&root, &a.slug).unwrap().milestones[0].reminded, 4, "four at most");
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[1].reminded, 4, "four at most");
         let _ = fs::remove_dir_all(&root);
     }
 
