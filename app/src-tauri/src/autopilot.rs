@@ -452,6 +452,18 @@ fn code_audit(root: &Path, a: &mut Autopilot, all: &[Change]) {
     if done < AUDIT_EVERY * (n + 1) {
         return;
     }
+    // Only when the game's code changed since the last audit, and at most
+    // every 12 hours: back-to-back audits mostly found nothing to fix.
+    if let Some(last) = audits.iter().filter_map(|c| c.finished_at.clone()).max() {
+        let since = chrono::DateTime::parse_from_rfc3339(&last).map(|t| t.with_timezone(&chrono::Utc)).unwrap_or_else(|_| chrono::Utc::now());
+        if chrono::Utc::now() - since < chrono::Duration::hours(12) {
+            return;
+        }
+        let changed = crate::paths::newest_mtime(&root.join("projects").join(&a.slug).join("src")).map(|m| chrono::DateTime::<chrono::Utc>::from(m) > since).unwrap_or(true);
+        if !changed {
+            return;
+        }
+    }
     let mid = a.milestones.iter().find(|m| m.status == "working" || m.status == "revising").or_else(|| a.milestones.iter().rev().find(|m| m.status != "waiting")).map(|m| m.id.clone()).unwrap_or_else(|| "build".into());
     let job = "Code audit (self-improvement): read projects/<game>'s code and make it better without changing how the game plays. Find and fix: work done every frame that need not be, tables or connections that grow and are never cleaned up, remote events fired too often, DataStore calls without pcall and retries, duplicated code that should be one module, slow searches through the whole workspace, and anything the build checks warn about. Smallest safe changes only; the game must still build. In change.md list each change, why, and what you measured or checked.";
     post(a, "autopilot", Some("builder"), "Code audit: Builder checks the game's code for waste and bugs and fixes them.");
@@ -534,7 +546,10 @@ fn shown_jobs(jobs: Vec<Change>) -> Vec<Change> {
         let (n, rest) = k.split_once('|')?;
         Some((n.parse().ok()?, rest.to_string()))
     };
+    // Only the newest code audit is listed (they ran often and said little).
+    let last_audit = jobs.iter().filter(|c| c.key.as_deref().unwrap_or("").starts_with("audit/")).map(|c| c.created_at.clone()).max();
     jobs.iter()
+        .filter(|c| !c.key.as_deref().unwrap_or("").starts_with("audit/") || Some(&c.created_at) == last_audit.as_ref())
         .filter(|c| !c.summary.as_deref().map(|s| s.starts_with("Skipped") || s.starts_with("Cancelled by the Warden")).unwrap_or(false))
         .filter(|c| match rescue(c) {
             Some((n, k)) => !jobs.iter().any(|o| rescue(o).map(|(m, ok)| ok == k && m > n).unwrap_or(false)),
@@ -542,6 +557,13 @@ fn shown_jobs(jobs: Vec<Change>) -> Vec<Change> {
         })
         .cloned()
         .collect()
+}
+
+/// Code audits, the Warden's "decide the next work" for Lead, and rescues
+/// of either: useful, but never a reason to hold a step open or retry forever.
+fn side_work(key: &str) -> bool {
+    let k = key.strip_prefix("rescue|").and_then(|k| k.split_once('|')).map(|x| x.1).unwrap_or(key);
+    k.starts_with("audit/") || k.contains("/warden-lead/") || key.starts_with("rescue|") && (k.starts_with("audit/") || k.contains("/warden-lead/"))
 }
 
 fn stuck(c: &Change) -> bool {
@@ -664,7 +686,7 @@ fn advance_inner(root: &Path, slug: &str) {
         let all = mine(root, slug);
         if st == "working" || st == "revising" {
             // Code audits are side work: they never hold a step open.
-            let lat: Vec<Change> = latest(&all, mid).into_iter().filter(|c| !c.key.as_deref().unwrap_or("").starts_with("audit/")).collect();
+            let lat: Vec<Change> = latest(&all, mid).into_iter().filter(|c| !side_work(c.key.as_deref().unwrap_or(""))).collect();
             let open = lat.iter().any(|c| ["queued", "working", "paused"].contains(&c.status.as_str()));
             let failed_stuck = lat.iter().any(stuck);
             let wave = a.milestones[i].wave;
@@ -1017,7 +1039,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                     );
                     // It never gives up: after the first rescues it keeps trying a new
                     // approach every 30 minutes (only the game's budget stops it).
-                    if rescues >= MAX_RESCUES || key.contains("/note/") || key.starts_with("plan/fold") {
+                    if rescues >= MAX_RESCUES || key.contains("/note/") || key.starts_with("plan/fold") || side_work(&key) {
                         // Lead's fixes did not help (or it was a note, which may
                         // just be a question): skip this job and keep the game
                         // moving instead of burning usage or waiting for Andrew.
@@ -1159,13 +1181,13 @@ pub fn tidy(root: &Path) -> usize {
     n += changes::cancel_queued(root, |c| {
         let Some(k) = c.key.as_deref().and_then(|k| k.strip_prefix("rescue|")) else { return false };
         let target = k.splitn(2, '|').nth(1).unwrap_or("");
-        target.contains("/note/") || target.starts_with("plan/fold") || finished(target)
+        target.contains("/note/") || target.starts_with("plan/fold") || side_work(target) || finished(target)
     });
     // Failed status-message jobs and failed rescues of notes are not
     // waiting for anything: close them so the step can finish.
     for c in changes::list(root).into_iter().filter(|c| c.status == "failed") {
         let k = c.key.clone().unwrap_or_default();
-        let note_rescue = k.starts_with("rescue|") && (k.contains("/note/") || k.contains("plan/fold"));
+        let note_rescue = k.starts_with("rescue|") && (k.contains("/note/") || k.contains("plan/fold") || side_work(&k));
         if ping_job(&c) || note_rescue {
             changes::mark_skipped(root, &c.id, "Skipped: a status message or a rescue that is no longer needed.");
             n += 1;

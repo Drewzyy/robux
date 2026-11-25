@@ -373,3 +373,20 @@ mod timeout_tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 }
+
+/// The newest modification time of any file under `dir` (None if empty).
+pub fn newest_mtime(dir: &std::path::Path) -> Option<std::time::SystemTime> {
+    let mut best: Option<std::time::SystemTime> = None;
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(d) = stack.pop() {
+        for e in std::fs::read_dir(&d).into_iter().flatten().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                stack.push(p);
+            } else if let Ok(t) = e.metadata().and_then(|m| m.modified()) {
+                best = Some(best.map_or(t, |b| b.max(t)));
+            }
+        }
+    }
+    best
+}
