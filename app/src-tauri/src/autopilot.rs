@@ -281,7 +281,7 @@ fn prompt(root: &Path, a: &Autopilot, milestone: &str, job: &str, feedback: Opti
     let notes = if a.notes.is_empty() { String::new() } else { format!("\nAndrew's notes so far (follow them):\n{}\n", a.notes.iter().rev().take(12).map(|n| format!("- {n}")).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")) };
     let fb = feedback.map(|f| format!("\nYOUR LAST ATTEMPT DID NOT PASS. Fix exactly this, keep what was fine:\n{f}\n")).unwrap_or_default();
     format!(
-        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above. Never ask Andrew anything: he wants the team to decide. For every open choice, pick what gets a high-quality game out fastest, do it, and list it under a heading \"Decisions made\" (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).",
+        "Autopilot job for the game \"{}\" (slug {}, folder {project}), milestone \"{milestone}\".\nThe idea Andrew approved: {}\n{plan}{drafts}{notes}{fb}\nYour job: {job}\n\nWork on your own; nobody can answer questions mid-run. If another agent must do something (or redo something) for the game to come out right, write requests.json in your run folder: [{{\"to\": \"<agent name>\", \"task\": \"<what to do>\", \"why\": \"<why>\"}}]. To stop another agent's queued work that would be wasted, add {{\"stop\": \"<agent name>\", \"why\": \"...\"}}. Agents: architect, builder, frame, scenic, motion, modeler, librarian, merchant, tuner, crowd, splash, playtest, simulator, director. Never publish or upload anything. Never write that Andrew decided, asked or approved something unless it is in his notes above. Never ask Andrew anything: he wants the team to decide. For every open choice, pick what gets a high-quality game out fastest, do it, and list it under a heading \"Decisions made\" (one line each). Also write change.md: what you did in 3 to 8 lines (first line a one-sentence summary).\n\n{ON_TRACK}",
         a.title, a.slug, idea_for_prompt(root, a)
     )
 }
@@ -383,6 +383,14 @@ pub fn warden_lead(root: &Path, slug: &str) -> bool {
     let Ok(mut a) = load(root, slug) else { return false };
     let recent = mine(root, slug).iter().any(|c| c.key.as_deref().map(|k| k.contains("/warden-lead")).unwrap_or(false) && c.created_at.as_str() > (chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339().as_str());
     if recent {
+        return false;
+    }
+    // Lead's last two "decide the next work" runs failed: wait 6 hours
+    // instead of trying again every round.
+    let mut last: Vec<Change> = mine(root, slug).into_iter().filter(|c| c.key.as_deref().map(|k| k.contains("/warden-lead/")).unwrap_or(false)).collect();
+    last.sort_by(|x, y| x.created_at.cmp(&y.created_at));
+    let tail: Vec<&Change> = last.iter().rev().take(2).collect();
+    if tail.len() == 2 && tail.iter().all(|c| c.status == "failed" || c.summary.as_deref().map(|s| s.starts_with("Skipped")).unwrap_or(false)) && tail[0].created_at.as_str() > (chrono::Utc::now() - chrono::Duration::hours(6)).to_rfc3339().as_str() {
         return false;
     }
     let m = a.milestones.iter().find(|m| m.status == "working" || m.status == "revising").or_else(|| a.milestones.iter().rev().find(|m| m.status != "waiting")).map(|m| m.id.clone()).unwrap_or_else(|| "plan".into());
@@ -1029,7 +1037,9 @@ pub fn on_finish(root: &Path, c: &Change) {
                 let why: Vec<String> = c.checks.iter().filter(|k| !k.passed).map(|k| format!("- {}: {}", k.name, k.detail.chars().take(300).collect::<String>())).collect();
                 let why = if why.is_empty() { c.summary.clone().unwrap_or_else(|| "the run did not finish".into()) } else { why.join("\n") };
                 let rescues = mine(root, &slug).iter().filter(|x| x.key.as_deref().map(|k| k.starts_with("rescue|") && k.ends_with(&format!("|{key}"))).unwrap_or(false)).count();
-                if c.attempt + 1 >= MAX_ATTEMPTS {
+                // Notes from Andrew and side work get one try: if it failed,
+                // retrying the same thing only burns compute.
+                if c.attempt + 1 >= MAX_ATTEMPTS || key.contains("/note/") || side_work(&key) {
                     // Out of tries: Lead works out why and how, then the job
                     // starts over with that advice.
                     let fails: Vec<String> = mine(root, &slug).iter().filter(|x| x.key.as_deref() == Some(&key) && x.status == "failed").map(|x| format!("runs/{}", x.run_id)).collect();
@@ -1222,6 +1232,9 @@ pub fn is_ping(text: &str) -> bool {
     PINGS.iter().any(|p| t.contains(p)) && !change_words.iter().any(|w| t.contains(w))
         || matches!(t.trim_end_matches(['.', '!', '?']), "go" | "go go" | "start" | "work" | "hello" | "hi" | "?")
 }
+
+/// The rules every job gets, so the team spends its time on the game.
+pub const ON_TRACK: &str = "STAY ON TRACK (always):\n1. Every run must move the game forward: new or better gameplay, UI, world, models, sound, or a real bug fixed. Checking, re-verifying or reporting work that is already done is not progress.\n2. If your job is already done, or there is nothing worth changing, write change.md with the first line \"Nothing to do:\" and the reason, and stop. Do not invent work.\n3. Do not start other agents unless the game needs that work now. Never ask an agent to re-check, re-verify or re-run something that passed.\n4. A message from Andrew that is only a question or a nudge (\"is it going?\", \"keep going\") needs no work: write \"Nothing to do:\" and stop.\n5. Never work on the app, its tools or its checks: only the game.\n6. Smallest change that finishes the job. Read only the files the job needs.";
 
 /// Below this Game Score a step never waits for Andrew: the team keeps improving it.
 pub const REVIEW_BAR: f64 = 80.0;
