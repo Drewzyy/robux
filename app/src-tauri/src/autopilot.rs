@@ -499,7 +499,11 @@ pub fn loop_guard(all: &[Change], agent: &str, job: &str, key: &str) -> Option<S
     if recent.iter().filter(|c| c.agent == agent && c.key.as_deref() != Some(key) && norm(&c.text) == me).count() >= LOOP_SAME_TEXT {
         return Some(format!("was given the same work {LOOP_SAME_TEXT} times in a day"));
     }
-    if recent.iter().filter(|c| c.created_at > hour).count() >= LOOP_PER_HOUR {
+    // A step's own planned jobs (key "design/0/1") are the real work: the
+    // hourly ceiling never holds them back, or a loop elsewhere would stall
+    // the whole game for an hour.
+    let planned = planned_key(key);
+    if !planned && recent.iter().filter(|c| c.created_at > hour).count() >= LOOP_PER_HOUR {
         return Some(format!("would be the {}th job this hour for this game", LOOP_PER_HOUR + 1));
     }
     None
@@ -609,6 +613,12 @@ fn shown_jobs(jobs: Vec<Change>) -> Vec<Change> {
 
 /// Code audits, the Warden's "decide the next work" for Lead, and rescues
 /// of either: useful, but never a reason to hold a step open or retry forever.
+/// A step's own planned job: key "<step>/<wave>/<n>".
+fn planned_key(key: &str) -> bool {
+    let p: Vec<&str> = key.split('/').collect();
+    p.len() == 3 && p[1].parse::<u32>().is_ok() && p[2].parse::<u32>().is_ok()
+}
+
 fn side_work(key: &str) -> bool {
     let k = key.strip_prefix("rescue|").and_then(|k| k.split_once('|')).map(|x| x.1).unwrap_or(key);
     k.starts_with("audit/") || k.contains("/warden-lead/") || key.starts_with("rescue|") && (k.starts_with("audit/") || k.contains("/warden-lead/"))
@@ -736,7 +746,11 @@ fn advance_inner(root: &Path, slug: &str) {
             // Code audits are side work: they never hold a step open.
             let lat: Vec<Change> = latest(&all, mid).into_iter().filter(|c| !side_work(c.key.as_deref().unwrap_or(""))).collect();
             let open = lat.iter().any(|c| ["queued", "working", "paused"].contains(&c.status.as_str()));
-            let failed_stuck = lat.iter().any(stuck);
+            // Only a step's own planned jobs must succeed for it to finish.
+            // Extra work that failed (an improve round, a rescue, an agent's
+            // request) never holds the step, or the game stalls with every
+            // listed job "Done".
+            let failed_stuck = lat.iter().filter(|c| planned_key(c.key.as_deref().unwrap_or(""))).any(stuck);
             let wave = a.milestones[i].wave;
             let wave_done = (0..waves[wave.min(waves.len() - 1)].len()).all(|k| lat.iter().any(|c| c.key.as_deref() == Some(&format!("{mid}/{wave}/{k}")) && c.status == "done"));
             if st == "working" && wave_done && wave + 1 < waves.len() {
@@ -751,7 +765,7 @@ fn advance_inner(root: &Path, slug: &str) {
                 continue;
             }
             let all_waves_done = a.milestones[i].wave + 1 >= waves.len() && wave_done;
-            if !open && !failed_stuck && (all_waves_done || st == "revising") && lat.iter().all(|c| c.status == "done") {
+            if !open && !failed_stuck && (all_waves_done || st == "revising") && lat.iter().filter(|c| planned_key(c.key.as_deref().unwrap_or(""))).all(|c| c.status == "done") {
                 if mid == &"plan" {
                     // Other agents revised parts of the plan in their own
                     // folders: Planner folds those into one plan before
