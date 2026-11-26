@@ -205,3 +205,40 @@ pub fn lights() -> Vec<Light> {
     }
     v
 }
+
+/// The game's place in Studio, built from the current src. Rebuilds and
+/// reopens it when src changed since BrewixGames last opened it (closing the
+/// Studio window BrewixGames opened before, never one Andrew opened).
+/// Returns the place path and whether it was just reopened.
+pub fn fresh_place(root: &std::path::Path, slug: &str) -> Option<(String, bool)> {
+    static OPENED: std::sync::Mutex<Vec<(String, std::time::SystemTime, Option<u32>)>> = std::sync::Mutex::new(vec![]);
+    let src = root.join("projects").join(slug).join("src");
+    let changed = crate::paths::newest_mtime(&src);
+    let mut o = OPENED.lock().unwrap_or_else(|e| e.into_inner());
+    let prev = o.iter().position(|x| x.0 == slug);
+    if let Some(i) = prev {
+        if changed.map(|c| c <= o[i].1).unwrap_or(true) {
+            return Some((root.join("projects").join(slug).join("build").join(format!("{slug}.rbxl")).display().to_string(), false));
+        }
+    }
+    let place = crate::gates::build_place(root, &format!("projects/{slug}")).ok()?;
+    if let Some(i) = prev {
+        if let Some(pid) = o[i].2 {
+            let _ = if cfg!(windows) { crate::paths::command("taskkill").args(["/PID", &pid.to_string(), "/F"]).output() } else { crate::paths::command("kill").arg(pid.to_string()).output() };
+            std::thread::sleep(std::time::Duration::from_secs(3));
+        }
+        o.remove(i);
+    }
+    let pid = match studio_exe() {
+        Some(exe) if !(cfg!(target_os = "macos") && exe.extension().map(|e| e == "app").unwrap_or(false)) => crate::paths::command(&exe).arg(&place).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn().ok().map(|c| c.id()),
+        _ => {
+            let _ = crate::studio::open_in_studio(root, &format!("projects/{slug}"));
+            None
+        }
+    };
+    o.push((slug.to_string(), std::time::SystemTime::now(), pid));
+    drop(o);
+    // Give Studio time to load the place before the agent connects.
+    std::thread::sleep(std::time::Duration::from_secs(30));
+    Some((place.display().to_string(), true))
+}

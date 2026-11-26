@@ -1331,6 +1331,12 @@ pub fn tidy(root: &Path) -> usize {
     // The newest job of each key: is it finished?
     let finished = |key: &str| all.iter().filter(|x| x.key.as_deref() == Some(key)).next_back().map(|x| x.status == "done" || x.status == "cancelled").unwrap_or(true);
     let mut n = changes::cancel_queued(root, |c| ping_job(c));
+    // Hand-syncing code into a running Studio: the app rebuilds and reopens
+    // the place from src before every playtest, so these jobs are waste.
+    n += changes::cancel_queued(root, |c| {
+        let t = c.text.to_lowercase();
+        t.starts_with("sync") && (t.contains("studio place") || t.contains("into studio") || t.contains("open place"))
+    });
     n += changes::cancel_queued(root, |c| {
         let Some(k) = c.key.as_deref().and_then(|k| k.strip_prefix("rescue|")) else { return false };
         let target = k.splitn(2, '|').nth(1).unwrap_or("");

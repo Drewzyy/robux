@@ -255,18 +255,16 @@ pub fn run_approved_with<F: FnMut(&str)>(
         // Open Roblox Studio / Blender first if this agent uses them.
         crate::connect::ready_for(&req.agent);
         let st = crate::settings::load();
-        // Playtest needs the game itself in Studio, not an empty baseplate:
-        // build it and open it once per game per session.
+        // Playtest always plays the current code: when src changed since the
+        // place was last opened, rebuild it and reopen it in Studio (closing
+        // only the Studio window BrewixGames opened before). Agents copying
+        // files into a running Studio by hand never kept it in step.
         if req.agent == "playtest" && st.studio_mcp == "studio" {
-            static OPENED: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(vec![]);
             if let Some(slug) = crate::changes::list(root).into_iter().find(|c| c.run_id == req.run_id).and_then(|c| c.autopilot) {
-                let mut o = OPENED.lock().unwrap_or_else(|e| e.into_inner());
-                if !o.contains(&slug) {
-                    if let Ok(place) = crate::studio::open_in_studio(root, &format!("projects/{slug}")) {
-                        o.push(slug.clone());
-                        notes.push_str(&format!(" The game was just built and opened in Roblox Studio from {place}. If list_roblox_studios shows more than one Studio, use the one with that place, not an empty Baseplate."));
-                        std::thread::sleep(std::time::Duration::from_secs(25));
-                    }
+                match crate::connect::fresh_place(root, &slug) {
+                    Some((place, true)) => notes.push_str(&format!(" The game was just rebuilt from src and opened in Roblox Studio from {place}, so it matches the code. If list_roblox_studios shows more than one Studio, use the one with that place.")),
+                    Some((place, false)) => notes.push_str(&format!(" The place open in Studio ({place}) was built from the current src.")),
+                    None => {}
                 }
             }
         }
@@ -274,7 +272,7 @@ pub fn run_approved_with<F: FnMut(&str)>(
             if let Some(cmd) = crate::studio_mcp::server_command(&st) {
                 servers.insert(crate::studio_mcp::SERVER.into(), serde_json::json!({ "type": "stdio", "command": cmd.0, "args": cmd.1 }));
                 tools.extend(crate::studio_mcp::TOOLS.iter().map(|t| format!("mcp__{}__{t}", crate::studio_mcp::SERVER)));
-                notes.push_str(" Roblox Studio is connected (mcp__Roblox_Studio__ tools). With Studio's built-in server, call list_roblox_studios first and pass that studio_id on every call; explore with search_game_tree and inspect_instance, edit scripts with multi_edit, run code with execute_luau, playtest with start_stop_play, get_console_output, and screen_capture. With the older server, use run_code and insert_model. Uploads, AI asset generation, Studio's own subagent, and running code that publishes, buys, calls the web, or writes DataStores are blocked; do not try them.");
+                notes.push_str(" Roblox Studio is connected (mcp__Roblox_Studio__ tools). With Studio's built-in server, call list_roblox_studios first and pass that studio_id on every call; explore with search_game_tree and inspect_instance, edit scripts with multi_edit, run code with execute_luau, playtest with start_stop_play, get_console_output, and screen_capture. With the older server, use run_code and insert_model. The game's code lives in its src folder: edit files there only, and never copy code into the open Studio place by hand; BrewixGames rebuilds the place from src and reopens it before every playtest. Uploads, AI asset generation, Studio's own subagent, and running code that publishes, buys, calls the web, or writes DataStores are blocked; do not try them.");
             }
         }
         if crate::blender_mcp::AGENTS.contains(&req.agent.as_str()) {
