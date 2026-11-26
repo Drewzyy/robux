@@ -803,6 +803,14 @@ fn advance_inner(root: &Path, slug: &str) {
                         a.plan_run = Some(p.run_id.clone());
                     }
                 }
+                // Andrew asked the team to decide and move fast: the plan
+                // (which has no code to score) goes ahead without waiting.
+                if ["plan", "design", "ui", "world"].contains(mid) {
+                    a.milestones[i].status = "approved".into();
+                    a.milestones[i].approved_at = Some(crate::now_rfc3339());
+                    post(&mut a, "autopilot", None, &format!("{title} is done; the team moved on to the next step (no code to score yet, and Andrew asked the team to decide and keep going)."));
+                    continue;
+                }
                 // Andrew only sees work worth his time: under the bar
                 // (Game Score 80), the team keeps improving on its own.
                 {
@@ -822,14 +830,6 @@ fn advance_inner(root: &Path, slug: &str) {
                             continue;
                         }
                     }
-                }
-                // Andrew asked the team to decide and move fast: the plan
-                // (which has no code to score) goes ahead without waiting.
-                if ["plan", "design", "ui", "world"].contains(mid) {
-                    a.milestones[i].status = "approved".into();
-                    a.milestones[i].approved_at = Some(crate::now_rfc3339());
-                    post(&mut a, "autopilot", None, &format!("{title} is done; the team moved on to the next step (no code to score yet, and Andrew asked the team to decide and keep going)."));
-                    continue;
                 }
                 a.milestones[i].status = "review".into();
                 a.milestones[i].ready_at = Some(crate::now_rfc3339());
@@ -1302,7 +1302,7 @@ pub fn is_ping(text: &str) -> bool {
     if t.len() > 90 {
         return false;
     }
-    const PINGS: [&str; 22] = ["is it going", "is it goin", "is it working", "is anything", "are they", "stuck", "why wait", "retry", "get to work", "keep going", "keep goin", "keep it going", "continue", "go on", "hurry", "status", "what is happening", "whats happening", "what's happening", "why is everyone", "start working", "resume"];
+    const PINGS: [&str; 25] = ["next step", "move on", "start the next", "is it going", "is it goin", "is it working", "is anything", "are they", "stuck", "why wait", "retry", "get to work", "keep going", "keep goin", "keep it going", "continue", "go on", "hurry", "status", "what is happening", "whats happening", "what's happening", "why is everyone", "start working", "resume"];
     let change_words = ["add ", "make ", "change", "fix ", "remove", "build ", "use ", "replace", "improve"];
     PINGS.iter().any(|p| t.contains(p)) && !change_words.iter().any(|w| t.contains(w))
         || matches!(t.trim_end_matches(['.', '!', '?']), "go" | "go go" | "start" | "work" | "hello" | "hi" | "?")
@@ -1677,6 +1677,13 @@ mod tests {
             changes::update_for_test(&root, &c.id, |x| { x.status = st.into(); x.attempt = 3; });
         }
         save(&root, &g).unwrap();
+        // The game has code, so it has a (low) Game Score: Design must
+        // still go ahead, not wait to reach 80.
+        let proj = root.join("projects").join(&a.slug);
+        fs::create_dir_all(proj.join("src/server")).unwrap();
+        fs::write(proj.join("default.project.json"), r#"{"name":"g","tree":{"$className":"DataModel"}}"#).unwrap();
+        fs::write(proj.join("src/server/Main.server.luau"), "print(1)").unwrap();
+        assert!(crate::score::score(&root, &a.slug).map(|v| v["score"].as_f64().unwrap_or(0.0) < REVIEW_BAR).unwrap_or(false), "the test game scores under the bar");
         // A waiting extra job does not hold the step either.
         advance(&root, &a.slug);
         let g = load(&root, &a.slug).unwrap();
