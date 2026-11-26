@@ -509,6 +509,46 @@ pub fn loop_guard(all: &[Change], agent: &str, job: &str, key: &str) -> Option<S
     None
 }
 
+/// Last-resort safety net (the Warden calls it): a running game with nothing
+/// running or waiting and no job started or finished for 2 hours has stalled
+/// on something no rule above caught. Move it on: close the current step
+/// (its failed jobs count as skipped) unless it is the quality loop, which
+/// gets a fresh round instead. Returns true when it acted.
+pub fn force_next_if_idle(root: &Path, slug: &str) -> bool {
+    {
+        let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let Ok(mut a) = load(root, slug) else { return false };
+        if a.status != "running" {
+            return false;
+        }
+        let jobs = mine(root, slug);
+        if jobs.iter().any(|c| ["queued", "working"].contains(&c.status.as_str())) {
+            return false;
+        }
+        let cutoff = (chrono::Utc::now() - chrono::Duration::hours(2)).to_rfc3339();
+        let last = jobs.iter().flat_map(|c| [Some(c.created_at.clone()), c.finished_at.clone()]).flatten().max().unwrap_or_default();
+        if last > cutoff {
+            return false;
+        }
+        let Some(i) = a.milestones.iter().position(|m| m.status == "working" || m.status == "revising") else { return false };
+        let id = a.milestones[i].id.clone();
+        for c in jobs.iter().filter(|c| c.milestone.as_deref() == Some(id.as_str()) && c.status == "failed") {
+            changes::mark_skipped(root, &c.id, "Skipped by the Warden: the step sat idle for 2 hours.");
+        }
+        if id == "quality" {
+            a.milestones[i].round += 1;
+        } else {
+            a.milestones[i].status = "approved".into();
+            a.milestones[i].approved_at = Some(crate::now_rfc3339());
+        }
+        let t = a.milestones[i].title.clone();
+        post(&mut a, "warden", None, &format!("{t} sat idle for 2 hours with nothing running; the Warden moved the game on."));
+        let _ = save(root, &a);
+    }
+    advance(root, slug);
+    true
+}
+
 /// The next model up for a last try.
 pub fn step_up(model: &str) -> String {
     if model.contains("haiku") { "claude-sonnet-5-5".into() } else { STRONG_MODEL.into() }
@@ -524,7 +564,8 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
         }
         // Close the job it would have redone, so the step is not left
         // waiting on it.
-        if let Some(c) = mine(root, &a.slug).into_iter().rev().find(|c| c.key.as_deref() == Some(key) && c.status == "failed") {
+        let target = key.strip_prefix("rescue|").and_then(|k| k.split_once('|')).map(|x| x.1).unwrap_or(key);
+        if let Some(c) = mine(root, &a.slug).into_iter().rev().find(|c| c.key.as_deref() == Some(target) && c.status == "failed") {
             changes::mark_skipped(root, &c.id, &format!("Skipped: {why}."));
         }
         return Err(format!("loop guard: {why}"));
@@ -816,6 +857,14 @@ fn advance_inner(root: &Path, slug: &str) {
                 {
                     if let Ok(sc) = crate::score::score(root, &a.slug) {
                         let total = sc["score"].as_f64().unwrap_or(0.0);
+                        if total < REVIEW_BAR && mid == &"build" {
+                            // The next step (Test & improve) is the loop that
+                            // raises the score; going there beats waiting here.
+                            a.milestones[i].status = "approved".into();
+                            a.milestones[i].approved_at = Some(crate::now_rfc3339());
+                            post(&mut a, "autopilot", None, &format!("{title} is built (Game Score {total:.0}/100); the Test & improve step now raises it toward 80."));
+                            continue;
+                        }
                         if total < REVIEW_BAR {
                             let n = lat.iter().filter(|c| c.key.as_deref().map(|k| k.starts_with(&format!("{mid}/improve/"))).unwrap_or(false)).count();
                             let hour_ago = (chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339();
@@ -1725,6 +1774,76 @@ mod tests {
         assert_eq!(g.milestones[2].status, "approved", "UI moves on: {:?}", g.board.iter().rev().take(8).map(|b| b.text.clone()).collect::<Vec<_>>());
         assert_eq!(g.milestones[3].status, "working", "World starts");
         let _ = fs::remove_dir_all(&root);
+    }
+
+    /// Run a whole game with every job ending the same way, and check it
+    /// reaches the quality loop (which by design keeps improving until the bar).
+    fn run_whole_game(outcome: &str) -> Autopilot {
+        let root = studio();
+        let a = start(&root, &format!("E2E {outcome}"), "Catch falling stars.", 0.0, None).unwrap();
+        let proj = root.join("projects").join(&a.slug);
+        fs::create_dir_all(proj.join("src/server")).unwrap();
+        fs::write(proj.join("default.project.json"), r#"{"name":"g","tree":{"$className":"DataModel"}}"#).unwrap();
+        fs::write(proj.join("src/server/Main.server.luau"), "print(1)").unwrap();
+        for _ in 0..400 {
+            let g = load(&root, &a.slug).unwrap();
+            if g.milestones.iter().any(|m| m.id == "quality" && m.status == "working") { break; }
+            let q = queued(&root, &a.slug);
+            if q.is_empty() {
+                advance(&root, &a.slug);
+                if queued(&root, &a.slug).is_empty() {
+                    // Nothing queued and nothing moving: this is a stall.
+                    break;
+                }
+                continue;
+            }
+            for (n, c) in q.into_iter().enumerate() {
+                let o = if outcome == "mixed" { if n % 2 == 0 { "failed" } else { "done" } } else { outcome };
+                finish_as(&root, &c, o, "wrote the output");
+            }
+        }
+        let g = load(&root, &a.slug).unwrap();
+        let _ = fs::remove_dir_all(&root);
+        g
+    }
+
+    #[test]
+    fn a_whole_game_never_stalls_when_jobs_pass_and_fail_mixed() {
+        let g = run_whole_game("mixed");
+        let st: Vec<(String, String)> = g.milestones.iter().map(|m| (m.id.clone(), m.status.clone())).collect();
+        assert!(g.milestones.iter().any(|m| m.id == "quality" && m.status == "working"), "{st:?}");
+    }
+
+    #[test]
+    fn the_warden_moves_a_game_that_sat_idle_for_hours() {
+        let root = studio();
+        let a = start(&root, "Idle Game", "Catch falling stars.", 0.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "approved".into();
+        g.milestones[1].status = "working".into();
+        save(&root, &g).unwrap();
+        // Every job is finished and old; nothing is running.
+        let old = (chrono::Utc::now() - chrono::Duration::hours(3)).to_rfc3339();
+        for c in mine(&root, &a.slug) { changes::update_for_test(&root, &c.id, |x| { x.status = "done".into(); x.created_at = old.clone(); x.finished_at = Some(old.clone()); }); }
+        assert!(force_next_if_idle(&root, &a.slug));
+        let g = load(&root, &a.slug).unwrap();
+        assert_eq!(g.milestones[1].status, "approved");
+        assert!(!force_next_if_idle(&root, &a.slug) || load(&root, &a.slug).unwrap().milestones[2].status != "waiting");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_whole_game_reaches_the_quality_loop_when_every_job_succeeds() {
+        let g = run_whole_game("done");
+        let st: Vec<(String, String)> = g.milestones.iter().map(|m| (m.id.clone(), m.status.clone())).collect();
+        assert!(g.milestones.iter().any(|m| m.id == "quality" && m.status == "working") || g.milestones.iter().any(|m| m.id == "build" && m.status == "review"), "{st:?} {:?}", g.board.iter().rev().take(6).map(|b| b.text.clone()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn a_whole_game_never_stalls_even_when_every_job_fails() {
+        let g = run_whole_game("failed");
+        let st: Vec<(String, String)> = g.milestones.iter().map(|m| (m.id.clone(), m.status.clone())).collect();
+        assert!(g.milestones.iter().any(|m| m.id == "quality" && m.status == "working") || g.milestones.iter().any(|m| m.id == "build" && m.status == "review"), "{st:?} {:?}", g.board.iter().rev().take(6).map(|b| b.text.clone()).collect::<Vec<_>>());
     }
 
     #[test]

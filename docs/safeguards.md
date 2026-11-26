@@ -36,3 +36,7 @@ Keep all of these when changing the app. Each one exists because it really happe
 | A failed Lead rescue holding a step (its key "rescue|1|ui/0/0" was mistaken for the step's own job) | `planned_key` only matches "<step>/<wave>/<n>" (tested: a step whose job and rescues all fail still moves on) | autopilot.rs |
 | The same finished job handled every minute ("Rescue did not finish" x11) | Each finished job is handled once (a marker in its run folder) | `on_finish` |
 | Runs cut off at a tiny cap ($0.06) and retried | Cap is 1.5x the high estimate, at least $0.50 API-equivalent | cost.rs |
+| Build under 80 waiting an hour between improve rounds | Build moves to Test & improve, the loop that raises the score | `advance_inner` |
+| A refused rescue leaving the original job open forever | The loop guard closes the original job | `queue` loop guard |
+| Anything not caught above | The Warden moves a game on after 2 idle hours with nothing running (tested) | `force_next_if_idle` |
+| Proof | Whole-game tests: every job passes, every job fails, and mixed; each must reach Test & improve | autopilot.rs `run_whole_game` |

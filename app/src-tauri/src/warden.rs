@@ -85,6 +85,10 @@ pub fn rounds(root: &Path) -> Vec<String> {
             continue;
         }
         crate::autopilot::advance(root, &g.slug);
+        if !open(root) && crate::autopilot::force_next_if_idle(root, &g.slug) {
+            did.push(format!("{}: sat idle for 2 hours; moved it to the next step", g.title));
+            continue;
+        }
         if open(root) {
             did.push(format!("{}: the team was idle; started the next step", g.title));
             continue;
