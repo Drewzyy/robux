@@ -40,3 +40,5 @@ Keep all of these when changing the app. Each one exists because it really happe
 | A refused rescue leaving the original job open forever | The loop guard closes the original job | `queue` loop guard |
 | Anything not caught above | The Warden moves a game on after 2 idle hours with nothing running (tested) | `force_next_if_idle` |
 | Proof | Whole-game tests: every job passes, every job fails, and mixed; each must reach Test & improve | autopilot.rs `run_whole_game` |
+| Jobs waiting 30 min to retry, needing Andrew's "retry now" | Retry waits are 1 to 5 min; the Warden starts timed jobs at once whenever nothing is running | changes.rs `backoff_minutes`, warden.rs |
+| The local model losing the same job again and again | In "Mostly local", that agent uses Claude for 2 hours; every last try and every rescue uses Claude for an hour | runs.rs `claude_for` |

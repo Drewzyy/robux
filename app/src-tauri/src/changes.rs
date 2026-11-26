@@ -873,7 +873,9 @@ pub fn retry_launch(root: &Path, c: &Change) -> Option<Change> {
 }
 
 pub fn backoff_minutes(tries: usize) -> i64 {
-    [1, 5, 15, 30][tries.saturating_sub(1).min(3)]
+    // Short waits: a job should never sit for half an hour needing a
+    // "retry now" from Andrew.
+    [1, 2, 5, 5][tries.saturating_sub(1).min(3)]
 }
 
 /// Record a result directly (tests, and changes whose run cannot start).

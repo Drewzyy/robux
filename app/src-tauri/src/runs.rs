@@ -177,7 +177,12 @@ pub fn prepare_with_id(
     let pricing = cost::load_pricing(root)?;
     let mut estimate = cost::estimate(agent, profile, prompt, &pricing)?;
     let st = crate::settings::load();
-    let engine = st.engine_for(agent).to_string();
+    let mut engine = st.engine_for(agent).to_string();
+    // "Mostly local": an agent the local model keeps failing gets Claude for
+    // a while, instead of waiting or retrying the same weak attempt.
+    if engine == "ollama" && st.engine == "hybrid" && claude_for(root, agent) {
+        engine = "claude".into();
+    }
     if engine == "ollama" && std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_err() {
         let o = crate::ollama::status();
         let m = &st.ollama_model;
@@ -443,4 +448,19 @@ mod list_speed_tests {
         assert_eq!(super::list(&root).unwrap().iter().find(|r| r.run_id == "run-builder-7").unwrap().status, "failed");
         let _ = std::fs::remove_dir_all(&root);
     }
+}
+
+
+/// Agents that use Claude for a while in "Mostly local" because the local
+/// model kept failing their jobs (runs/claude_for.json: agent -> until).
+pub fn claude_for(root: &Path, agent: &str) -> bool {
+    let v: serde_json::Value = crate::paths::read_json(&root.join("runs/claude_for.json")).unwrap_or(serde_json::json!({}));
+    v.get(agent).and_then(|t| t.as_str()).map(|t| t > crate::now_rfc3339().as_str()).unwrap_or(false)
+}
+
+pub fn use_claude_for(root: &Path, agent: &str, hours: i64) {
+    let path = root.join("runs/claude_for.json");
+    let mut v: serde_json::Value = crate::paths::read_json(&path).unwrap_or(serde_json::json!({}));
+    v[agent] = serde_json::json!((chrono::Utc::now() + chrono::Duration::hours(hours)).to_rfc3339());
+    let _ = std::fs::write(path, v.to_string());
 }

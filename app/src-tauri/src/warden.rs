@@ -71,6 +71,16 @@ pub fn rounds(root: &Path) -> Vec<String> {
         }
         did.push(format!("{ag} kept failing ({} times in an hour); held its {} waiting job(s) for an hour", fails.len(), waiting.len()));
     }
+    // 2b. Nothing is running but jobs sit on retry timers: start them now
+    // (what Andrew's "retry now" did by hand). Benched agents stay benched.
+    let now_all = crate::changes::list(root);
+    let nothing_running = !now_all.iter().any(|c| c.status == "working");
+    let timed: usize = now_all.iter().filter(|c| c.status == "queued" && c.not_before.as_deref().map(|t| t > crate::now_rfc3339().as_str()).unwrap_or(false)).count();
+    let benched = did.iter().any(|d| d.contains("held its"));
+    if nothing_running && timed > 0 && !benched {
+        crate::changes::clear_retry_timers(root);
+        did.push(format!("nothing was running, so started {timed} waiting job(s) now instead of waiting for their retry time"));
+    }
     // 3. Running games with an idle team.
     for g in crate::autopilot::list(root).into_iter().filter(|g| g.status == "running") {
         let open = |root: &Path| crate::changes::list(root).into_iter().any(|c| c.autopilot.as_deref() == Some(g.slug.as_str()) && ["queued", "working", "paused"].contains(&c.status.as_str()));

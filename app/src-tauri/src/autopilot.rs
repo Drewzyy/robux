@@ -574,6 +574,11 @@ fn queue(root: &Path, a: &mut Autopilot, milestone: &str, agent: &str, job: &str
     // Opus): bigger models use up Claude's usage much faster.
     let own = crate::cost::load_agents(root).ok().and_then(|x| x.agents.get(agent).map(|p| p.model.clone())).unwrap_or_default();
     let model = if attempt + 1 >= MAX_ATTEMPTS { Some(step_up(&own)) } else { None };
+    // The last try of a local job uses Claude ("Mostly local"): a "stronger
+    // model" that is the same local model just fails the same way.
+    if attempt + 1 >= MAX_ATTEMPTS || key.starts_with("rescue|") {
+        crate::runs::use_claude_for(root, agent, 1);
+    }
     let agents = crate::cost::load_agents(root)?;
     let mut prof = agents.agents.get(agent).cloned().ok_or_else(|| format!("unknown agent {agent}"))?;
     let mut p = prompt(root, a, milestone, job, feedback);
@@ -1132,13 +1137,18 @@ pub fn on_finish(root: &Path, c: &Change) {
                     // Ollama with a big window, so try once more at once; if it
                     // still fails, stop and say what to do instead of looping.
                     if tries >= 2 {
-                        post(&mut a, "autopilot", Some(&c.agent), &format!("The local model keeps losing the request for {}. Trying again in 30 min (details in runs/{}/diagnostics.json).", c.agent, c.run_id));
+                        post(&mut a, "autopilot", Some(&c.agent), &format!("The local model keeps losing the request for {}. Trying again now with Claude if \"Mostly local\" is on, otherwise in 5 min (details in runs/{}/diagnostics.json).", c.agent, c.run_id));
                     } else {
                         post(&mut a, "autopilot", Some(&c.agent), &format!("The local model lost the request for {} (memory window too small). Restarting Ollama with a bigger window and trying again.", c.agent));
                     }
+                    // Lost twice: give this agent Claude for 2 hours ("Mostly
+                    // local") and try right away; in local-only mode wait 5 min.
+                    if tries >= 2 {
+                        crate::runs::use_claude_for(root, &c.agent, 2);
+                    }
                     if let Ok(n) = queue(root, &mut a, &mid, &c.agent, &c.text, &key, c.attempt, &c.source, None, &c.kind) {
-                        if tries >= 2 {
-                            changes::delay(root, &n.id, 30);
+                        if tries >= 2 && crate::settings::load().engine == "ollama" {
+                            changes::delay(root, &n.id, 5);
                         }
                     }
                     let _ = save(root, &a);
@@ -1155,7 +1165,7 @@ pub fn on_finish(root: &Path, c: &Change) {
                     post(&mut a, "autopilot", Some("andrew"), "Claude is signed out. Sign in from Settings (Claude Code); the agents carry on by themselves once you have.");
                 }
                 if tries == 3 && kind != "signin" {
-                    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude will not start", a.title), &[detail.chars().take(300).collect(), "BrewixGames keeps retrying every 30 minutes. Check Settings, Claude Code, if this keeps happening.".into()]);
+                    crate::notify::send_quiet(crate::notify::Kind::Failed, &format!("{}: Claude will not start", a.title), &[detail.chars().take(300).collect(), "BrewixGames keeps retrying every 5 minutes. Check Settings, Claude Code, if this keeps happening.".into()]);
                 }
                 if let Ok(n) = queue(root, &mut a, &mid, &c.agent, &c.text, &key, c.attempt, &c.source, None, &c.kind) {
                     changes::delay(root, &n.id, wait);
@@ -1996,7 +2006,7 @@ mod tests {
     }
 
     #[test]
-    fn a_cut_off_local_request_is_retried_then_waits() {
+    fn a_cut_off_local_request_is_retried_then_goes_to_claude() {
         let root = studio();
         let a = start(&root, "Local Game", "Catch falling stars.", 500.0, None).unwrap();
         let mut cur = queued(&root, &a.slug).remove(0);
@@ -2007,7 +2017,7 @@ mod tests {
             on_finish(&root, &c);
             cur = queued(&root, &a.slug).last().unwrap().clone();
         }
-        assert!(cur.not_before.is_some(), "after two, it waits 30 min instead of looping fast");
+        assert!(crate::runs::claude_for(&root, &cur.agent), "after two, the agent gets Claude instead of waiting 30 min");
         assert_eq!(load(&root, &a.slug).unwrap().status, "running", "no pause");
         let _ = fs::remove_dir_all(&root);
     }
