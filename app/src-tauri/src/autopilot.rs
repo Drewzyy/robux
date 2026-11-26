@@ -616,7 +616,7 @@ fn shown_jobs(jobs: Vec<Change>) -> Vec<Change> {
 /// A step's own planned job: key "<step>/<wave>/<n>".
 fn planned_key(key: &str) -> bool {
     let p: Vec<&str> = key.split('/').collect();
-    p.len() == 3 && p[1].parse::<u32>().is_ok() && p[2].parse::<u32>().is_ok()
+    p.len() == 3 && !p[0].is_empty() && p[0].chars().all(|c| c.is_ascii_lowercase()) && p[1].parse::<u32>().is_ok() && p[2].parse::<u32>().is_ok()
 }
 
 fn side_work(key: &str) -> bool {
@@ -1015,6 +1015,15 @@ fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
 /// agents it asked for, then move the game forward.
 pub fn on_finish(root: &Path, c: &Change) {
     let Some(slug) = c.autopilot.clone() else { return };
+    // Each finished job is handled once: a job reported finished again
+    // (a restart, the Warden, a re-check) must not retry or rescue twice.
+    let mark = root.join("runs").join(&c.run_id).join(format!(".handled-{}", c.status));
+    if mark.exists() {
+        advance(root, &slug);
+        return;
+    }
+    let _ = fs::create_dir_all(mark.parent().unwrap());
+    let _ = fs::write(&mark, "");
     {
         let _g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let Ok(mut a) = load(root, &slug) else { return };
@@ -1690,6 +1699,31 @@ mod tests {
         assert_eq!(g.milestones[1].status, "approved", "design closes: {:?}", g.board.iter().rev().take(5).map(|b| b.text.clone()).collect::<Vec<_>>());
         assert_eq!(g.milestones[2].status, "working", "UI starts");
         assert!(queued(&root, &a.slug).iter().any(|c| c.agent == "frame" && c.milestone.as_deref() == Some("ui")), "Frame drafts the UI");
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_step_whose_job_and_rescues_all_fail_still_moves_on() {
+        let root = studio();
+        let a = start(&root, "Fail Step Game", "Catch falling stars.", 0.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "approved".into();
+        g.milestones[1].status = "approved".into();
+        save(&root, &g).unwrap();
+        advance(&root, &a.slug);
+        assert_eq!(load(&root, &a.slug).unwrap().milestones[2].status, "working");
+        // Every job fails: Frame, Lead's rescues, everything.
+        for _ in 0..60 {
+            let q: Vec<Change> = queued(&root, &a.slug);
+            if q.is_empty() { advance(&root, &a.slug); if queued(&root, &a.slug).is_empty() { break; } continue; }
+            for c in q { finish_as(&root, &c, "failed", "wrote ui.md"); }
+            if load(&root, &a.slug).unwrap().milestones[2].status == "approved" { break; }
+        }
+        let g = load(&root, &a.slug).unwrap();
+        let rescue_posts = g.board.iter().filter(|b| b.text.starts_with("Rescue did not finish")).count();
+        assert!(rescue_posts <= 2 * MAX_RESCUES, "{rescue_posts} rescue posts");
+        assert_eq!(g.milestones[2].status, "approved", "UI moves on: {:?}", g.board.iter().rev().take(8).map(|b| b.text.clone()).collect::<Vec<_>>());
+        assert_eq!(g.milestones[3].status, "working", "World starts");
         let _ = fs::remove_dir_all(&root);
     }
 

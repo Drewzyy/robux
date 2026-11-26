@@ -147,7 +147,9 @@ pub fn estimate(
         + out as f64 * price.output / m;
     let low = expected * 0.5;
     let high = expected * 2.5;
-    let cap = ((high * 100.0).ceil() / 100.0).max(0.05);
+    // The cap only stops a runaway run. Tight caps ($0.06) cut Frame and
+    // Builder off mid-job, and the retry used more than finishing would have.
+    let cap = ((high * 1.5 * 100.0).ceil() / 100.0).max(0.50);
 
     Ok(Estimate {
         agent: agent.to_string(),

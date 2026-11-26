@@ -33,3 +33,6 @@ Keep all of these when changing the app. Each one exists because it really happe
 | "Nothing to do:" runs failing for a missing output file | They count as a normal finish | pipeline.rs `evaluate_stage` |
 | A step stuck on "Starting the next step" with every job Done | Only planned jobs, or work actually running, hold a step; waiting improve rounds, rescues, paused, delayed or 6-hour-old extras never do (tested) | `advance_inner` `holds` |
 | Waiting for Claude's usage to reset | Switches to the local model within about 2 minutes of hitting the limit (paused or failed on the limit), and back when it resets | main.rs `auto_local` |
+| A failed Lead rescue holding a step (its key "rescue|1|ui/0/0" was mistaken for the step's own job) | `planned_key` only matches "<step>/<wave>/<n>" (tested: a step whose job and rescues all fail still moves on) | autopilot.rs |
+| The same finished job handled every minute ("Rescue did not finish" x11) | Each finished job is handled once (a marker in its run folder) | `on_finish` |
+| Runs cut off at a tiny cap ($0.06) and retried | Cap is 1.5x the high estimate, at least $0.50 API-equivalent | cost.rs |
