@@ -745,7 +745,24 @@ fn advance_inner(root: &Path, slug: &str) {
         if st == "working" || st == "revising" {
             // Code audits are side work: they never hold a step open.
             let lat: Vec<Change> = latest(&all, mid).into_iter().filter(|c| !side_work(c.key.as_deref().unwrap_or(""))).collect();
-            let open = lat.iter().any(|c| ["queued", "working", "paused"].contains(&c.status.as_str()));
+            // Planned jobs still waiting hold the step; extra work holds it
+            // only while it is actually running (waiting or paused extras
+            // still run later, but never block the next step).
+            let six_h = (chrono::Utc::now() - chrono::Duration::hours(6)).to_rfc3339();
+            let now_s = crate::now_rfc3339();
+            let holds = |c: &Change| {
+                let k = c.key.as_deref().unwrap_or("");
+                if planned_key(k) {
+                    return ["queued", "working", "paused"].contains(&c.status.as_str());
+                }
+                if c.status == "working" {
+                    return true;
+                }
+                // Agents' requests and Andrew's notes hold while waiting, but
+                // not improve rounds, rescues, paused, delayed or stale work.
+                c.status == "queued" && !k.contains("/improve/") && !k.starts_with("rescue|") && c.not_before.as_deref().map(|t| t <= now_s.as_str()).unwrap_or(true) && c.created_at > six_h
+            };
+            let open = lat.iter().any(holds);
             // Only a step's own planned jobs must succeed for it to finish.
             // Extra work that failed (an improve round, a rescue, an agent's
             // request) never holds the step, or the game stalls with every
@@ -1637,6 +1654,35 @@ mod tests {
         assert_eq!(changes::env_problem(&c), None);
         c.checks.push(crate::queue::GateCheck { name: "the agent finished".into(), passed: false, detail: "No response for 10 minutes: the agent was stuck".into() });
         assert_eq!(changes::env_problem(&c), Some("stall"));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn a_finished_step_starts_the_next_even_with_failed_leftovers() {
+        let root = studio();
+        let a = start(&root, "Next Step Game", "Catch falling stars.", 0.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        g.milestones[0].status = "approved".into();
+        save(&root, &g).unwrap();
+        advance(&root, &a.slug);
+        // Design: every planned wave done, plus a failed improve job and a failed rescue.
+        for _ in 0..4 {
+            let q: Vec<Change> = queued(&root, &a.slug).into_iter().filter(|c| c.milestone.as_deref() == Some("design")).collect();
+            if q.is_empty() { break; }
+            for c in &q { finish_as(&root, c, "done", ""); }
+        }
+        let mut g = load(&root, &a.slug).unwrap();
+        for (k, st) in [("design/improve/1", "failed"), ("rescue|1|design/improve/1", "failed"), ("design/improve/2", "queued"), ("design/note/x", "paused")] {
+            let c = queue(&root, &mut g, "design", "lead", &format!("extra {k}"), k, 3, "autopilot", None, "change").unwrap();
+            changes::update_for_test(&root, &c.id, |x| { x.status = st.into(); x.attempt = 3; });
+        }
+        save(&root, &g).unwrap();
+        // A waiting extra job does not hold the step either.
+        advance(&root, &a.slug);
+        let g = load(&root, &a.slug).unwrap();
+        assert_eq!(g.milestones[1].status, "approved", "design closes: {:?}", g.board.iter().rev().take(5).map(|b| b.text.clone()).collect::<Vec<_>>());
+        assert_eq!(g.milestones[2].status, "working", "UI starts");
+        assert!(queued(&root, &a.slug).iter().any(|c| c.agent == "frame" && c.milestone.as_deref() == Some("ui")), "Frame drafts the UI");
         let _ = fs::remove_dir_all(&root);
     }
 

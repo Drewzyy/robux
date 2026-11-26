@@ -31,3 +31,5 @@ Keep all of these when changing the app. Each one exists because it really happe
 | A step never finishing although every listed job was Done (a leftover failed improve job or rescue) | A step finishes when its own planned jobs are done; failed extra work never holds it | autopilot.rs `planned_key` |
 | The hourly job ceiling delaying a step's real work | A step's planned jobs are exempt from the ceiling | `loop_guard` |
 | "Nothing to do:" runs failing for a missing output file | They count as a normal finish | pipeline.rs `evaluate_stage` |
+| A step stuck on "Starting the next step" with every job Done | Only planned jobs, or work actually running, hold a step; waiting improve rounds, rescues, paused, delayed or 6-hour-old extras never do (tested) | `advance_inner` `holds` |
+| Waiting for Claude's usage to reset | Switches to the local model within about 2 minutes of hitting the limit (paused or failed on the limit), and back when it resets | main.rs `auto_local` |
