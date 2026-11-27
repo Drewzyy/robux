@@ -455,6 +455,10 @@ mod list_speed_tests {
 /// reset yet, a run that failed on the limit, or Claude runs that never
 /// started (2+ in the last 20 minutes).
 pub fn claude_limited(root: &Path) -> bool {
+    // Signed out counts too: nothing sent to Claude can run until Andrew signs in.
+    if std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_err() && !cfg!(test) && !crate::connect::claude_ready() {
+        return true;
+    }
     let now = chrono::Utc::now();
     let recent = (now - chrono::Duration::minutes(30)).to_rfc3339();
     let twenty = (now - chrono::Duration::minutes(20)).to_rfc3339();

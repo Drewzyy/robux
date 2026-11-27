@@ -144,6 +144,12 @@ fn claude_cached() -> crate::claude::Connection {
     v
 }
 
+/// Claude is installed and signed in (checked at most every 3 minutes).
+pub fn claude_ready() -> bool {
+    let c = claude_cached();
+    c.installed && c.logged_in
+}
+
 /// One light per connection.
 pub fn lights() -> Vec<Light> {
     let st = crate::settings::load();
