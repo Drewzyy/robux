@@ -616,13 +616,8 @@ fn auto_local(app: &AppHandle) {
     }
     let Ok(r) = root() else { return };
     let now = chrono::Utc::now();
-    let recent = (now - chrono::Duration::minutes(30)).to_rfc3339();
-    let limited = runs::list(&r).unwrap_or_default().into_iter().any(|x| {
-        (x.status == "paused" && x.resume_at.as_deref().filter(|t| !t.starts_with("9999")).and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t > now).unwrap_or(false))
-            // Or a run that failed on the limit instead of pausing.
-            || (x.status == "failed" && x.engine.as_deref() != Some("ollama") && x.finished_at.as_deref().map(|t| t > recent.as_str()).unwrap_or(false)
-                && x.error.as_deref().map(|e| { let e = e.to_lowercase(); e.contains("usage limit") || e.contains("limit reached") || e.contains("rate limit") || e.contains("out of usage") }).unwrap_or(false))
-    });
+    let _ = now;
+    let limited = runs::claude_limited(&r);
     if !limited {
         return;
     }

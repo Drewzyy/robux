@@ -180,7 +180,7 @@ pub fn prepare_with_id(
     let mut engine = st.engine_for(agent).to_string();
     // "Mostly local": an agent the local model keeps failing gets Claude for
     // a while, instead of waiting or retrying the same weak attempt.
-    if engine == "ollama" && st.engine == "hybrid" && claude_for(root, agent) {
+    if engine == "ollama" && st.engine == "hybrid" && claude_for(root, agent) && !claude_limited(root) {
         engine = "claude".into();
     }
     if engine == "ollama" && std::env::var("ROBUX_SKIP_OLLAMA_CHECK").is_err() {
@@ -450,6 +450,22 @@ mod list_speed_tests {
     }
 }
 
+
+/// Claude's usage looks used up: a run paused for the limit that has not
+/// reset yet, a run that failed on the limit, or Claude runs that never
+/// started (2+ in the last 20 minutes).
+pub fn claude_limited(root: &Path) -> bool {
+    let now = chrono::Utc::now();
+    let recent = (now - chrono::Duration::minutes(30)).to_rfc3339();
+    let twenty = (now - chrono::Duration::minutes(20)).to_rfc3339();
+    let runs = list(root).unwrap_or_default();
+    let limit_text = |e: &str| { let e = e.to_lowercase(); e.contains("usage limit") || e.contains("limit reached") || e.contains("rate limit") || e.contains("out of usage") };
+    runs.iter().any(|x| {
+        (x.status == "paused" && x.resume_at.as_deref().filter(|t| !t.starts_with("9999")).and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok()).map(|t| t > now).unwrap_or(false))
+            || (x.status == "failed" && x.engine.as_deref() != Some("ollama") && x.finished_at.as_deref().map(|t| t > recent.as_str()).unwrap_or(false) && x.error.as_deref().map(limit_text).unwrap_or(false))
+    }) || runs.iter().filter(|x| x.status == "failed" && x.engine.as_deref() != Some("ollama") && x.finished_at.as_deref().map(|t| t > twenty.as_str()).unwrap_or(false)
+        && x.error.as_deref().map(|e| e.contains("No response for a while") || e.contains("no result line")).unwrap_or(false)).count() >= 2
+}
 
 /// Agents that use Claude for a while in "Mostly local" because the local
 /// model kept failing their jobs (runs/claude_for.json: agent -> until).
