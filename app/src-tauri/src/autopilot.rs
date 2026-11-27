@@ -496,7 +496,7 @@ pub fn loop_guard(all: &[Change], agent: &str, job: &str, key: &str) -> Option<S
     }
     let norm = |t: &str| t.to_lowercase().split_whitespace().take(40).collect::<Vec<_>>().join(" ");
     let me = norm(job);
-    if recent.iter().filter(|c| c.agent == agent && c.key.as_deref() != Some(key) && norm(&c.text) == me).count() >= LOOP_SAME_TEXT {
+    if !key.starts_with("quality/") && recent.iter().filter(|c| c.agent == agent && c.key.as_deref() != Some(key) && norm(&c.text) == me).count() >= LOOP_SAME_TEXT {
         return Some(format!("was given the same work {LOOP_SAME_TEXT} times in a day"));
     }
     // A step's own planned jobs (key "design/0/1") are the real work: the
@@ -989,13 +989,26 @@ fn quality_step(root: &Path, a: &mut Autopilot, i: usize, all: &[Change]) {
         let _ = queue(root, a, "quality", "director", &format!("{BENCH_JOB}{research}"), &bench_key, 0, "autopilot", None, "change");
         return;
     };
-    if bench.status != "done" {
-        return; // running, or being retried by on_finish
+    if open(&bench) {
+        return; // running or waiting to run
+    }
+    let skipped = bench.summary.as_deref().map(|t| t.starts_with("Skipped")).unwrap_or(false);
+    if bench.status != "done" || skipped {
+        // Failed for good (no retry or rescue is waiting): start the next
+        // round's benchmark instead of waiting forever for this one.
+        let retrying = lat.iter().any(|c| open(c) && c.key.as_deref().map(|k| k.ends_with(&bench_key)).unwrap_or(false));
+        if !retrying {
+            a.milestones[i].round = r + 1;
+            post(a, "autopilot", Some("director"), &format!("The round {r} benchmark did not finish; starting round {} fresh.", r + 1));
+        }
+        return;
     }
     let dir = root.join("runs").join(&bench.run_id);
     let Some((overall, lowest, gaps, vs)) = read_benchmark(&dir) else {
         // Done but no readable benchmark.json: do it again.
-        let _ = queue(root, a, "quality", "director", BENCH_JOB, &bench_key, bench.attempt + 1, "autopilot", Some("benchmark.json was missing or not in the required shape (at least 5 areas scored 0 to 10, overall, gaps). Write it exactly as described."), "change");
+        if queue(root, a, "quality", "director", BENCH_JOB, &bench_key, bench.attempt + 1, "autopilot", Some("benchmark.json was missing or not in the required shape (at least 5 areas scored 0 to 10, overall, gaps). Write it exactly as described."), "change").is_err() {
+            a.milestones[i].round = r + 1;
+        }
         return;
     };
     let fix_keys: Vec<String> = lat.iter().filter_map(|c| c.key.clone()).filter(|k| k.starts_with(&format!("quality/{r}/fix/"))).collect();
@@ -1821,6 +1834,32 @@ mod tests {
         let g = load(&root, &a.slug).unwrap();
         let _ = fs::remove_dir_all(&root);
         g
+    }
+
+    #[test]
+    fn the_quality_loop_never_waits_on_a_benchmark_that_failed_for_good() {
+        let root = studio();
+        let a = start(&root, "Bench Game", "Catch falling stars.", 0.0, None).unwrap();
+        let mut g = load(&root, &a.slug).unwrap();
+        for m in g.milestones.iter_mut() { if m.id != "quality" && m.id != "polish" { m.status = "approved".into(); } }
+        save(&root, &g).unwrap();
+        for c in queued(&root, &a.slug) { changes::update_for_test(&root, &c.id, |x| x.status = "cancelled".into()); }
+        advance(&root, &a.slug);
+        let start_round = load(&root, &a.slug).unwrap().milestones.iter().find(|m| m.id == "quality").unwrap().round;
+        // Everything in the quality loop fails, forever.
+        for _ in 0..80 {
+            let q = queued(&root, &a.slug);
+            if q.is_empty() { advance(&root, &a.slug); if queued(&root, &a.slug).is_empty() { break; } continue; }
+            for c in q { finish_as(&root, &c, "failed", "benchmark.json"); }
+            let r = load(&root, &a.slug).unwrap().milestones.iter().find(|m| m.id == "quality").unwrap().round;
+            if r > start_round { break; }
+        }
+        let g = load(&root, &a.slug).unwrap();
+        let q = g.milestones.iter().find(|m| m.id == "quality").unwrap();
+        assert!(q.round > start_round, "a failed benchmark starts the next round: {:?}", g.board.iter().rev().take(5).map(|b| b.text.clone()).collect::<Vec<_>>());
+        advance(&root, &a.slug);
+        assert!(!queued(&root, &a.slug).is_empty(), "and the next round has work queued");
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]
