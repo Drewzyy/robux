@@ -576,3 +576,8 @@ img.lazy.in { opacity: 1; }
 .board-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; }
 .board-bar .btn { padding: 2px 10px; }
 @media (max-width: 900px) { .board { grid-template-columns: 1fr; } .board-cell { grid-column: span 1 !important; } }
+
+.quick-update { background: none; border: 0; color: #8E8E93; cursor: pointer; font-size: 13px; padding: 0 4px; line-height: 1; vertical-align: middle; }
+.quick-update:hover { color: inherit; }
+.quick-update.spinning { animation: qu-spin 0.9s linear infinite; pointer-events: none; }
+@keyframes qu-spin { to { transform: rotate(360deg); } }

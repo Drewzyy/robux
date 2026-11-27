@@ -2692,4 +2692,19 @@ document.querySelectorAll("[data-icon]").forEach((n) => (n.innerHTML = ICONS[n.d
 refreshClaude();
 refreshStatus();
 route();
+// One-click update next to the version: check, then install and restart.
+(() => {
+  const b = $("quick-update");
+  if (!b) return;
+  b.addEventListener("click", async () => {
+    if (b.classList.contains("spinning")) return;
+    b.classList.add("spinning");
+    try {
+      const st = await invoke("update_check");
+      if (!st.can_update) { toast(st.behind ? st.message : `Up to date (${st.local}).`); b.classList.remove("spinning"); return; }
+      toast(`Updating to ${st.remote}. BrewixGames restarts by itself.`);
+      await invoke("update_apply");
+    } catch (e) { toast(String(e), true); b.classList.remove("spinning"); }
+  });
+})();
 invoke("studio_info").then((i) => { const v = $("app-version"); if (v && i.build) v.textContent = i.build.startsWith("v") ? i.build : ""; }).catch(() => {});
