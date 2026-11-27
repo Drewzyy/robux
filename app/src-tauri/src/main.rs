@@ -788,6 +788,9 @@ async fn ollama_status() -> ollama::Status {
 async fn ollama_pull(app: AppHandle, model: String) -> Result<(), String> {
     std::thread::spawn(move || {
         let app2 = app.clone();
+        // Download into the folder chosen in Settings.
+        let _ = app2.emit("ollama-line", json!({ "model": model, "line": "Starting Ollama with your model folder" }));
+        ollama::use_models_dir();
         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ollama::pull(&model, &mut |l| {
             let _ = app2.emit("ollama-line", json!({ "model": model, "line": l }));
         }))).unwrap_or_else(|_| Err("the download stopped unexpectedly; press Download again".into()));
@@ -1363,6 +1366,10 @@ fn main() {
             let h = app.handle().clone();
             std::thread::spawn(move || {
                 // Open Roblox Studio and Blender with the app when they are switched on.
+                // A chosen model folder: run Ollama with it from the start.
+                if !settings::load().ollama_models_dir.trim().is_empty() && settings::load().engine != "claude" {
+                    ollama::use_models_dir();
+                }
                 let opened = studio_core::connect::open_needed();
                 if !opened.is_empty() {
                     let _ = h.emit("apps-opened", json!({ "apps": opened }));

@@ -2154,6 +2154,11 @@ function localModelRows(s, o, save) {
   return [
     el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Ollama"), el("div", { class: "hint", id: "ollama-status" }, o.message)),
       el("span", { class: "note" }, [o.version ? `v${o.version}` : "not running", o.memory_gb ? `${o.memory_gb} GB memory` : ""].filter(Boolean).join(" · "))),
+    el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Model folder"),
+        el("div", { class: "hint", id: "ollama-dir" }, s.ollama_models_dir ? `Downloads go to ${s.ollama_models_dir}` : "Ollama's default folder (on your system drive). Choose another drive if it is low on space.")),
+      el("div", { class: "inline" },
+        el("button", { class: "btn secondary", id: "ollama-dir-pick", onclick: async () => { const f = await invoke("pick_folder").catch(() => null); if (!f) return; await save({ ollama_models_dir: f }, `Models download to ${f}. Models already downloaded stay where they are; download them again here to move them.`); } }, "Choose Folder"),
+        s.ollama_models_dir ? el("button", { class: "btn secondary", onclick: () => save({ ollama_models_dir: "" }, "Back to Ollama's default folder.") }, "Default") : null)),
     el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Local model"), info),
       el("div", { class: "inline" }, pick, dl, el("button", { class: "btn secondary", id: "ollama-save", onclick: () => save({ ollama_model: pick.value }, "Local model saved.") }, "Use")))];
 }

@@ -55,6 +55,9 @@ pub struct Settings {
     /// Local model name for the Ollama engine, e.g. "qwen3-coder".
     #[serde(default)]
     pub ollama_model: String,
+    /// Folder for the local models (they are several GB). Empty: Ollama's default.
+    #[serde(default)]
+    pub ollama_models_dir: String,
     /// Roblox Studio connection: "off" (default), "studio" (Roblox's Studio
     /// MCP server on this computer), or "mock" (built-in stand-in).
     #[serde(default = "default_studio_mcp")]
@@ -150,6 +153,7 @@ impl Default for Settings {
             notify: NotifyPrefs::default(),
             engine: default_engine(),
             ollama_model: String::new(),
+            ollama_models_dir: String::new(),
             studio_mcp: default_studio_mcp(),
             studio_mcp_path: String::new(),
             blender_mcp: default_studio_mcp(),

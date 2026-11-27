@@ -259,7 +259,13 @@ pub fn ensure_running() -> bool {
         return true;
     }
     let Some(bin) = binary() else { return false };
-    if crate::paths::low_priority(&bin).arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string())
+    let mut cmd = crate::paths::low_priority(&bin);
+    let dir = crate::settings::load().ollama_models_dir;
+    if !dir.trim().is_empty() {
+        let _ = std::fs::create_dir_all(dir.trim());
+        cmd.env("OLLAMA_MODELS", dir.trim());
+    }
+    if cmd.arg("serve").env("OLLAMA_CONTEXT_LENGTH", context_tokens().to_string())
         // Memory: one model and one conversation at a time, a compact
         // memory window (q8 halves it), and the model unloads after 5 idle
         // minutes so the computer gets its RAM back.
@@ -278,6 +284,30 @@ pub fn ensure_running() -> bool {
         }
     }
     false
+}
+
+/// Use the chosen model folder: an Ollama that BrewixGames did not start
+/// (the tray app) ignores it, so close it and start Ollama with the folder.
+pub fn use_models_dir() {
+    if crate::settings::load().ollama_models_dir.trim().is_empty() || STARTED_BY_US.load(std::sync::atomic::Ordering::Relaxed) {
+        ensure_running();
+        return;
+    }
+    restart();
+}
+
+/// Close Ollama and start it again with BrewixGames' settings.
+pub fn restart() {
+    if cfg!(windows) {
+        for name in ["ollama app.exe", "ollama.exe"] {
+            let _ = crate::paths::command("taskkill").args(["/IM", name, "/F"]).output();
+        }
+    } else {
+        let _ = crate::paths::command("pkill").args(["-x", "ollama"]).output();
+    }
+    STARTED_BY_US.store(false, std::sync::atomic::Ordering::Relaxed);
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    ensure_running();
 }
 
 /// True once this app run started Ollama itself (with our settings).
