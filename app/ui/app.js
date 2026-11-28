@@ -2157,12 +2157,14 @@ function localModelRows(s, o, save) {
     el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Model folder"),
         el("div", { class: "hint", id: "ollama-dir" }, s.ollama_models_dir ? `Downloads go to ${s.ollama_models_dir}` : "Ollama's default folder (on your system drive). Choose another drive if it is low on space.")),
       el("div", { class: "inline" },
+        el("button", { class: "btn primary", id: "ollama-move", title: "Moves the models already downloaded into the studio folder's drive and uses that folder from now on", onclick: async (ev) => { ev.target.disabled = true; try { toast(await invoke("ollama_move_models")); } catch (e) { toast(String(e), true); ev.target.disabled = false; } } }, "Move to Studio Drive"),
         el("button", { class: "btn secondary", id: "ollama-dir-pick", onclick: async () => { const f = await invoke("pick_folder").catch(() => null); if (!f) return; await save({ ollama_models_dir: f }, `Models download to ${f}. Models already downloaded stay where they are; download them again here to move them.`); } }, "Choose Folder"),
         s.ollama_models_dir ? el("button", { class: "btn secondary", onclick: () => save({ ollama_models_dir: "" }, "Back to Ollama's default folder.") }, "Default") : null)),
     el("div", { class: "srow" }, el("div", { class: "grow" }, el("div", { class: "label" }, "Local model"), info),
       el("div", { class: "inline" }, pick, dl, el("button", { class: "btn secondary", id: "ollama-save", onclick: () => save({ ollama_model: pick.value }, "Local model saved.") }, "Use")))];
 }
 T.event.listen("ollama-line", (ev) => { const n = $("ollama-info"); if (n) n.textContent = `Downloading ${ev.payload.model}: ${ev.payload.line}`; });
+T.event.listen("ollama-moved", (ev) => { toast(ev.payload.ok ? `Local models moved to ${ev.payload.to}.` : "Could not move the models; nothing was deleted. Close Ollama and try again.", !ev.payload.ok); if ((location.hash || "") === "#settings") viewSettings(); });
 T.event.listen("ollama-done", (ev) => {
   state.ollamaPull = null;
   if (ev.payload.error) toast(`Download failed: ${ev.payload.error}`, true); else toast(`${ev.payload.model} is downloaded.`);

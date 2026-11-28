@@ -840,6 +840,43 @@ async fn project_open_in_studio(project: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || studio::open_in_studio(&r, &project)).await.map_err(|e| e.to_string())?
 }
 
+/// Move the downloaded local models next to the studio folder (its drive)
+/// and use that folder from now on. Runs in the background.
+#[tauri::command]
+async fn ollama_move_models(app: AppHandle) -> Result<String, String> {
+    let r = root()?;
+    let dest = r.join("ollama-models");
+    let src = paths::default_ollama_models().ok_or("could not find Ollama's model folder")?;
+    let cur = settings::load().ollama_models_dir;
+    let from = if cur.trim().is_empty() { src } else { std::path::PathBuf::from(cur.trim()) };
+    if from == dest {
+        return Ok(format!("Models are already in {}.", dest.display()));
+    }
+    std::thread::spawn(move || {
+        // Ollama must not hold the files while they move.
+        if cfg!(windows) {
+            for name in ["ollama app.exe", "ollama.exe"] {
+                let _ = paths::command("taskkill").args(["/IM", name, "/F"]).output();
+            }
+        }
+        let _ = std::fs::create_dir_all(&dest);
+        let ok = if cfg!(windows) {
+            // robocopy exit codes below 8 mean success.
+            paths::command("robocopy").arg(&from).arg(&dest).args(["/E", "/MOVE", "/R:2", "/W:2", "/NP", "/NFL", "/NDL"]).status().map(|s| s.code().unwrap_or(16) < 8).unwrap_or(false)
+        } else {
+            paths::command("cp").arg("-a").arg(format!("{}/.", from.display())).arg(&dest).status().map(|s| s.success()).unwrap_or(false)
+        };
+        let mut st = settings::load();
+        if ok {
+            st.ollama_models_dir = dest.display().to_string();
+            let _ = settings::save(&st);
+        }
+        ollama::restart();
+        let _ = app.emit("ollama-moved", json!({ "ok": ok, "to": dest.display().to_string() }));
+    });
+    Ok("Moving the local models; this can take a few minutes for several GB.".into())
+}
+
 #[tauri::command]
 async fn studio_move(dest: String) -> Result<String, String> {
     if !bridge::running().is_empty() {
@@ -1218,6 +1255,8 @@ async fn update_apply(app: AppHandle) -> Result<(), String> {
 fn main() {
     // `brewix gate ...` / `brewix hook-log`: headless helpers agents call.
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // Caches and temp files go on the studio folder's drive, not C:.
+    studio_core::paths::use_studio_drive();
     if let Some(code) = studio_core::gates::cli(&args) {
         std::process::exit(code);
     }
@@ -1298,6 +1337,7 @@ fn main() {
             blender_addon_get,
             project_open_in_studio,
             studio_move,
+            ollama_move_models,
             uv_install,
             tools_dir_get,
             pitches_latest,

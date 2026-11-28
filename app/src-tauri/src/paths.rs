@@ -390,3 +390,27 @@ pub fn newest_mtime(dir: &std::path::Path) -> Option<std::time::SystemTime> {
     }
     best
 }
+
+
+/// Keep the app's caches and temporary files on the same drive as the
+/// studio folder (Andrew keeps everything on D:), not in C:\Users. Covers
+/// what the app and its tools write: uv (the Blender connection), npm
+/// (Claude Code installs), temp files, and the default model folder.
+pub fn use_studio_drive() {
+    let Ok(root) = studio_root() else { return };
+    let cache = root.join("cache");
+    for (var, sub) in [("UV_CACHE_DIR", "uv"), ("UV_TOOL_DIR", "uv-tools"), ("UV_PYTHON_INSTALL_DIR", "uv-python"), ("NPM_CONFIG_CACHE", "npm"), ("TEMP", "temp"), ("TMP", "temp"), ("TMPDIR", "temp")] {
+        let d = cache.join(sub);
+        if std::fs::create_dir_all(&d).is_ok() {
+            std::env::set_var(var, &d);
+        }
+    }
+}
+
+/// Where Ollama keeps models when nothing was chosen.
+pub fn default_ollama_models() -> Option<PathBuf> {
+    if let Some(d) = std::env::var_os("OLLAMA_MODELS") {
+        return Some(PathBuf::from(d));
+    }
+    home().map(|h| h.join(".ollama").join("models"))
+}
